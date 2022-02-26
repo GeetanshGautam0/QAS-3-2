@@ -1,6 +1,6 @@
 from qa_custom import *
 from qa_err import raise_error
-import qa_info, os, random, hashlib, time, shutil, traceback
+import qa_info, os, random, hashlib, time, shutil, traceback, qa_std
 
 
 class Save:
@@ -149,7 +149,40 @@ class Save:
         :return: None
         """
 
-        pass
+        if not _bypass_checks:
+            Save._path_check(file_obj)
+        else:
+            Save._path_check(file_obj, _mk_dir_only=True)  # Needs to be done every time.
+
+        output_type = args.save_data_type
+        assert output_type in (bytes, str), "Output data type can only be `str` or `bytes`"
+
+        new_data = data_type_converter(data, output_type, ConverterFunctionArguments(
+            args.list_val_sep, args.dict_key_val_sep, args.dict_line_sep
+        ))
+
+        if args.append:
+            with open(file_obj.file_path, 'rb') as source_file:
+                original_data = source_file.read().strip()
+                source_file.close()
+
+            original_data = data_type_converter(original_data, output_type, ConverterFunctionArguments(
+                args.list_val_sep, args.dict_key_val_sep, args.dict_line_sep
+            ))
+            separator = data_type_converter(args.new_old_data_sep, output_type, ConverterFunctionArguments(
+                args.list_val_sep, args.dict_key_val_sep, args.dict_line_sep
+            ))
+
+            original_data += separator
+
+        else:
+            original_data = "" if output_type is str else "".encode(qa_info.App.ENCODING)
+
+        d2s = (original_data + new_data).replace('\r\n', '\n').strip()
+
+        with open(file_obj.file_path, 'w' if output_type is str else 'wb') as output_file:
+            output_file.write(d2s)
+            output_file.close()
 
 
 def data_type_converter(
@@ -159,10 +192,37 @@ def data_type_converter(
 ) -> \
         Union[str, bytes, list, tuple, set, dict, int, float]:
 
+    if isinstance(original, output_type):
+        if isinstance(original, bytes):
+
+            print("mapping encoding")
+
+            # Check encoding
+            exp = qa_info.App.ENCODING
+            try:
+                original.decode(exp)
+                return original     # All good
+
+            except:
+                try:
+                    _, s = qa_std.brute_force_decoding(original, (exp, ))
+                    return s.encode(exp)
+
+                except:
+                    raise_error(
+                        UnicodeEncodeError, ("Encoding for given bytes data not known", ), ErrorLevels.NON_FATAL
+                    )
+
+        else:
+            return original
+
     accepted_input = (str, bytes, list, tuple, set, dict, int, float)
     assert type(original) in accepted_input, "Original data type not supported"
 
     original_type = type(original)
+
+    def RE(e):
+        raise_error(TypeError, (f"Failed to convert from {original_type} to {output_type} for given data: {str(e)}",), ErrorLevels.NON_FATAL)
 
     multi = (list, tuple, set, dict)
     single = (str, bytes, int, float)
@@ -172,11 +232,44 @@ def data_type_converter(
             pass
 
         elif output_type in single:  # DONE
-            try:
-                return output_type(original)
+            if output_type in (int, float) and original_type is str:
+                try:
+                    return output_type(original)
 
-            except Exception as E:
-                raise_error(TypeError, (f"Cannot convert from {original_type} to {output_type} for given data", ), ErrorLevels.NON_FATAL)
+                except Exception as E:
+                    RE(E)
+
+            elif output_type in (int, float) and original_type is bytes:
+                s = None
+
+                try:
+                    s = original.decode(qa_info.App.ENCODING)
+                except:
+                    try:
+                        _, s = qa_std.brute_force_decoding(original, (qa_info.App.ENCODING, ))
+
+                    except Exception as E:
+                        RE(E)
+
+                if s is not None:
+                    try:
+                        output_type(s)
+                    except Exception as E:
+                        RE(E)
+
+            elif output_type is bytes and original_type is str:
+                return original.encode(qa_info.App.ENCODING)
+
+            elif output_type is str and original_type is bytes:
+                try:
+                    o = original.decode(qa_info.App.ENCODING)
+                    return o
+                except:
+                    try:
+                        _, s = qa_std.brute_force_decoding(original, (qa_info.App.ENCODING, ))
+                        return s
+                    except:
+                        RE("Unknown encoding for given bytes data.")
 
         else:
             assert False, "unreachable"

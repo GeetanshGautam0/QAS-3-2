@@ -255,3 +255,41 @@ def copy_to_clipboard(text: str, shell: tk.Toplevel, clear_old: bool = True):
 
     shell.clipboard_append(text)
     shell.update()
+
+
+def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str], extra_encodings_to_try: tuple = ()) -> Tuple[str, str]:
+    """
+
+    **BRUTE_FORCE_DECODING**
+
+    Will attempt to decode the given bytes data;
+    Tries the following encodings:
+
+    * UTF-7
+    * UTF-8
+    * UTF-16
+    * UTF-32
+
+    Will raise exception if no encodings work
+
+    :param data: Read the name
+    :param excluded_encodings: Read the name
+    :param extra_encodings_to_try: Read the name
+    :return: (encoding used, string) **
+    """
+
+    encodings = ('UTF-7', 'UTF-8', 'UTF-16', 'UTF-32', *extra_encodings_to_try)
+    for encoding in encodings:
+        if encoding in excluded_encodings:
+            continue
+
+        try:
+            s = data.decode(encoding)
+
+        except:
+            continue
+
+        return encoding, s
+
+    raise Exception("encoding not found")
+

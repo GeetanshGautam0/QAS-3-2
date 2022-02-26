@@ -30,6 +30,8 @@ class SaveFunctionArguments:
     dict_key_val_sep: str = " "
     dict_line_sep: str = "\n"
 
+    new_old_data_sep: str = "\n"
+
     save_data_type: Union[str, bytes] = str
 
 
