@@ -141,10 +141,7 @@ def split_filename_direc(file_path: str) -> Tuple[str, str]:
     :return: Tuple [Path, Filename]
     """
 
-    assert isinstance(file_path, str), "Invalid file path provided."
-
-    tokens = file_path.replace("\\", '/').split('/')
-    return "\\".join(i for i in tokens[:-1:]), tokens[-1]
+    return File.split_file_path(file_path)
 
 
 def dict_check_redundant_data_inter_dict(dic: dict, dic2: dict, root_name: str = '<root>') -> tuple:

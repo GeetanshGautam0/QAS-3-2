@@ -26,3 +26,8 @@ class CLI(Enum):
     COMMAND = 1
     ARGUMENT = 2
 
+
+class ErrorLevels(Enum):
+    FATAL = 0
+    NON_FATAL = 1
+

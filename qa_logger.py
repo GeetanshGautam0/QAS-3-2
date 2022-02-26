@@ -30,7 +30,7 @@ class _MultiThreadingLogger(threading.Thread):
                 f"[{LEVELS[self.level]}] {time.ctime(time.time())} {self.data}\n"
             )
 
-        Save.secure_save(
+        Save.secure(
             self.file_path,
             f"[{LEVELS[self.level]}] {time.ctime(time.time())} {self.data}\n"
         )
@@ -76,7 +76,7 @@ def normal_logger(logging_package: List[LoggingPackage]) -> None:
                 f"[{LEVELS[package.logging_level]}] {time.ctime(time.time())} {package.data.strip()}\n"
             )
 
-        Save.secure_save(
+        Save.secure(
             package.file_path,
             f"[{LEVELS[package.logging_level]}] {time.ctime(time.time())} {package.data.strip()}\n"
         )
