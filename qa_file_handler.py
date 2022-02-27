@@ -1,6 +1,7 @@
 from qa_custom import *
 from qa_err import raise_error
 import qa_info, os, random, hashlib, time, shutil, traceback, qa_std
+from cryptography.fernet import Fernet, InvalidToken
 
 
 class Save:
@@ -79,7 +80,7 @@ class Save:
                 if os.path.exists(file_obj.file_path):
                     os.remove(file_obj.file_path)
 
-                raise_error(CannotSave, ("Failed to save data to requested file", ), ErrorLevels.NON_FATAL, traceback.format_exc())
+                raise_error(CannotSave, ("Failed to save data to requested file",), ErrorLevels.NON_FATAL, traceback.format_exc())
 
             else:
                 # Restore backup
@@ -114,7 +115,7 @@ class Save:
 
                 except:
                     raise_error(
-                        CannotSave, ("Failed to save data to file AND failed to restore backup", ), ErrorLevels.NON_FATAL, traceback.format_exc()
+                        CannotSave, ("Failed to save data to file AND failed to restore backup",), ErrorLevels.NON_FATAL, traceback.format_exc()
                     )
 
         # 2(b) --> Step 3: Delete backup if requested
@@ -149,37 +150,115 @@ class Save:
         :return: None
         """
 
-        if not _bypass_checks:
-            Save._path_check(file_obj)
-        else:
-            Save._path_check(file_obj, _mk_dir_only=True)  # Needs to be done every time.
+        Save._path_check(file_obj, _mk_dir_only=_bypass_checks)  # Needs to be done every time.
 
         output_type = args.save_data_type
+        if args.encrypt:
+            args.save_data_type = bytes
+            output_type = bytes
+
         assert output_type in (bytes, str), "Output data type can only be `str` or `bytes`"
 
-        new_data = data_type_converter(data, output_type, ConverterFunctionArguments(
-            args.list_val_sep, args.dict_key_val_sep, args.dict_line_sep
-        ))
+        cfa = ConverterFunctionArguments(
+            args.list_val_sep,
+            args.dict_key_val_sep,
+            args.dict_line_sep
+        )
+
+        new_data = dtc(data, output_type, cfa)
 
         if args.append:
             with open(file_obj.file_path, 'rb') as source_file:
                 original_data = source_file.read().strip()
                 source_file.close()
 
-            original_data = data_type_converter(original_data, output_type, ConverterFunctionArguments(
-                args.list_val_sep, args.dict_key_val_sep, args.dict_line_sep
-            ))
-            separator = data_type_converter(args.new_old_data_sep, output_type, ConverterFunctionArguments(
-                args.list_val_sep, args.dict_key_val_sep, args.dict_line_sep
-            ))
-
-            original_data += separator
+            original_data = dtc(original_data, output_type, cfa)
+            separator = dtc(args.new_old_data_sep, output_type, cfa)
 
         else:
             original_data = "" if output_type is str else "".encode(qa_info.App.ENCODING)
+            separator = "" if output_type is str else "".encode(qa_info.App.ENCODING)
 
-        d2s = (original_data + new_data).replace('\r\n', '\n').strip()
+        if args.encrypt:
+            if len(original_data.strip()) > 0:
+                new_data = _Crypt.save_sr_append_data(original_data, new_data, separator, args.encryption_key, cfa)
+
+            d2s = _Crypt.encrypt(new_data, args.encryption_key, cfa)
+
+        else:
+            d2s = (original_data + separator + new_data).replace(
+                dtc('\r\n', output_type, cfa),
+                dtc('\n', output_type, cfa)
+            ).strip()
 
         with open(file_obj.file_path, 'w' if output_type is str else 'wb') as output_file:
             output_file.write(d2s)
             output_file.close()
+
+
+class _Crypt:
+    @staticmethod
+    def _make_fernet(key: bytes):  # Run any desired checks
+        assert isinstance(key, bytes)
+        assert len(key) == 44
+
+        return Fernet(key)
+
+    @staticmethod
+    def encrypt(data: any, key: bytes, cfa: ConverterFunctionArguments = ConverterFunctionArguments(), silent=False):
+        fer = _Crypt._make_fernet(key)
+        b_data: bytes = dtc(data, bytes, cfa)
+
+        try:
+            return fer.encrypt(b_data)
+        except Exception as E:
+            if not silent:
+                raise_error(EncryptionError, (f"Failed to encrypt data; {str(E)}", ), ErrorLevels.NON_FATAL, traceback.format_exc())
+            return False
+
+    @staticmethod
+    def decrypt(data: any, key: bytes, cfa: ConverterFunctionArguments = ConverterFunctionArguments(), silent=False):
+        fer = _Crypt._make_fernet(key)
+        b_data: bytes = dtc(data, bytes, cfa)
+
+        try:
+            return fer.decrypt(b_data)
+        except InvalidToken:
+            if not silent:
+                raise_error(EncryptionError, ("Failed to decrypt data; InvalidToken exception", ), ErrorLevels.NON_FATAL)
+            return False
+
+    @staticmethod
+    def save_sr_append_data(old_data: any, new_data: any, sep: any, key: bytes, cfa: ConverterFunctionArguments = ConverterFunctionArguments()) -> bytes:
+        od = dtc(old_data, bytes, cfa)
+        nd = dtc(new_data, bytes, cfa)
+        sd = dtc(sep,      bytes, cfa)
+
+        nod: bytes = b""
+        nnd: bytes = b""
+        nsd: bytes = b""
+
+        try:
+            nod = _Crypt.decrypt(od, key, cfa, True)
+        except Exception as E:
+            raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL, traceback.format_exc())
+
+        try:
+            nnd = _Crypt.decrypt(nd, key, cfa, True)
+        except Exception as E:
+            raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL)
+
+        try:
+            nsd = _Crypt.decrypt(sd, key, cfa, True)
+        except Exception as E:
+            raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL)
+
+        nod = nod if nod else od
+        nnd = nnd if nnd else nd
+        nsd = nsd if nsd else sd
+
+        return nod + nsd + nnd
+
+
+def dtc(od, tp, cfa):
+    return qa_std.data_type_converter(od, tp, cfa)

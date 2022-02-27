@@ -32,7 +32,7 @@ class SaveFunctionArguments:
 
     new_old_data_sep: str = "\n"
 
-    save_data_type: Union[str, bytes] = str
+    save_data_type: Union[str, bytes] = bytes
 
 
 @dataclass
@@ -86,3 +86,9 @@ class UnexpectedEdgeCase(Exception):
         return self.str
 
 
+class EncryptionError(Exception):
+    def __init__(self, string: str = ""):
+        self.str = string
+
+    def __str__(self):
+        return self.str
