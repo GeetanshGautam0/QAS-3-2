@@ -76,3 +76,13 @@ class CannotSave(Exception):
 
     def __str__(self):
         return self.str
+
+
+class UnexpectedEdgeCase(Exception):
+    def __init__(self, string: str = ""):
+        self.str = string
+
+    def __str__(self):
+        return self.str
+
+

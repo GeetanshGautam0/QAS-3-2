@@ -192,11 +192,10 @@ def data_type_converter(
 ) -> \
         Union[str, bytes, list, tuple, set, dict, int, float]:
 
+    # TODO: Add descriptions to UnexpectedEdgeCase exceptions
+
     if isinstance(original, output_type):
         if isinstance(original, bytes):
-
-            print("mapping encoding")
-
             # Check encoding
             exp = qa_info.App.ENCODING
             try:
@@ -228,18 +227,44 @@ def data_type_converter(
     single = (str, bytes, int, float)
 
     if original_type in single:
-        if output_type in multi:  # TODO
-            pass
+        if output_type in multi:
+            assert original_type not in (float, int), "Unsupported conversion (Int/Float => List/Tuple/Set/Dict)"
+
+            if output_type in (list, tuple, set):
+                ns = data_type_converter(cfa.list_line_sep, original_type, cfa)
+                no = data_type_converter(original, original_type, cfa)  # For bytes encoding
+
+                o = no.split(ns)
+                return output_type(o)
+
+            elif output_type is dict:
+                ns = data_type_converter(cfa.dict_line_sep, original_type, cfa)
+                no = data_type_converter(original, original_type, cfa)  # For bytes encoding
+
+                o = no.split(ns)
+                o1 = {}
+
+                for item in o:
+                    k, v = \
+                        item.split(cfa.dict_key_val_sep)[0], \
+                        item.replace(item.split(cfa.dict_key_val_sep)[0], data_type_converter('', original_type, cfa), 1).lstrip()
+
+                    o1[k] = v
+
+                return o1
+
+            else:
+                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
         elif output_type in single:  # DONE
-            if output_type in (int, float) and original_type is str:
+            if output_type in (int, float) and original_type is str:  # DONE ?
                 try:
-                    return output_type(original)
+                    return output_type(float(original))
 
                 except Exception as E:
                     RE(E)
 
-            elif output_type in (int, float) and original_type is bytes:
+            elif output_type in (int, float) and original_type is bytes:  # DONE ?
                 s = None
 
                 try:
@@ -257,10 +282,10 @@ def data_type_converter(
                     except Exception as E:
                         RE(E)
 
-            elif output_type is bytes and original_type is str:
+            elif output_type is bytes and original_type is str:  # DONE
                 return original.encode(qa_info.App.ENCODING)
 
-            elif output_type is str and original_type is bytes:
+            elif output_type is str and original_type is bytes:  # DONE
                 try:
                     o = original.decode(qa_info.App.ENCODING)
                     return o
@@ -271,19 +296,126 @@ def data_type_converter(
                     except:
                         RE("Unknown encoding for given bytes data.")
 
+            elif output_type in (str, bytes) and original_type in (int, float):
+                o1 = str(original)
+                return o1 if output_type is str else o1.encode(qa_info.App.ENCODING)
+
+            elif output_type in (int, float) and original_type in (int, float):
+                return output_type(original)
+
+            else:
+                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
         else:
-            assert False, "unreachable"
+            raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
     elif original_type in multi:
-        if output_type in multi:  # TODO
-            pass
+        if output_type in multi:
+            if original_type in (tuple, list, set):  # DONE
+                if output_type is dict:  # DONE
+                    o = {}
 
-        elif output_type in single:  # TODO
-            pass
+                    for item in original:
+                        n_item = data_type_converter(item, str, cfa)  # (Recursive)
+                        assert isinstance(n_item, str)
+
+                        str_tokens = n_item.split(cfa.dict_key_val_sep)
+                        k, v = str_tokens[0], n_item.replace(str_tokens[0], '', 1).lstrip()
+
+                        o[k] = v
+
+                    return o
+
+                elif output_type in (tuple, list, set):  # DONE
+                    return output_type([*original])
+
+                else:
+                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+            elif original_type is dict:  # DONE
+                if output_type in (list, tuple, set):  # DONE ?
+                    sep = cfa.dict_key_val_sep
+                    n_sep = data_type_converter(sep, str, cfa)
+
+                    if type(sep) not in (str, bytes):
+                        sep = n_sep
+
+                    o = []
+
+                    for ok, ov in original.items():
+                        k, v = \
+                            data_type_converter(ok, str, cfa), \
+                            data_type_converter(ov, str, cfa)
+
+                        o.append(data_type_converter(f"{k}{n_sep}{v}", type(sep), cfa))
+
+                    return output_type(o)  # Cast to appropriate type
+
+                else:
+                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+            else:
+                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+        elif output_type in single:
+            if original_type in (list, tuple, set):
+                if output_type in (float, int):
+                    try:
+                        return output_type(sum(original))
+                    except:
+                        acc = 0.0
+
+                        for item in original:
+                            acc += data_type_converter(item, float, cfa)
+
+                        return output_type(acc)
+
+                elif output_type in (str, bytes):
+                    o1 = ""
+                    for item in original:
+                        i2 = data_type_converter(item, str, cfa)
+                        o1 += f"{i2}{cfa.list_line_sep}"
+
+                    if output_type is str:
+                        return o1
+                    elif output_type is bytes:
+                        return o1.encode(qa_info.App.ENCODING)
+                    else:
+                        raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+                else:
+                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+            elif original_type is dict:
+                if output_type in (float, int):
+                    return output_type(sum(list(original.values())))
+
+                elif output_type in (str, bytes):
+                    o1 = ""
+
+                    for key, val in original.items():
+                        k2, v2 = \
+                            data_type_converter(key, str, cfa), \
+                            data_type_converter(val, str, cfa)
+
+                        o1 += f"{k2}{cfa.dict_key_val_sep}{v2}{cfa.dict_line_sep}"
+
+                    if output_type is str:
+                        return o1
+                    elif output_type is bytes:
+                        return o1.encode(qa_info.App.ENCODING)
+                    else:
+                        raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+                else:
+                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+            else:
+                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
         else:
-            assert False, "unreachable"
+            raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
     else:
-        assert False, "unreachable"
+        raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
