@@ -18,7 +18,8 @@ class HexColor:
 class LoggingPackage:
     logging_level: LoggingLevel
     data: str
-    file_path: str
+    file_name: str
+    script_name: str
 
 
 @dataclass

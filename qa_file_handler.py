@@ -1,6 +1,6 @@
 """
 Quizzing Application 3
-File IO Handler [Version 1]
+Module Name: File IO Handler (Version 1)
 
 Geetansh Gautam
 February 28, 2022
@@ -160,8 +160,11 @@ class Save:
                     )
 
         # 2(b) --> Step 3: Delete backup if requested
-        if args.delete_backup:
-            os.remove(backup_file)
+        try:
+            if args.delete_backup:
+                os.remove(backup_file)
+        except FileNotFoundError:
+            pass
 
         # Return success status
         return saved_successfully
@@ -197,6 +200,8 @@ class Save:
         if args.encrypt:
             args.save_data_type = bytes
             output_type = bytes
+
+        args.append &= os.path.isfile(file_obj.file_path)
 
         assert output_type in (bytes, str), "Output data type can only be `str` or `bytes`"
 

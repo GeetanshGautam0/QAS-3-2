@@ -1,39 +1,31 @@
 from qa_std import *
 from qa_file_handler import Save
 
-import threading, time, sys
+import threading, time, sys, qa_info as qi, os
 
 
 DEBUGGING_ENABLED = False
-
-LEVELS = {
-    LoggingLevel.INFO: "INFO",
-    LoggingLevel.WARNING: "WARNING",
-    LoggingLevel.ERROR: "ERROR",
-    LoggingLevel.DEBUG: "DEBUG",
-}
 
 
 class _MultiThreadingLogger(threading.Thread):
     def __init__(self, package: LoggingPackage):
         threading.Thread.__init__(self)
 
-        self.file_path = package.file_path
+        self.file = \
+            File(f"{qi.App.appdata_dir}\\{qi.Files.logs_folder}\\{package.file_name}.{qi.Extensions.Logging.extn_str}")
         self.data = package.data.strip()
         self.level = package.logging_level
+        self.s_name = package.script_name
 
     def run(self):
-        global LEVELS, DEBUGGING_ENABLED
+        global DEBUGGING_ENABLED
+
+        string = f"[{self.level.name}] <{self.s_name} @ {time.ctime(time.time())}>: {self.data}\n"
 
         if DEBUGGING_ENABLED:
-            sys.stdout.write(
-                f"[{LEVELS[self.level]}] {time.ctime(time.time())} {self.data}\n"
-            )
+            sys.stdout.write(string)
 
-        Save.secure(
-            self.file_path,
-            f"[{LEVELS[self.level]}] {time.ctime(time.time())} {self.data}\n"
-        )
+        Save.secure(self.file, string, SaveFunctionArgs(True, False, b"", True, True))
 
 
 def threaded_logger(logging_package: List[LoggingPackage]) -> None:
@@ -49,13 +41,13 @@ def threaded_logger(logging_package: List[LoggingPackage]) -> None:
     files = set()
 
     for package in logging_package:
-        if package.file_path in files:
-            sys.stdout.write(f"Skipped log for `{package.file_path}")
+        if package.file_name in files:
+            sys.stdout.write(f"Skipped log for `{package.file_name}")
             continue
 
         lgr = _MultiThreadingLogger(package)
         lgr.start()
-        files.add(package.file_path)
+        files.add(package.file_name)
 
     return
 
@@ -68,17 +60,50 @@ def normal_logger(logging_package: List[LoggingPackage]) -> None:
     :return: None
     """
 
-    global LEVELS, DEBUGGING_ENABLED
+    global DEBUGGING_ENABLED
 
     for package in logging_package:
-        if DEBUGGING_ENABLED:
-            sys.stdout.write(
-                f"[{LEVELS[package.logging_level]}] {time.ctime(time.time())} {package.data.strip()}\n"
-            )
-
-        Save.secure(
-            package.file_path,
-            f"[{LEVELS[package.logging_level]}] {time.ctime(time.time())} {package.data.strip()}\n"
+        file = File(
+            f"{qi.App.appdata_dir}\\{qi.Files.logs_folder}\\{package.file_name}.{qi.Extensions.Logging.extn_str}"
         )
 
+        string = f"[{package.logging_level.name}] <{package.script_name} @ {time.ctime(time.time())}>: {package.data.strip()}\n"
+
+        if DEBUGGING_ENABLED:
+            sys.stdout.write(string)
+
+        Save.secure(file, string, SaveFunctionArgs(True, False, b"", True, True))
+
     return
+
+
+def clear_logs(ignore_list: tuple = ()) -> bool:
+    """
+    **CLEAR_LOGS**
+
+    Clears logs folder
+
+    :param ignore_list: Files to ignore
+    :return: Bool: Successfully removed logs?
+    """
+
+    log_dir = f"{qi.App.appdata_dir}\\{qi.Files.logs_folder}"
+    b = True
+
+    for item in os.listdir(log_dir):
+        global DEBUGGING_ENABLED
+
+        path = f"{log_dir}\\{item}"
+
+        if item not in ignore_list and path not in ignore_list and os.path.isfile(path):
+            try:
+                os.remove(path)
+
+            except Exception as E:
+                if DEBUGGING_ENABLED:
+                    print(f"QA.Logger - Failed to remove file `{item}` - {E}")
+
+                b &= False
+
+    return b
+
