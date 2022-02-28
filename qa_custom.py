@@ -3,6 +3,10 @@ from dataclasses import dataclass
 from qa_enum import *
 
 
+# Globals
+_DEFAULT_DATA_TYPE = bytes
+
+
 # Data Classes
 
 @dataclass
@@ -18,7 +22,9 @@ class LoggingPackage:
 
 
 @dataclass
-class SaveFunctionArguments:
+class SaveFunctionArgs:
+    global _DEFAULT_DATA_TYPE
+
     append: bool
     encrypt: bool = False
     encryption_key: bytes = b''
@@ -32,15 +38,23 @@ class SaveFunctionArguments:
 
     new_old_data_sep: str = "\n"
 
-    save_data_type: Union[str, bytes] = bytes
+    save_data_type: Union[str, bytes] = _DEFAULT_DATA_TYPE
 
 
 @dataclass
-class ConverterFunctionArguments:
+class ConverterFunctionArgs:
     list_line_sep: str = "\n"
 
     dict_key_val_sep: str = " "
     dict_line_sep: str = "\n"
+
+
+@dataclass
+class OpenFunctionArgs:
+    global _DEFAULT_DATA_TYPE
+
+    d_type: Union[str, bytes] = bytes
+    lines_mode: bool = False
 
 
 # Instance Classes

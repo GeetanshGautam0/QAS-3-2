@@ -299,7 +299,7 @@ def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str], extra_enco
 def data_type_converter(
         original: Union[str, bytes, list, tuple, set, dict, int, float],
         output_type: type,
-        cfa: ConverterFunctionArguments
+        cfa: ConverterFunctionArgs
 ) -> \
         Union[str, bytes, list, tuple, set, dict, int, float]:
 

@@ -4,9 +4,38 @@ import qa_info, os, random, hashlib, time, shutil, traceback, qa_std
 from cryptography.fernet import Fernet, InvalidToken
 
 
+class Open:
+    @staticmethod
+    def load_file(file_obj: File, ofa: OpenFunctionArgs) -> Union[str, bytes]:
+        assert os.path.isfile(file_obj.file_path), "File does not exist."
+        assert ofa.d_type in (str, bytes), "Invalid data type requested."
+
+        with open(file_obj.file_path, 'r' if ofa.d_type is str else 'rb') as f:
+            o = f.readlines() if ofa.lines_mode else f.read()
+            f.close()
+
+        return o
+
+    @staticmethod
+    def read_file(file_obj: File, ofa: OpenFunctionArgs, enc_key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> Union[str, bytes]:
+        assert isinstance(enc_key, bytes)
+        assert len(enc_key) == 44
+
+        og_d_type = ofa.d_type
+        ofa.d_type = bytes
+        raw = Open.load_file(file_obj, ofa)
+
+        cfa = cfa
+
+        n = dtc(_Crypt.decrypt(raw, enc_key, cfa), og_d_type, cfa)
+        r = dtc(raw,                               og_d_type, cfa)
+
+        return n if n is not False else r
+
+
 class Save:
     @staticmethod
-    def secure(file_obj: File, data: any, args: SaveFunctionArguments) -> bool:
+    def secure(file_obj: File, data: any, args: SaveFunctionArgs) -> bool:
         """
         **SAVE.SECURE**
 
@@ -139,7 +168,7 @@ class Save:
         return None
 
     @staticmethod
-    def normal(file_obj: File, data: any, args: SaveFunctionArguments, _bypass_checks: bool = False) -> None:
+    def normal(file_obj: File, data: any, args: SaveFunctionArgs, _bypass_checks: bool = False) -> None:
         """
         **SAVE.NORMAL**
 
@@ -159,7 +188,7 @@ class Save:
 
         assert output_type in (bytes, str), "Output data type can only be `str` or `bytes`"
 
-        cfa = ConverterFunctionArguments(
+        cfa = ConverterFunctionArgs(
             args.list_val_sep,
             args.dict_key_val_sep,
             args.dict_line_sep
@@ -205,7 +234,7 @@ class _Crypt:
         return Fernet(key)
 
     @staticmethod
-    def encrypt(data: any, key: bytes, cfa: ConverterFunctionArguments = ConverterFunctionArguments(), silent=False):
+    def encrypt(data: any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
         fer = _Crypt._make_fernet(key)
         b_data: bytes = dtc(data, bytes, cfa)
 
@@ -217,7 +246,7 @@ class _Crypt:
             return False
 
     @staticmethod
-    def decrypt(data: any, key: bytes, cfa: ConverterFunctionArguments = ConverterFunctionArguments(), silent=False):
+    def decrypt(data: any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
         fer = _Crypt._make_fernet(key)
         b_data: bytes = dtc(data, bytes, cfa)
 
@@ -229,7 +258,7 @@ class _Crypt:
             return False
 
     @staticmethod
-    def save_sr_append_data(old_data: any, new_data: any, sep: any, key: bytes, cfa: ConverterFunctionArguments = ConverterFunctionArguments()) -> bytes:
+    def save_sr_append_data(old_data: any, new_data: any, sep: any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> bytes:
         od = dtc(old_data, bytes, cfa)
         nd = dtc(new_data, bytes, cfa)
         sd = dtc(sep,      bytes, cfa)
@@ -253,9 +282,9 @@ class _Crypt:
         except Exception as E:
             raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL)
 
-        nod = nod if nod else od
-        nnd = nnd if nnd else nd
-        nsd = nsd if nsd else sd
+        nod = nod if nod is not False else od
+        nnd = nnd if nnd is not False else nd
+        nsd = nsd if nsd is not False else sd
 
         return nod + nsd + nnd
 
