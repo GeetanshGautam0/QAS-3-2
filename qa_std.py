@@ -5,7 +5,7 @@ from qa_enum import *
 from typing import *
 from qa_custom import *
 from qa_err import raise_error
-import qa_info
+import qa_info, os, hashlib
 
 
 def float_map(value: float, input_min: float, input_max: float, output_min: float, output_max: float, allow_overflow: bool = False) -> float:
@@ -553,4 +553,11 @@ def data_type_converter(
         raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
 
+def create_script_hash(file_path):
+    assert os.path.isfile(file_path)
 
+    with open(file_path, 'rb') as script:
+        r = script.read()
+        script.close()
+
+    return hashlib.sha3_512(r).hexdigest()

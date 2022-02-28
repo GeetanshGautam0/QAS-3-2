@@ -16,6 +16,10 @@ import qa_info, os, random, hashlib, time, shutil, traceback, qa_std
 from cryptography.fernet import Fernet, InvalidToken
 
 
+FILE_IO_HANDLER_SCRIPT_VERSION_HASH = qa_std.create_script_hash(os.path.abspath('qa_file_handler.py'))
+print(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}")
+
+
 class Open:
     @staticmethod
     def load_file(file_obj: File, ofa: OpenFunctionArgs) -> Union[str, bytes]:
