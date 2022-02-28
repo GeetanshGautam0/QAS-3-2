@@ -1,3 +1,15 @@
+"""
+Quizzing Application 3
+File IO Handler [Version 1]
+
+Geetansh Gautam
+February 28, 2022
+
+Official Website: geetanshgautam.wixsite.com/home
+Source Code: geetanshgautam0.github.io/QAS3-2
+"""
+
+
 from qa_custom import *
 from qa_err import raise_error
 import qa_info, os, random, hashlib, time, shutil, traceback, qa_std
