@@ -235,7 +235,7 @@ def dict_check_redundant_data(dic: dict, root_name: str = '<root>') -> tuple:
     return not c, f
 
 
-def copy_to_clipboard(text: str, shell: tk.Toplevel, clear_old: bool = True):
+def copy_to_clipboard(text: str, shell: Union[tk.Tk, tk.Toplevel], clear_old: bool = True):
     """
     **COPY_TO_CLIPBOARD**
 
@@ -249,7 +249,7 @@ def copy_to_clipboard(text: str, shell: tk.Toplevel, clear_old: bool = True):
 
     assert isinstance(text, str)
     assert isinstance(shell, tk.Toplevel) or isinstance(shell, tk.Tk)
-    assert len(text) <= 100  # Max length = 100
+    assert len(text) <= 10000  # Max length = 10000
     assert isinstance(clear_old, bool)
 
     if clear_old:

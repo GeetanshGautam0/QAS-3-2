@@ -31,3 +31,9 @@ class ErrorLevels(Enum):
     FATAL = 0
     NON_FATAL = 1
 
+
+class Application(Enum):
+    ADMINISTRATOR_TOOLS = 0
+    QUIZZING_FORM = 1
+    THEMING_UTIL = 2
+    RECOVERY_UTIL = 3

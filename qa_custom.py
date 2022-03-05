@@ -107,3 +107,11 @@ class EncryptionError(Exception):
 
     def __str__(self):
         return self.str
+
+
+class InvalidCLIArgument(Exception):
+    def __init__(self, arg_name, arg_got, arg_expected_str):
+        self.an, self.ag, self.ae = arg_name, arg_got, arg_expected_str
+
+    def __str__(self):
+        return f"CLI Error: Invalid Argument: Argument `{self.an}` got token `{self.ag}`; {self.ae}"
