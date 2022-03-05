@@ -551,13 +551,3 @@ def data_type_converter(
 
     else:
         raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
-
-
-def create_script_hash(file_path):
-    assert os.path.isfile(file_path)
-
-    with open(file_path, 'rb') as script:
-        r = script.read()
-        script.close()
-
-    return hashlib.sha3_512(r).hexdigest()

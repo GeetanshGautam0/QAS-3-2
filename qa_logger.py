@@ -1,13 +1,17 @@
 from qa_std import *
 from qa_file_handler import Save, FILE_IO_HANDLER_SCRIPT_VERSION_HASH
-import threading, time, sys, qa_info as qi, os
+import threading, time, sys, qa_info as qi, os, qa_svh as svh
 
 
-EXPECTED_F_IO_H_SVH = "18b35fe222c74e38a617f7673306b5b79cc12a8365ee3a5a3ee0ec2befdfabd3dca9d9db9f1c674ef9becd81a311f064e5e8a85ed91e7206972fe769968bc476"
-assert FILE_IO_HANDLER_SCRIPT_VERSION_HASH == EXPECTED_F_IO_H_SVH, "[Script Version Mismatch Error] In: Logger, Failed-Import: File IO Handler"
+# Version Checking
+LOGGER_SCRIPT_VERSION_HASH = svh.create_script_version_hash('qa_logger.py')
+print(f"{LOGGER_SCRIPT_VERSION_HASH=}")
+svh.check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
 
-LOGGER_SCRIPT_VERSION_HASH = create_script_hash('qa_logger.py')
+EXPECTED_F_IO_H_SVH = "3835557265073e103eea68a8fd31b1c2d982bdf5a9aeb01f607bd2f44827ff50156511928a31558e0c2dc3bb14a8e771805561ba910c3ac3ec95dc8ff522b5c1"
+svh.check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
 
+# Global Variables
 DEBUGGING_ENABLED = False
 
 

@@ -12,12 +12,13 @@ Source Code: geetanshgautam0.github.io/QAS3-2
 
 from qa_custom import *
 from qa_err import raise_error
-import qa_info, os, random, hashlib, time, shutil, traceback, qa_std
+import qa_info, os, random, hashlib, time, shutil, traceback, qa_std, qa_svh as svh
 from cryptography.fernet import Fernet, InvalidToken
 
 
-FILE_IO_HANDLER_SCRIPT_VERSION_HASH = qa_std.create_script_hash(os.path.abspath('qa_file_handler.py'))
+FILE_IO_HANDLER_SCRIPT_VERSION_HASH = svh.create_script_version_hash(os.path.abspath('qa_file_handler.py'))
 print(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}")
+svh.check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
 
 
 class Open:
