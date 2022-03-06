@@ -1,7 +1,7 @@
 from qa_enum import *
 from typing import *
 from qa_custom import *
-import time
+import time, sys
 
 
 LOGGER_AVAIL = False
@@ -19,9 +19,8 @@ def raise_error(error_type, error_params: tuple, error_level: ErrorLevels, trace
 def log(data: str):
     global LOGGER_AVAIL, LOGGER_FUNCTION, LOGGER_FILE
 
-    print(f"Quizzing Application at {data}")
+    sys.stderr.write(f"Quizzing Application at {data}")
 
     if not LOGGER_AVAIL or not isinstance(LOGGER_FILE, str):
         return
-
     LOGGER_FUNCTION(LoggingPackage(LoggingLevel.ERROR, data, LOGGER_FILE))

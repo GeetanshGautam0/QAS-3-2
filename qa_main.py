@@ -1,32 +1,44 @@
 import sys, os, traceback, tkinter as tk, qa_svh as svh, hashlib, time, random
 from qa_std import *
 from tkinter import messagebox
+from qa_apps_admin_tools import RunApp as Admin_RunApp
+from qa_apps_quizzing_form import RunApp as Quizzer_RunApp
+from qa_apps_recovery_util import RunApp as RecoveryUtil_RunApp
+from qa_apps_theming_util import RunApp as ThemingUtil_RunApp
+from threading import Thread
 
 
 _bg_window = None
 
 
-class ADMIN_TOOLS:
-    def call(self):
-        pass
+class _Run(Thread):
+    def __init__(self, func, tokens):
+        global _bg_window
+
+        Thread.__init__(self)
+        self.start()
+
+        self.func, self.tokens = func, tokens
+        self.shell_ready, self.shell = False, _bg_window
+
+        self._run_acc = 0
+
+    def call(self) -> Union[tk.Tk, tk.Toplevel]:
+        global _bg_window
+
+        if self._run_acc >= 1:
+            return self.shell
+
+        _ui_shell = self.func(self, _bg_window)
+        self.shell_ready = True
+        self.shell = _ui_shell
+
+        self._run_acc += 1
+
+        return _ui_shell
 
 
-class QUIZZING_FORM:
-    def call(self):
-        pass
-
-
-class THEMING_UTIL:
-    def call(self):
-        pass
-
-
-class RECOVERY_UTIL:
-    def call(self):
-        pass
-
-
-class _Application:
+class _ApplicationInstanceManager:
     def __init__(self, name, tokens):
         global _bg_window
 
@@ -35,11 +47,18 @@ class _Application:
         self.shell = _bg_window
 
     def run(self):
+        global _application_map, _bg_window
+
         try:
             if self.name not in _application_map:
                 raise InvalidCLIArgument("ApplicationName", f'{self.name}', _CLI_help_app_calls)
 
+            func = _application_map[self.name]
+            inst = _Run(func, self.tokens)
+            inst.call()
+
         except Exception as E:
+            self.shell = _bg_window
             self.error_handler(E.__class__, str(E))
 
     def error_handler(self, exception_class, exception_str):
@@ -72,21 +91,21 @@ class _Application:
 
 
 _application_map = {
-    Application.ADMINISTRATOR_TOOLS.name:       ADMIN_TOOLS,
-    Application.ADMINISTRATOR_TOOLS.value:      ADMIN_TOOLS,
-    Application.ADMINISTRATOR_TOOLS:            ADMIN_TOOLS,
+    Application.ADMINISTRATOR_TOOLS.name:       Admin_RunApp,
+    Application.ADMINISTRATOR_TOOLS.value:      Admin_RunApp,
+    Application.ADMINISTRATOR_TOOLS:            Admin_RunApp,
 
-    Application.QUIZZING_FORM.name:             QUIZZING_FORM,
-    Application.QUIZZING_FORM.value:            QUIZZING_FORM,
-    Application.QUIZZING_FORM:                  QUIZZING_FORM,
+    Application.QUIZZING_FORM.name:             Quizzer_RunApp,
+    Application.QUIZZING_FORM.value:            Quizzer_RunApp,
+    Application.QUIZZING_FORM:                  Quizzer_RunApp,
 
-    Application.THEMING_UTIL.name:              THEMING_UTIL,
-    Application.THEMING_UTIL.value:             THEMING_UTIL,
-    Application.THEMING_UTIL:                   THEMING_UTIL,
+    Application.THEMING_UTIL.name:              ThemingUtil_RunApp,
+    Application.THEMING_UTIL.value:             ThemingUtil_RunApp,
+    Application.THEMING_UTIL:                   ThemingUtil_RunApp,
 
-    Application.RECOVERY_UTIL.name:             RECOVERY_UTIL,
-    Application.RECOVERY_UTIL.value:            RECOVERY_UTIL,
-    Application.RECOVERY_UTIL:                  RECOVERY_UTIL
+    Application.RECOVERY_UTIL.name:             RecoveryUtil_RunApp,
+    Application.RECOVERY_UTIL.value:            RecoveryUtil_RunApp,
+    Application.RECOVERY_UTIL:                  RecoveryUtil_RunApp
 }
 
 
@@ -118,7 +137,8 @@ if __name__ == "__main__":
     _bg_window: tk.Tk = tk.Tk()
     _bg_window.withdraw()
 
-    CLI_tokens = sys.argv
+    CLI_tokens = [*sys.argv]
+
     if CLI_tokens[0].lower().strip() in ['python', 'python3']:
         CLI_tokens.pop(0)
 
@@ -131,7 +151,7 @@ if __name__ == "__main__":
 
     else:
         app_name = CLI_tokens.pop(0)
-        app = _Application(app_name, CLI_tokens)
+        app = _ApplicationInstanceManager(app_name, CLI_tokens)
         app.run()
 
 else:
