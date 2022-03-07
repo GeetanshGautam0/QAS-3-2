@@ -349,7 +349,7 @@ def data_type_converter(
             return original
 
     accepted_input = (str, bytes, list, tuple, set, dict, int, float)
-    assert type(original) in accepted_input, "Original data type not supported"
+    assert type(original) in accepted_input, f"Original data type ({type(original)}) not supported"
 
     original_type = type(original)
 

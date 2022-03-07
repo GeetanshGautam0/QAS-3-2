@@ -63,3 +63,13 @@ class Files:
 
     # Backups
     backup_folder = f"{App.appdata_dir}\\.backups"
+
+    # Default Files
+    default_src = ".src"
+    default_dir = ".defaults"
+    default_theme_file = f".\\{default_src}\\{default_dir}\\.themes\\default.json"
+    default_theme_hashes = f".\\{default_src}\\{default_dir}\\.themes\\hashes.json"
+
+
+class Encryption:
+    default_key: bytes = b"oyJeLcbVk6_w9tbKJArWCZLSBjS8ZfK9M-cAygf6SRQ="

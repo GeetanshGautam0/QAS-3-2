@@ -8,54 +8,86 @@ _DEFAULT_DATA_TYPE = bytes
 
 
 # Data Classes
-
 @dataclass
 class HexColor:
-    color: str
+    color:                      str
+
+
+@dataclass
+class Theme:
+    # Theme Information
+    theme_file_name:            str
+    theme_file_display_name:    str
+    theme_display_name:         str
+    theme_code:                 str
+
+    # Primary Colours
+    background:                 HexColor
+    foreground:                 HexColor
+
+    # Accent Colours
+    accent:                     HexColor
+    error:                      HexColor
+    warning:                    HexColor
+    okay:                       HexColor
+
+    # Font Faces
+    font_face:                  str
+    font_alt_face:              str
+
+    # Font Sizes
+    font_small_size:            Union[float, int]
+    font_main_size:             Union[float, int]
+    font_large_size:            Union[float, int]
+    font_title_size:            Union[float, int]
+
+    # Border Information
+    border_size:                Union[float, int]
+    border_color:               HexColor
 
 
 @dataclass
 class LoggingPackage:
     logging_level: LoggingLevel
-    data: str
-    file_name: str
-    script_name: str
+    data:                       str
+    file_name:                  str
+    script_name:                str
 
 
 @dataclass
 class SaveFunctionArgs:
     global _DEFAULT_DATA_TYPE
 
-    append: bool
-    encrypt: bool = False
-    encryption_key: bytes = b''
-    delete_backup: bool = False
-    run_hash_check: bool = True
+    append:                     bool
+    encrypt:                    bool = False
+    encryption_key:             bytes = b''
+    delete_backup:              bool = False
+    run_hash_check:             bool = True
 
-    list_val_sep: str = "\n"
+    list_val_sep:               str = "\n"
 
-    dict_key_val_sep: str = " "
-    dict_line_sep: str = "\n"
+    dict_key_val_sep:           str = " "
+    dict_line_sep:              str = "\n"
 
-    new_old_data_sep: str = "\n"
+    new_old_data_sep:           str = "\n"
 
-    save_data_type: Union[str, bytes] = _DEFAULT_DATA_TYPE
+    save_data_type:             Union[str, bytes] = _DEFAULT_DATA_TYPE
 
 
 @dataclass
 class ConverterFunctionArgs:
-    list_line_sep: str = "\n"
+    list_line_sep:              str = "\n"
 
-    dict_key_val_sep: str = " "
-    dict_line_sep: str = "\n"
+    dict_key_val_sep:           str = " "
+    dict_line_sep:              str = "\n"
 
 
 @dataclass
 class OpenFunctionArgs:
     global _DEFAULT_DATA_TYPE
 
-    d_type: Union[str, bytes] = bytes
-    lines_mode: bool = False
+    d_type:                     Union[str, bytes] = bytes
+    lines_mode:                 bool = False
 
 
 # Instance Classes

@@ -1,0 +1,71 @@
+{
+  "file_info": {
+    "name":           "QuizzingApp.Themes.Default",
+    "display_name":   "Default",
+    "avail_themes": {
+      "num_themes":       2,
+      "light":            "Themes.Default.Light",
+      "dark":             "Themes.Default.Dark"
+    }
+
+  },
+
+  "Themes.Default.Light": {
+    "display_name":   "Light Mode",
+
+    "background":     "#FFFFFF",
+    "foreground":     "#000000",
+    "accent":         "#008888",
+
+    "error":          "#FF0000",
+    "warning":        "#FFFF00",
+    "ok":             "#0000FF",
+
+    "gray":           "#9F9F9F",
+
+    "font": {
+      "font_face":        "Montserrat",
+      "alt_font_face":    "Century Gothic",
+
+      "size_small":       8,
+      "size_main":        12,
+      "size_subtitle":    14,
+      "size_title":       20
+    },
+
+    "border": {
+      "size":             0,
+      "colour":           "#FFFFFF"
+    }
+  },
+
+  "Themes.Default.Dark": {
+    "display_name":   "Dark Mode",
+
+    "background":     "#202020",
+    "foreground":     "#FFFFFF",
+    "accent":         "#008888",
+
+    "error":          "#FF0000",
+    "warning":        "#FFFF00",
+    "ok":             "#0000FF",
+
+    "gray":           "#9F9F9F",
+
+    "font": {
+      "font_face":        "Montserrat",
+      "alt_font_face":    "Century Gothic",
+
+      "size_small":       8,
+      "size_main":        12,
+      "size_subtitle":    14,
+      "size_title":       20
+    },
+
+    "border": {
+      "size":             0,
+      "colour":           "#FFFFFF"
+    }
+  }
+
+}

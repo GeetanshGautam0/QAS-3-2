@@ -44,10 +44,8 @@ class Open:
 
         cfa = cfa
 
-        n = dtc(_Crypt.decrypt(raw, enc_key, cfa), og_d_type, cfa)
-        r = dtc(raw,                               og_d_type, cfa)
-
-        return n if n is not False else r
+        no = _Crypt.decrypt(raw, enc_key, cfa, True)
+        return dtc(no, og_d_type, cfa) if no is not False else dtc(raw, og_d_type, cfa)
 
 
 class Save:

@@ -1,5 +1,6 @@
+import qa_svh
 from qa_std import *
-from qa_file_handler import Save, FILE_IO_HANDLER_SCRIPT_VERSION_HASH
+from qa_file_handler import Save
 import threading, time, sys, qa_info as qi, os, qa_svh as svh
 
 
@@ -8,7 +9,7 @@ LOGGER_SCRIPT_VERSION_HASH = svh.create_script_version_hash('qa_logger.py')
 print(f"{LOGGER_SCRIPT_VERSION_HASH=}")
 svh.check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
 
-EXPECTED_F_IO_H_SVH = "3835557265073e103eea68a8fd31b1c2d982bdf5a9aeb01f607bd2f44827ff50156511928a31558e0c2dc3bb14a8e771805561ba910c3ac3ec95dc8ff522b5c1"
+EXPECTED_F_IO_H_SVH = qa_svh.EXPECTED['byLogger']['FILE_IO_HANDLER']
 svh.check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
 
 # Global Variables
