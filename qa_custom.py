@@ -1,18 +1,22 @@
 from typing import *
 from dataclasses import dataclass
 from qa_enum import *
+import re
 
 
 # Globals
 _DEFAULT_DATA_TYPE = bytes
 
 
-# Data Classes
-@dataclass
 class HexColor:
-    color:                      str
+    def __init__(self, color: str):
+        self.color = color
+
+    def check(self):
+        return re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', self.color)
 
 
+# Data Classes
 @dataclass
 class Theme:
     # Theme Information
@@ -30,6 +34,9 @@ class Theme:
     error:                      HexColor
     warning:                    HexColor
     okay:                       HexColor
+
+    # Additional Colours
+    gray:                       HexColor
 
     # Font Faces
     font_face:                  str

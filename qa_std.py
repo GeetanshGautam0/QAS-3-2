@@ -23,7 +23,7 @@ def float_map(value: float, input_min: float, input_max: float, output_min: floa
     :return: mapped float
     """
 
-    assert not allow_overflow and (input_min < value < input_max), "Value outside of given bounds"
+    assert not allow_overflow and (input_min <= value <= input_max), "Value outside of given bounds"
 
     leftSpan = input_max - input_min
     rightSpan = output_max - output_min
@@ -43,10 +43,13 @@ def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple
     :return: (Passes AA, Passes AAA)
     """
 
-    err_str_1 = f"Invalid color `bg`; expected {type(HexColor)}"
+    err_str_1 = lambda name: f"Invalid color `{name}`; expected {HexColor}"
+    err_str_2 = lambda name: f"Color `{name}` is not a valid hex color"
 
-    assert isinstance(bg, HexColor), err_str_1
-    assert isinstance(fg, HexColor), err_str_1
+    assert isinstance(bg, HexColor), err_str_1('bg')
+    assert bg.check(), err_str_2('bg')
+    assert isinstance(fg, HexColor), err_str_1('fg')
+    assert fg.check(), err_str_2('fg')
 
     def map_rgb(color_rgb: Tuple[int, int, int]) -> Tuple:
         assert len(color_rgb) == 3, 'Invalid '

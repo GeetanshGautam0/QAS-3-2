@@ -15,22 +15,22 @@
 
     "background":     "#FFFFFF",
     "foreground":     "#000000",
-    "accent":         "#008888",
+    "accent":         "#1C8087",
 
-    "error":          "#FF0000",
-    "warning":        "#FFFF00",
-    "ok":             "#0000FF",
+    "error":          "#E01A00",
+    "warning":        "#D6A630",
+    "ok":             "#138811",
 
-    "gray":           "#9F9F9F",
+    "gray":           "#5C5C5C",
 
     "font": {
       "font_face":        "Montserrat",
       "alt_font_face":    "Century Gothic",
 
-      "size_small":       8,
-      "size_main":        12,
-      "size_subtitle":    14,
-      "size_title":       20
+      "size_small":       10,
+      "size_main":        13,
+      "size_subtitle":    15,
+      "size_title":       28
     },
 
     "border": {
@@ -44,22 +44,22 @@
 
     "background":     "#202020",
     "foreground":     "#FFFFFF",
-    "accent":         "#008888",
+    "accent":         "#229ca5",
 
-    "error":          "#FF0000",
-    "warning":        "#FFFF00",
-    "ok":             "#0000FF",
+    "error":          "#ff3a20",
+    "warning":        "#efca08",
+    "ok":             "#73ab84",
 
-    "gray":           "#9F9F9F",
+    "gray":           "#929292",
 
     "font": {
       "font_face":        "Montserrat",
       "alt_font_face":    "Century Gothic",
 
-      "size_small":       8,
-      "size_main":        12,
-      "size_subtitle":    14,
-      "size_title":       20
+      "size_small":       10,
+      "size_main":        13,
+      "size_subtitle":    15,
+      "size_title":       28
     },
 
     "border": {
