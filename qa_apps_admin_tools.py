@@ -4,6 +4,7 @@ from typing import *
 
 
 title_base = "Administrator Tools"
+script_name = "APP_ADMT"
 
 
 class _UI(Thread):

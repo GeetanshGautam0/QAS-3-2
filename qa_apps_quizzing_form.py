@@ -3,6 +3,9 @@ import tkinter as tk, sys
 from typing import *
 
 
+script_name = "APP_QF"
+
+
 class _UI(Thread):
     def __init__(self, root, ic, ds):
         super().__init__()
