@@ -1,11 +1,9 @@
 from tkinter import messagebox
-import wcag_contrast_ratio, re, tkinter as tk
+import wcag_contrast_ratio, tkinter as tk
 
-from qa_enum import *
-from typing import *
-from qa_custom import *
-from qa_err import raise_error
-import qa_info, os, hashlib
+from .qa_custom import *
+from .qa_err import raise_error
+from .qa_info import App
 
 
 def float_map(value: float, input_min: float, input_max: float, output_min: float, output_max: float, allow_overflow: bool = False) -> float:
@@ -333,7 +331,7 @@ def data_type_converter(
     if isinstance(original, output_type):
         if isinstance(original, bytes):
             # Check encoding
-            exp = qa_info.App.ENCODING
+            exp = App.ENCODING
             try:
                 original.decode(exp)
                 return original     # All good
@@ -404,10 +402,10 @@ def data_type_converter(
                 s = None
 
                 try:
-                    s = original.decode(qa_info.App.ENCODING)
+                    s = original.decode(App.ENCODING)
                 except:
                     try:
-                        _, s = brute_force_decoding(original, (qa_info.App.ENCODING, ))
+                        _, s = brute_force_decoding(original, (App.ENCODING,))
 
                     except Exception as E:
                         RE(E)
@@ -419,22 +417,22 @@ def data_type_converter(
                         RE(E)
 
             elif output_type is bytes and original_type is str:  # DONE
-                return original.encode(qa_info.App.ENCODING)
+                return original.encode(App.ENCODING)
 
             elif output_type is str and original_type is bytes:  # DONE
                 try:
-                    o = original.decode(qa_info.App.ENCODING)
+                    o = original.decode(App.ENCODING)
                     return o
                 except:
                     try:
-                        _, s = brute_force_decoding(original, (qa_info.App.ENCODING, ))
+                        _, s = brute_force_decoding(original, (App.ENCODING,))
                         return s
                     except:
                         RE("Unknown encoding for given bytes data.")
 
             elif output_type in (str, bytes) and original_type in (int, float):
                 o1 = str(original)
-                return o1 if output_type is str else o1.encode(qa_info.App.ENCODING)
+                return o1 if output_type is str else o1.encode(App.ENCODING)
 
             elif output_type in (int, float) and original_type in (int, float):
                 return output_type(original)
@@ -515,7 +513,7 @@ def data_type_converter(
                     if output_type is str:
                         return o1
                     elif output_type is bytes:
-                        return o1.encode(qa_info.App.ENCODING)
+                        return o1.encode(App.ENCODING)
                     else:
                         raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 
@@ -539,7 +537,7 @@ def data_type_converter(
                     if output_type is str:
                         return o1
                     elif output_type is bytes:
-                        return o1.encode(qa_info.App.ENCODING)
+                        return o1.encode(App.ENCODING)
                     else:
                         raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
 

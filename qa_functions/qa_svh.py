@@ -1,17 +1,18 @@
 import os, hashlib
 
 
-FILE_IO_HANDLER_HASH = "186fa69090cd2fef261c7517b5d489ca523d7ce7932c5128cbd10c11ad54cdf9fd468722a2d5c121ef50560150448f075fcbf6bbf37cfe5acdf5df6d39ccec32"
-LOGGER_HASH = "cad49286d20290e3f7bdd9319b299ea076f152299164821be583b8bcb35fa33e9332382b51bd7e660df91ae920ced74ff226ba199e963058174ab65f00fb70cb"
+FILE_IO_HANDLER_HASH = "f2037b2fbe39b5b04b1a77e5dc9e313f508cfcc56c2bf8928364d0ccd946118fe202994465638a53a3d5d37198f5d1a5fae5c4a285cc3e621eb9062cf7d3aa03"
+LOGGER_HASH = "b4b0d2aa9ed2e217924b4425650991fbaad6e56fdbe28efb25167e32e60ddb81fbe3d118bcd991fde14aa86df3c28c2b28212ad1cf87339b908033b77fb6e345"
 
 EXPECTED = {
     'byLogger': {
-        'FILE_IO_HANDLER': "186fa69090cd2fef261c7517b5d489ca523d7ce7932c5128cbd10c11ad54cdf9fd468722a2d5c121ef50560150448f075fcbf6bbf37cfe5acdf5df6d39ccec32"
+        'FILE_IO_HANDLER': "f2037b2fbe39b5b04b1a77e5dc9e313f508cfcc56c2bf8928364d0ccd946118fe202994465638a53a3d5d37198f5d1a5fae5c4a285cc3e621eb9062cf7d3aa03"
     }
 }
 
 
 def create_script_version_hash(file_path) -> str:
+    print(file_path)
     assert os.path.isfile(file_path)
 
     with open(file_path, 'rb') as script:

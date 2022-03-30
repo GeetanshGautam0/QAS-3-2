@@ -10,15 +10,23 @@ Source Code: geetanshgautam0.github.io/QAS3-2
 """
 
 
-from qa_custom import *
-from qa_err import raise_error
-import qa_info, os, random, hashlib, time, shutil, traceback, qa_std, qa_svh as svh
+from .qa_custom import *
+from .qa_err import raise_error
+import os, random, hashlib, time, shutil, traceback
 from cryptography.fernet import Fernet, InvalidToken
 
+from .qa_info import Extensions
+from .qa_info import Files
+from .qa_info import App
 
-FILE_IO_HANDLER_SCRIPT_VERSION_HASH = svh.create_script_version_hash(os.path.abspath('qa_file_handler.py'))
+from .qa_std import data_type_converter
+
+from .qa_svh import create_script_version_hash
+from .qa_svh import check_hash
+
+FILE_IO_HANDLER_SCRIPT_VERSION_HASH = create_script_version_hash(os.path.abspath(__file__))
 print(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}")
-svh.check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
+check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
 
 
 class Open:
@@ -77,11 +85,11 @@ class Save:
         # Step 1: Create backup [CONDITIONAL]
         backup_file_name = \
             hashlib.sha3_512(
-                f"{time.ctime(time.time())}{random.random()}".encode(qa_info.App.ENCODING)
+                f"{time.ctime(time.time())}{random.random()}".encode(App.ENCODING)
             ).hexdigest() + \
-            f".{qa_info.Extensions.BackupFile.extn_str}"
+            f".{Extensions.BackupFile.extn_str}"
 
-        backup_file = f"{qa_info.Files.backup_folder}\\{backup_file_name}"
+        backup_file = f"{Files.backup_folder}\\{backup_file_name}"
         backed_up = os.path.exists(file_obj.file_path)
 
         if backed_up:
@@ -225,8 +233,8 @@ class Save:
             separator = dtc(args.new_old_data_sep, output_type, cfa)
 
         else:
-            original_data = "" if output_type is str else "".encode(qa_info.App.ENCODING)
-            separator = "" if output_type is str else "".encode(qa_info.App.ENCODING)
+            original_data = "" if output_type is str else "".encode(App.ENCODING)
+            separator = "" if output_type is str else "".encode(App.ENCODING)
 
         if args.encrypt:
             if len(original_data.strip()) > 0:
@@ -310,4 +318,4 @@ class _Crypt:
 
 
 def dtc(od, tp, cfa):
-    return qa_std.data_type_converter(od, tp, cfa)
+    return data_type_converter(od, tp, cfa)

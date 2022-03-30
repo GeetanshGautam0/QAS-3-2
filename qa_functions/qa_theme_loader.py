@@ -1,24 +1,27 @@
-import qa_file_handler as file_io, qa_std as std, qa_info as info, json, hashlib, sys, re
-from qa_custom import *
-from qa_enum import *
+import json, hashlib, sys, re
+from .qa_custom import *
+from .qa_enum import *
+from .qa_file_handler import *
+from .qa_std import *
+from .qa_info import *
 
 
 def _load_default() -> dict:
-    default_file = File(info.Files.default_theme_file)
-    default_theme_hash = File(info.Files.default_theme_hashes)
+    default_file = File(Files.default_theme_file)
+    default_theme_hash = File(Files.default_theme_hashes)
 
     ofa = OpenFunctionArgs()
     cfa = ConverterFunctionArgs()
 
-    raw = file_io.Open.read_file(default_file, ofa, info.Encryption.default_key, cfa)
-    hash_raw = file_io.Open.read_file(default_theme_hash, ofa, info.Encryption.default_key, cfa)
+    raw = Open.read_file(default_file, ofa, Encryption.default_key, cfa)
+    hash_raw = Open.read_file(default_theme_hash, ofa, Encryption.default_key, cfa)
 
-    json_data = json.loads(file_io.dtc(raw, str, cfa))
-    hash_json = json.loads(file_io.dtc(hash_raw, str, cfa))
+    json_data = json.loads(dtc(raw, str, cfa))
+    hash_json = json.loads(dtc(hash_raw, str, cfa))
 
     assert json_data['file_info']['name'] in hash_json, "Invalid/corrupted default theme file (name not found)"
 
-    file_hash = hashlib.sha3_512(file_io.dtc(raw, bytes, cfa)).hexdigest()
+    file_hash = hashlib.sha3_512(dtc(raw, bytes, cfa)).hexdigest()
     expected_hash = hash_json[json_data['file_info']['name']]
     del hash_json
 
@@ -80,7 +83,7 @@ def _check_file(json_data: dict) -> bool:  # TODO: Add tests here
     abort = False
 
     for i, k in [('name', str), ('display_name', str), ('avail_themes/num_themes', int)]:
-        f, d = std.data_at_dict_path(f"file_info/{i}", json_data)
+        f, d = data_at_dict_path(f"file_info/{i}", json_data)
 
         if not f:
             failures.append(f"Data at key `file_info/{i}` not found; ABORTING")
@@ -94,8 +97,8 @@ def _check_file(json_data: dict) -> bool:  # TODO: Add tests here
         del f, d
 
     if not abort:
-        _, d1 = std.data_at_dict_path('file_info/avail_themes/num_themes', json_data)
-        _, d0 = std.data_at_dict_path('file_info/avail_themes', json_data)
+        _, d1 = data_at_dict_path('file_info/avail_themes/num_themes', json_data)
+        _, d0 = data_at_dict_path('file_info/avail_themes', json_data)
 
         if len(d0) != d1 + 1:
             failures.append('Invalid number of themes reported; ABORTING')
@@ -110,7 +113,7 @@ def _check_file(json_data: dict) -> bool:  # TODO: Add tests here
 
     # Thorough checks
     if not abort:
-        _, d0 = std.data_at_dict_path('file_info/avail_themes', json_data)
+        _, d0 = data_at_dict_path('file_info/avail_themes', json_data)
         d0 = {**d0}
         d0.pop('num_themes')
 
@@ -169,7 +172,7 @@ def _check_theme(theme_name: str, theme_data: dict, re_failures: bool = False) -
     acc = [0, []]
 
     for item_name, item_type in checks:
-        e, d = std.data_at_dict_path(item_name, theme_data)
+        e, d = data_at_dict_path(item_name, theme_data)
         f1 = acc[0]
         bg_okay = True
 
@@ -214,7 +217,7 @@ def _check_theme(theme_name: str, theme_data: dict, re_failures: bool = False) -
             if item_type is HexColor:
                 if item_name != "background":
                     if bg_okay:
-                        AA, AAA = std.check_hex_contrast(HexColor(theme_data['background']), HexColor(d), 0 if item_name not in contrast_ratio_adjustment_tbl else contrast_ratio_adjustment_tbl.get(item_name))
+                        AA, AAA = check_hex_contrast(HexColor(theme_data['background']), HexColor(d), 0 if item_name not in contrast_ratio_adjustment_tbl else contrast_ratio_adjustment_tbl.get(item_name))
 
                         if not AA:
                             acc[0] += 1
@@ -234,3 +237,7 @@ def _check_theme(theme_name: str, theme_data: dict, re_failures: bool = False) -
 
     else:
         return len(failures) == 0
+
+
+class Main:
+    pass

@@ -1,6 +1,6 @@
-from qa_enum import *
+from .qa_enum import *
 from typing import *
-from qa_custom import *
+from .qa_custom import *
 import time, sys
 
 

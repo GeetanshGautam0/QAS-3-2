@@ -1,16 +1,20 @@
-import qa_svh
-from qa_std import *
-from qa_file_handler import Save
-import threading, time, sys, qa_info as qi, os, qa_svh as svh
+from .qa_svh import *
+from .qa_std import *
+from .qa_file_handler import Save
+from .qa_info import App
+from .qa_info import Files
+from .qa_info import Extensions
+
+import threading, time, sys, os
 
 
 # Version Checking
-LOGGER_SCRIPT_VERSION_HASH = svh.create_script_version_hash('qa_logger.py')
+LOGGER_SCRIPT_VERSION_HASH = create_script_version_hash(__file__)
 print(f"{LOGGER_SCRIPT_VERSION_HASH=}")
-svh.check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
+check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
 
-EXPECTED_F_IO_H_SVH = qa_svh.EXPECTED['byLogger']['FILE_IO_HANDLER']
-svh.check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
+EXPECTED_F_IO_H_SVH = EXPECTED['byLogger']['FILE_IO_HANDLER']
+check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
 
 # Global Variables
 DEBUGGING_ENABLED = False
@@ -21,7 +25,7 @@ class _MultiThreadingLogger(threading.Thread):
         threading.Thread.__init__(self)
 
         self.file = \
-            File(f"{qi.App.appdata_dir}\\{qi.Files.logs_folder}\\{package.file_name}.{qi.Extensions.Logging.extn_str}")
+            File(f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{Extensions.Logging.extn_str}")
         self.data = package.data.strip()
         self.level = package.logging_level
         self.s_name = package.script_name
@@ -73,7 +77,7 @@ def normal_logger(logging_package: List[LoggingPackage]) -> None:
 
     for package in logging_package:
         file = File(
-            f"{qi.App.appdata_dir}\\{qi.Files.logs_folder}\\{package.file_name}.{qi.Extensions.Logging.extn_str}"
+            f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{Extensions.Logging.extn_str}"
         )
 
         string = f"[{package.logging_level.name}] <{package.script_name} @ {time.ctime(time.time())}>: {package.data.strip()}\n"
@@ -96,7 +100,7 @@ def clear_logs(ignore_list: tuple = ()) -> bool:
     :return: Bool: Successfully removed logs?
     """
 
-    log_dir = f"{qi.App.appdata_dir}\\{qi.Files.logs_folder}"
+    log_dir = f"{App.appdata_dir}\\{Files.logs_folder}"
     b = True
 
     for item in os.listdir(log_dir):

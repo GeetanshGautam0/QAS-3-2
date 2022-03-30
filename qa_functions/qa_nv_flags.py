@@ -1,5 +1,5 @@
 import os, sys
-from qa_info import App
+from .qa_info import App
 
 
 if __name__ == "__main__":

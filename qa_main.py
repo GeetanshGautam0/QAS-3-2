@@ -1,5 +1,5 @@
-import sys, os, traceback, tkinter as tk, qa_svh as svh, hashlib, time, random
-from qa_std import *
+import sys, traceback, time, random
+from qa_functions.qa_std import *
 from tkinter import messagebox
 from qa_apps_admin_tools import RunApp as Admin_RunApp
 from qa_apps_quizzing_form import RunApp as Quizzer_RunApp

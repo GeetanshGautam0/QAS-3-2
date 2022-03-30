@@ -1,6 +1,6 @@
 from typing import *
 from dataclasses import dataclass
-from qa_enum import *
+from .qa_enum import *
 import re
 
 

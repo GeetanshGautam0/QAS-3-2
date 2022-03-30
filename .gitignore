@@ -2,3 +2,5 @@
 __pycache__/*
 test.py
 test.txt
+qa_functions/__pycache__/*
+file/__pycache__/*
