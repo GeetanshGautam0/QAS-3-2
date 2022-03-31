@@ -1,4 +1,4 @@
-import sys, traceback, time, random
+import sys, traceback, time, random, click, hashlib
 from qa_functions.qa_std import *
 from tkinter import messagebox
 from qa_apps_admin_tools import RunApp as Admin_RunApp
@@ -94,18 +94,22 @@ _application_map = {
     Application.ADMINISTRATOR_TOOLS.name:       Admin_RunApp,
     Application.ADMINISTRATOR_TOOLS.value:      Admin_RunApp,
     Application.ADMINISTRATOR_TOOLS:            Admin_RunApp,
+    'AdminTools':                               Admin_RunApp,
 
     Application.QUIZZING_FORM.name:             Quizzer_RunApp,
     Application.QUIZZING_FORM.value:            Quizzer_RunApp,
     Application.QUIZZING_FORM:                  Quizzer_RunApp,
+    'QuizzingForm':                             Quizzer_RunApp,
 
     Application.THEMING_UTIL.name:              ThemingUtil_RunApp,
     Application.THEMING_UTIL.value:             ThemingUtil_RunApp,
     Application.THEMING_UTIL:                   ThemingUtil_RunApp,
+    'ThemingUtil':                              ThemingUtil_RunApp,
 
     Application.RECOVERY_UTIL.name:             RecoveryUtil_RunApp,
     Application.RECOVERY_UTIL.value:            RecoveryUtil_RunApp,
-    Application.RECOVERY_UTIL:                  RecoveryUtil_RunApp
+    Application.RECOVERY_UTIL:                  RecoveryUtil_RunApp,
+    'RecoveryUtil':                             RecoveryUtil_RunApp,
 }
 
 
@@ -116,43 +120,43 @@ _CLI_help_app_calls = f"""To call an application, use the following tokens:
 \tRecovery Utility   : {Application.RECOVERY_UTIL.name}
 """
 
+CLI_AllowedApplications = ['AdminTools', 'QuizzingForm', 'RecoveryUtil', 'ThemingUtil']
 
-_CLI_master_help = \
-    f"""{'-'*100}
-Quizzing Application: CLI Help 
 
-LEGEND:
-    * <OPTIONAL> 
-    * [REQUIRED]
-    * {"{PICK ONE}"}
+def default_cli_handling(**kwargs):
+    print("CLI Tokens: ", kwargs, end="\n\n")
 
-Syntax: <python> qa_main.{"{py / exe}"} [APPLICATION TOKEN] <Args> 
 
-{_CLI_help_app_calls}
-{'-'*100}
-"""
+@click.group()
+def _CLIHandler():
+    pass
+
+
+@_CLIHandler.command()
+@click.argument('app_name', type=click.Choice(CLI_AllowedApplications))
+@click.option('--open_file', help="open file that is supplied in args", is_flag=True)
+@click.option('--file_path', help="path of file to open", default=None)
+def start_app(**kwargs):
+    default_cli_handling(**kwargs)
+    app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)
+    app.run()
+
+
+@_CLIHandler.command()
+@click.argument('file_path')
+def check_file(**kwargs):
+    default_cli_handling(**kwargs)
+    return
 
 
 if __name__ == "__main__":
+    print("\n" * 50)
+    print("Loaded modules; running application now.")
+
     _bg_window: tk.Tk = tk.Tk()
     _bg_window.withdraw()
 
-    CLI_tokens = [*sys.argv]
-
-    if CLI_tokens[0].lower().strip() in ['python', 'python3']:
-        CLI_tokens.pop(0)
-
-    CLI_tokens.pop(0)  # Gets rid of script name
-
-    assert len(CLI_tokens) > 0, "Insufficient information provided; use qa_main HELP for more information."
-
-    if CLI_tokens[0].lower() == "help":
-        sys.stdout.write(_CLI_master_help)
-
-    else:
-        app_name = CLI_tokens.pop(0)
-        app = _ApplicationInstanceManager(app_name, CLI_tokens)
-        app.run()
+    _CLIHandler()
 
 else:
     sys.exit("cannot run file `qa_main` as module")
