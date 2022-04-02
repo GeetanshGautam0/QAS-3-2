@@ -65,10 +65,16 @@ class Files:
     backup_folder = f"{App.appdata_dir}\\.backups"
 
     # Default Files
-    default_src = "../.src"
+    default_src = ".src"
     default_dir = ".defaults"
-    default_theme_file = f".\\{default_src}\\{default_dir}\\.themes\\default.json"
-    default_theme_hashes = f".\\{default_src}\\{default_dir}\\.themes\\hashes.json"
+    default_theme_dir = f".\\{default_src}\\{default_dir}\\.themes"
+    default_theme_file = f"{default_theme_dir}\\default.json"
+    default_theme_file_code = "QuizzingApp.Themes.Default"
+    default_theme_hashes = f"{default_theme_dir}\\hashes.json"
+
+    # Theme (AppData)
+    ad_theme_folder = ".themes"
+    ThemePrefFile = "pref.json"
 
 
 class Encryption:

@@ -134,8 +134,8 @@ def _CLIHandler():
 
 @_CLIHandler.command()
 @click.argument('app_name', type=click.Choice(CLI_AllowedApplications))
-@click.option('--open_file', help="open file that is supplied in args", is_flag=True)
-@click.option('--file_path', help="path of file to open", default=None)
+@click.option('--open_file', help="open qa_files that is supplied in args", is_flag=True)
+@click.option('--file_path', help="path of qa_files to open", default=None)
 def start_app(**kwargs):
     default_cli_handling(**kwargs)
     app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)
@@ -159,5 +159,5 @@ if __name__ == "__main__":
     _CLIHandler()
 
 else:
-    sys.exit("cannot run file `qa_main` as module")
+    sys.exit("cannot run qa_files `qa_main` as module")
 

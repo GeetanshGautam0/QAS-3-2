@@ -138,7 +138,7 @@ def split_filename_direc(file_path: str) -> Tuple[str, str]:
     """
     **SPLIT_FILENAME_DIREC**
 
-    Takes in file path `file_path`, splits the path into a file name the directory path
+    Takes in qa_files path `file_path`, splits the path into a qa_files name the directory path
 
     :param file_path: Filename with path
     :return: Tuple [Path, Filename]

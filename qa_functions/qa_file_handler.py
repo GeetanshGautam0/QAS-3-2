@@ -32,7 +32,7 @@ check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
 class Open:
     @staticmethod
     def load_file(file_obj: File, ofa: OpenFunctionArgs) -> Union[str, bytes]:
-        assert os.path.isfile(file_obj.file_path), "File does not exist."
+        assert os.path.isfile(file_obj.file_path), f"File '{file_obj.file_path}' does not exist."
         assert ofa.d_type in (str, bytes), "Invalid data type requested."
 
         with open(file_obj.file_path, 'r' if ofa.d_type is str else 'rb') as f:

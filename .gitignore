@@ -3,4 +3,5 @@ __pycache__/*
 test.py
 test.txt
 qa_functions/__pycache__/*
-file/__pycache__/*
+qa_files/__pycache__/*
+test2.py

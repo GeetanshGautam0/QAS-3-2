@@ -11,6 +11,7 @@ _DEFAULT_DATA_TYPE = bytes
 class HexColor:
     def __init__(self, color: str):
         self.color = color
+        assert self.check, 'Color provided does not match expected pattern (1)'
 
     def check(self):
         return re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', self.color)

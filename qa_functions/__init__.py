@@ -34,7 +34,8 @@ from .qa_std import *
 from .qa_svh import create_script_version_hash as _csvh
 from .qa_svh import check_hash as _ch
 
-from .qa_theme_loader import Main as ThemeLoader_Main
+from .qa_theme_loader import Load as LoadTheme
+from .qa_theme_loader import Test as TestTheme
 
 
 def RaiseError(error_type, error_params: tuple, error_level: ErrorLevels, traceback: Optional[str] = ""):
