@@ -1,5 +1,6 @@
 from tkinter import messagebox
 import wcag_contrast_ratio, tkinter as tk
+import time, random, hashlib
 
 from .qa_custom import *
 from .qa_err import raise_error
@@ -552,3 +553,19 @@ def data_type_converter(
 
     else:
         raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+
+def gen_short_uid(prefix: str = "qa") -> str:
+    """
+    Generates a LONG UID str, including the current time's hash (MD5)
+
+    :param prefix: String to include at beginning of UID (ID purposes)
+    :return: UID (str)
+    """
+
+    t = hashlib.md5(time.ctime(time.time()).encode()).hexdigest()
+    r = (random.randint(11111, 99999) + random.random()) * 10 ** 3
+    ra = int(random.random() * 10 ** 3)
+
+    r *= ra if ra != 0 else 1
+    return f"{prefix}::{t}{r}::{random.random() + random.randint(0, 9)}"

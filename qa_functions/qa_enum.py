@@ -52,6 +52,8 @@ class ThemeUpdateCommands(Enum):
 
     INVISIBLE_CONTAINER = 7
 
+    WRAP_LENGTH = 8
+
     CUSTOM = -1
 
 
@@ -67,7 +69,6 @@ class ThemeUpdateVars(Enum):
 
     DEFAULT_FONT_FACE = 6
     ALT_FONT_FACE = 7
-    AUTO_FONT = 8
 
     FONT_SIZE_TITLE = 9
     FONT_SIZE_LARGE = 10
@@ -75,4 +76,4 @@ class ThemeUpdateVars(Enum):
     FONT_SIZE_SMALL = 12
 
     BORDER_SIZE = 14
-    BORDER_COLOUR = 15
+    BORDER_COLOR = 15

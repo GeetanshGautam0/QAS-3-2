@@ -46,10 +46,15 @@ class MessagePrompts:
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
             self.theme_update_map = {}
 
-            self.load_theme()
+            self.padX = 20
+            self.padY = 10
 
+            self.load_theme()
             self.update_requests = {}
-            # element: ['COMMAND_ID', ['for_normal: [args]', 'for_custom: [command, [args]]']]
+            # ID: [element, 'COMMAND_ID', ['for_normal: [args]', 'for_custom: [command, args]']]
+
+            self.title_label = tk.Label(self.root)
+
             self.start()
             self.root.mainloop()
 
@@ -65,7 +70,11 @@ class MessagePrompts:
             self.root.title(self.msg.title)
             self.root.resizable(False, True)
 
-            self.update_requests[self.root] = [ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.label_formatter(self.title_label, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_TITLE)
+
+            self.title_label.config(text=self.msg.title)
+            self.title_label.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
             self.update_ui()
 
@@ -83,50 +92,150 @@ class MessagePrompts:
                 if LOGGER_AVAIL:
                     LOGGER_FUNC([qa_functions.LoggingPackage(
                         LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind})',
+                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind})")
+                    print(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>")
 
             def log_norm(com: str, el):
-                if not DEBUG_NORM: return
+                if not DEBUG_NORM:
+                    return
 
                 if LOGGER_AVAIL:
                     LOGGER_FUNC([qa_functions.LoggingPackage(
                         LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully',
+                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully")
+                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
 
-            for element, (command, args) in self.update_requests.items():
+            for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
                 cargs = []
+                for index, arg in enumerate(args):
+                    cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
 
-                if command == ThemeUpdateCommands.BG:
-                    if len(args) >= 1:
-                        for index, arg in enumerate(args):
-                            cargs.append(arg if arg not in ThemeUpdateVars else self.theme_update_map[arg])
+                    if isinstance(cargs[index], qa_functions.HexColor):
+                        cargs[index] = cargs[index].color
 
-                        if not isinstance(cargs[0], qa_functions.HexColor):
-                            lCommand = [True, 'Invalid args provided', 1]
-
-                        else:
-                            ok, rs = tr(lambda: element.config(bg=cargs[0].color))
-                            if not ok:
-                                lCommand = [True, rs, 0]
+                if command == ThemeUpdateCommands.BG:                   # Background
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(bg=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
                     else:
-                        lCommand = [True, 'Insufficient args provided', 2]
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                    if lCommand[0] is True:
-                        log_error(command.name, element, lCommand[1], lCommand[2])
+                elif command == ThemeUpdateCommands.FG:                 # Foreground
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(fg=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
                     else:
-                        log_norm(command.name, element)
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_BG:          # Active Background
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(activebackground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_FG:          # Active Foreground
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(activeforeground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_FG:          # BORDER COLOR
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.BORDER_SIZE:        # BORDER SIZE
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(highlightthickness=cargs[0], bd=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.FONT:               # Font
+                    if len(cargs) == 2:
+                        ok, rs = tr(lambda: element.config(font=(cargs[0], cargs[1])))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.CUSTOM:             # Custom
+                    if len(cargs) <= 0:
+                        lCommand = [True, 'Function not provided', 1]
+                    elif len(cargs) == 1:
+                        ok, rs = tr(cargs[0])
+                        if not ok:
+                            lCommand = [True, rs, 0]
+                    elif len(cargs) > 1:
+                        print(cargs)
+                        ok, rs = tr(lambda: cargs[0](cargs[1::]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                elif command == ThemeUpdateCommands.WRAP_LENGTH:        # WL
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(wraplength=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                if lCommand[0] is True:
+                    log_error(command.name, element, lCommand[1], lCommand[2])
+                else:
+                    log_norm(command.name, element)
 
                 del lCommand, cargs
+
+        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+            if padding is None:
+                padding = self.padX
+
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+
+        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+            if padding is None:
+                padding = self.padX
+
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [label, ThemeUpdateCommands.FG, [fg]]
+
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[qa_functions.gen_short_uid('elForm')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -146,7 +255,7 @@ class MessagePrompts:
                 ThemeUpdateVars.FONT_SIZE_MAIN: self.theme.font_main_size,
                 ThemeUpdateVars.FONT_SIZE_SMALL: self.theme.font_small_size,
                 ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
-                ThemeUpdateVars.BORDER_COLOUR: self.theme.border_color
+                ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
         def __del__(self):
