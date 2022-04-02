@@ -63,6 +63,7 @@ class MessagePrompts:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title(self.msg.title)
+            self.root.resizable(False, True)
 
             self.update_requests[self.root] = [ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
@@ -101,23 +102,31 @@ class MessagePrompts:
                     print(f"[DEBUG] Applied command \'{com}\' to {el} successfully")
 
             for element, (command, args) in self.update_requests.items():
-                print(element, command, args)
-
                 lCommand = [False]
+                cargs = []
+
                 if command == ThemeUpdateCommands.BG:
                     if len(args) >= 1:
-                        carg = args[0] if args[0] not in ThemeUpdateVars else self.theme_update_map[args[0]]
-                        ok, rs = tr(lambda: element.config(bg=carg.color))
-                        if not ok:
-                            lCommand = [True, rs, 1]
+                        for index, arg in enumerate(args):
+                            cargs.append(arg if arg not in ThemeUpdateVars else self.theme_update_map[arg])
+
+                        if not isinstance(cargs[0], qa_functions.HexColor):
+                            lCommand = [True, 'Invalid args provided', 1]
+
+                        else:
+                            ok, rs = tr(lambda: element.config(bg=cargs[0].color))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
                     else:
-                        lCommand = [True, 'Insufficient args', 0]
+                        lCommand = [True, 'Insufficient args provided', 2]
 
                     if lCommand[0] is True:
                         log_error(command.name, element, lCommand[1], lCommand[2])
                     else:
                         log_norm(command.name, element)
+
+                del lCommand, cargs
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
