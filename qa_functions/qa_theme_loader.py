@@ -65,7 +65,7 @@ def _save_prep_path(opath: str):
 
 class Load:
     @staticmethod
-    def auto_load_pref_theme() -> dict:
+    def auto_load_pref_theme() -> Theme:
         direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
         fp = f"{direc}\\{Files.ThemePrefFile}"
         default = Load._load_default()

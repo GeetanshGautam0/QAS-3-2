@@ -37,3 +37,42 @@ class Application(Enum):
     QUIZZING_FORM = 1
     THEMING_UTIL = 2
     RECOVERY_UTIL = 3
+
+
+class ThemeUpdateCommands(Enum):
+    BG = 0
+    FG = 1
+    ACTIVE_BG = 2
+    ACTIVE_FG = 3
+
+    BORDER_COLOR = 4
+    BORDER_SIZE = 5
+
+    FONT = 6
+
+    INVISIBLE_CONTAINER = 7
+
+    CUSTOM = -1
+
+
+class ThemeUpdateVars(Enum):
+    BG = 0
+    FG = 1
+    ACCENT = 2
+    ERROR = 3
+    WARNING = 4
+    OKAY = 5
+
+    GRAY = 16
+
+    DEFAULT_FONT_FACE = 6
+    ALT_FONT_FACE = 7
+    AUTO_FONT = 8
+
+    FONT_SIZE_TITLE = 9
+    FONT_SIZE_LARGE = 10
+    FONT_SIZE_MAIN = 11
+    FONT_SIZE_SMALL = 12
+
+    BORDER_SIZE = 14
+    BORDER_COLOUR = 15
