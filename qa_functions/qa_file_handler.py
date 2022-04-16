@@ -44,7 +44,7 @@ class Open:
     @staticmethod
     def read_file(file_obj: File, ofa: OpenFunctionArgs, enc_key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> Union[str, bytes]:
         assert isinstance(enc_key, bytes)
-        assert len(enc_key) == 44
+        assert len(enc_key) in [44, 0]
 
         og_d_type = ofa.d_type
         ofa.d_type = bytes
@@ -52,8 +52,8 @@ class Open:
 
         cfa = cfa
 
-        no = _Crypt.decrypt(raw, enc_key, cfa, True)
-        return dtc(no, og_d_type, cfa) if no is not False else dtc(raw, og_d_type, cfa)
+        no = _Crypt.decrypt(raw, enc_key, cfa, True) if len(enc_key) == 44 else False
+        return dtc(no, og_d_type, cfa) if no else dtc(raw, og_d_type, cfa)
 
 
 class Save:

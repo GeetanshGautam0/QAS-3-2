@@ -79,7 +79,7 @@ class SaveFunctionArgs:
 
     new_old_data_sep:           str = "\n"
 
-    save_data_type:             Union[str, bytes] = _DEFAULT_DATA_TYPE
+    save_data_type:             type = _DEFAULT_DATA_TYPE
 
 
 @dataclass
@@ -94,7 +94,7 @@ class ConverterFunctionArgs:
 class OpenFunctionArgs:
     global _DEFAULT_DATA_TYPE
 
-    d_type:                     Union[str, bytes] = bytes
+    d_type:                     type = bytes
     lines_mode:                 bool = False
 
 
