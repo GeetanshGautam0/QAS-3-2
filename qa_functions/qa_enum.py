@@ -74,6 +74,7 @@ class ThemeUpdateVars(Enum):
     FONT_SIZE_LARGE = 10
     FONT_SIZE_MAIN = 11
     FONT_SIZE_SMALL = 12
+    FONT_SIZE_XL_TITLE = 16
 
     BORDER_SIZE = 14
     BORDER_COLOR = 15
@@ -85,4 +86,5 @@ class FileType(Enum):
     QA_FILE = 2
     QA_LOG = 3
     QA_QUIZ = 4
+    QA_THEME = 5
 

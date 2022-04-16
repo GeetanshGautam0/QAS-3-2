@@ -30,7 +30,8 @@
       "size_small":       10,
       "size_main":        13,
       "size_subtitle":    20,
-      "size_title":       28
+      "size_title":       28,
+      "size_xl_title":    40
     },
 
     "border": {
@@ -59,7 +60,8 @@
       "size_small":       10,
       "size_main":        13,
       "size_subtitle":    15,
-      "size_title":       28
+      "size_title":       28,
+      "size_xl_title":    40
     },
 
     "border": {

@@ -18,6 +18,8 @@ class _Run(Thread):
         Thread.__init__(self)
         self.start()
 
+        self.base_root = None
+
         self.func, self.tokens = func, tokens
         self.shell_ready, self.shell = False, _bg_window
 
@@ -29,13 +31,21 @@ class _Run(Thread):
         if self._run_acc >= 1:
             return self.shell
 
-        _ui_shell = self.func(self, _bg_window)
+        self.base_root = tk.Tk()
+        self.base_root.withdraw()
+        self.base_root.title('Quizzing Application - AIM || Running')
+
+        _ui_shell = self.func(self, _bg_window, **self.tokens)
         self.shell_ready = True
         self.shell = _ui_shell
 
         self._run_acc += 1
 
         return _ui_shell
+
+    def __del__(self):
+        if self.base_root is not None:
+            self.base_root.quit()
 
 
 class _ApplicationInstanceManager:
@@ -55,7 +65,7 @@ class _ApplicationInstanceManager:
 
             func = _application_map[self.name]
             inst = _Run(func, self.tokens)
-            inst.call()
+            ui_shell = inst.call()
 
         except Exception as E:
             self.shell = _bg_window
@@ -136,6 +146,7 @@ def _CLIHandler():
 @click.argument('app_name', type=click.Choice(CLI_AllowedApplications))
 @click.option('--open_file', help="open qa_files that is supplied in args", is_flag=True)
 @click.option('--file_path', help="path of qa_files to open", default=None)
+@click.option('--debug', help='enable debugging', is_flag=True)
 def start_app(**kwargs):
     default_cli_handling(**kwargs)
     app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)

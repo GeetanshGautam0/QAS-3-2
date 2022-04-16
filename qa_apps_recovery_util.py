@@ -7,11 +7,11 @@ script_name = "APP_RU"
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds):
+    def __init__(self, root, ic, ds, **kwargs):
         super().__init__()
         Thread.__init__(self)
 
-        self.root, self.ic, self.ds = root, ic, ds
+        self.root, self.ic, self.ds, self.kwargs = root, ic, ds, kwargs
 
         self.start()
         self.root.mainloop()
@@ -27,8 +27,8 @@ class _UI(Thread):
         self.root.protocol('WM_DELETE_WINDOW', self.close)
 
 
-def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel]):
+def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
     ui_root = tk.Tk()
-    cls = _UI(ui_root, ic=instance_class, ds=default_shell)
+    cls = _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
 
     return ui_root

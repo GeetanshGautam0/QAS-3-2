@@ -11,3 +11,5 @@ qa_log_extn = "qaLog"
 
 qa_quiz_extn = "qaQuiz"
 qa_quiz_enck = b"NjDst1kJ3UT0H2BT6tghmUNGGXcJUNQ8gEBQOCMCqms="
+
+qa_theme_extn = 'qaTheme'

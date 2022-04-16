@@ -48,6 +48,7 @@ class Theme:
     font_main_size:             Union[float, int]
     font_large_size:            Union[float, int]
     font_title_size:            Union[float, int]
+    font_xl_title_size:         Union[float, int]
 
     # Border Information
     border_size:                Union[float, int]

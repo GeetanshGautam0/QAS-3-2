@@ -10,12 +10,12 @@ from dataclasses import dataclass
 
 
 from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPDF, renderPM
+from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
 
 LOGGER_AVAIL = False
-LOGGER_FUNC = qa_functions.NormalLogger
+LOGGER_FUNC = lambda: 0
 LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = ''
 DEBUG_NORM = False
@@ -91,8 +91,6 @@ class MessagePrompts:
             self.data_sc_bar = ttk.Scrollbar(self.data_frame)
             self.close_button = tk.Button(self.root, command=self.close)
 
-            self.acc = 0
-
             self.start()
             self.root.mainloop()
 
@@ -101,14 +99,6 @@ class MessagePrompts:
                 self.root.after(0, self.root.quit)
             else:
                 self.root.after(0, self.root.destroy)
-
-        def create_base(self):
-            self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.protocol("WM_DELETE_WINDOW", self.close)
-            self.root.title(self.msg.title)
-            self.root.resizable(False, True)
-
-            self.update_ui()
 
         def update_ui(self):
             self.load_theme()
@@ -424,14 +414,6 @@ class MessagePrompts:
             else:
                 self.root.after(0, self.root.destroy)
 
-        def create_base(self):
-            self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.protocol("WM_DELETE_WINDOW", self.close)
-            self.root.title(self.msg.title)
-            self.root.resizable(False, True)
-
-            self.update_ui()
-
         def update_ui(self):
             self.load_theme()
 
@@ -745,14 +727,6 @@ class MessagePrompts:
                 self.root.after(0, self.root.quit)
             else:
                 self.root.after(0, self.root.destroy)
-
-        def create_base(self):
-            self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.protocol("WM_DELETE_WINDOW", self.close)
-            self.root.title(self.msg.title)
-            self.root.resizable(False, True)
-
-            self.update_ui()
 
         def update_ui(self):
             self.load_theme()

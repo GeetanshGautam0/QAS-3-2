@@ -76,6 +76,10 @@ class Files:
     ad_theme_folder = ".themes"
     ThemePrefFile = "pref.json"
 
+    # Icons
+    icoRoot = ".\\.src\\.icons\\.app_ico"
+    TU_ico = f"{icoRoot}\\themer.ico"
+
 
 class Encryption:
     default_key: bytes = b"oyJeLcbVk6_w9tbKJArWCZLSBjS8ZfK9M-cAygf6SRQ="

@@ -238,6 +238,7 @@ class Load:
                 t['font']['size_main'],
                 t['font']['size_subtitle'],
                 t['font']['size_title'],
+                t['font']['size_xl_title'],
                 t['border']['size'],
                 HexColor(t['border']['colour']),
             )
