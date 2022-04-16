@@ -28,7 +28,7 @@ _SVG_COLOR_REPL_ROOT = "<<<PYTHON__INSERT__COLOR__HERE>>>"
 class InfoPacket:
     msg: str
 
-    button_text: str = "Okay"
+    button_text: str = "OKAY"
     title: str = None
     long: bool = False
 
@@ -44,6 +44,7 @@ class MessagePrompts:
         except Exception as E:
             print(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
             messagebox.showinfo(msg.title, msg.msg)
+            if qoc: sys.exit('show_error fallback')
 
     class _CInfo(threading.Thread):
         def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool):
@@ -130,9 +131,6 @@ class MessagePrompts:
                     sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
-                if not DEBUG_NORM:
-                    return
-
                 if LOGGER_AVAIL:
                     LOGGER_FUNC([qa_functions.LoggingPackage(
                         LoggingLevel.DEBUG,
@@ -238,7 +236,7 @@ class MessagePrompts:
 
                 if lCommand[0] is True:
                     log_error(command.name, element, lCommand[1], lCommand[2])
-                else:
+                elif DEBUG_NORM:
                     log_norm(command.name, element)
 
                 del lCommand, cargs
@@ -313,7 +311,7 @@ class MessagePrompts:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title("Quizzing Application | Info")
-            self.root.resizable(False, True)
+            # self.root.resizable(False, True)
             self.root.focus_get()
             
             self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
@@ -335,7 +333,7 @@ class MessagePrompts:
                 self.data_txt.config(state=tk.DISABLED, width=15, height=8)
                 self.data_txt.pack(fill=tk.BOTH, expand=True, padx=(self.padX, self.padX/4), pady=self.padY, side=tk.LEFT)
                 self.data_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padX/4, self.padX), pady=self.padY, side=tk.RIGHT)
-                self.label_formatter(self.data_txt)
+                self.label_formatter(self.data_txt, size=ThemeUpdateVars.FONT_SIZE_SMALL)
                 self.update_requests[gsuid()] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
                 self.data_frame.pack(fill=tk.BOTH, expand=True)
                 self.data_txt['yscrollcommand'] = self.data_sc_bar.set
@@ -368,6 +366,7 @@ class MessagePrompts:
         except Exception as E:
             sys.stderr.write(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
             messagebox.showwarning(msg.title, msg.msg)
+            if qoc: sys.exit('show_error fallback')
 
     class _CWarning(threading.Thread):
         def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool):
@@ -454,9 +453,6 @@ class MessagePrompts:
                     sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
-                if not DEBUG_NORM:
-                    return
-
                 if LOGGER_AVAIL:
                     LOGGER_FUNC([qa_functions.LoggingPackage(
                         LoggingLevel.DEBUG,
@@ -562,7 +558,7 @@ class MessagePrompts:
 
                 if lCommand[0] is True:
                     log_error(command.name, element, lCommand[1], lCommand[2])
-                else:
+                elif DEBUG_NORM:
                     log_norm(command.name, element)
 
                 del lCommand, cargs
@@ -637,7 +633,7 @@ class MessagePrompts:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title("Quizzing Application | Warning")
-            self.root.resizable(False, True)
+            # self.root.resizable(False, True)
             self.root.focus_get()
 
             self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
@@ -659,7 +655,7 @@ class MessagePrompts:
                 self.data_txt.config(state=tk.DISABLED, width=15, height=8)
                 self.data_txt.pack(fill=tk.BOTH, expand=True, padx=(self.padX, self.padX / 4), pady=self.padY, side=tk.LEFT)
                 self.data_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padX / 4, self.padX), pady=self.padY, side=tk.RIGHT)
-                self.label_formatter(self.data_txt)
+                self.label_formatter(self.data_txt, size=ThemeUpdateVars.FONT_SIZE_SMALL)
                 self.update_requests[gsuid()] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
                 self.data_frame.pack(fill=tk.BOTH, expand=True)
                 self.data_txt['yscrollcommand'] = self.data_sc_bar.set
@@ -692,6 +688,7 @@ class MessagePrompts:
         except Exception as E:
             sys.stderr.write(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
             messagebox.showerror(msg.title, msg.msg)
+            if qoc: sys.exit('show_error fallback')
 
     class _CError(threading.Thread):
         def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool):
@@ -778,9 +775,6 @@ class MessagePrompts:
                     sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
-                if not DEBUG_NORM:
-                    return
-
                 if LOGGER_AVAIL:
                     LOGGER_FUNC([qa_functions.LoggingPackage(
                         LoggingLevel.DEBUG,
@@ -886,7 +880,7 @@ class MessagePrompts:
 
                 if lCommand[0] is True:
                     log_error(command.name, element, lCommand[1], lCommand[2])
-                else:
+                elif DEBUG_NORM:
                     log_norm(command.name, element)
 
                 del lCommand, cargs
@@ -961,7 +955,7 @@ class MessagePrompts:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title("Quizzing Application | Error")
-            self.root.resizable(False, True)
+            # self.root.resizable(False, True)
             self.root.focus_get()
 
             self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
@@ -983,7 +977,7 @@ class MessagePrompts:
                 self.data_txt.config(state=tk.DISABLED, width=15, height=8)
                 self.data_txt.pack(fill=tk.BOTH, expand=True, padx=(self.padX, self.padX / 4), pady=self.padY, side=tk.LEFT)
                 self.data_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padX / 4, self.padX), pady=self.padY, side=tk.RIGHT)
-                self.label_formatter(self.data_txt)
+                self.label_formatter(self.data_txt, size=ThemeUpdateVars.FONT_SIZE_SMALL)
                 self.update_requests[gsuid()] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
                 self.data_frame.pack(fill=tk.BOTH, expand=True)
                 self.data_txt['yscrollcommand'] = self.data_sc_bar.set

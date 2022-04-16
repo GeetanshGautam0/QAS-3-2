@@ -77,3 +77,12 @@ class ThemeUpdateVars(Enum):
 
     BORDER_SIZE = 14
     BORDER_COLOR = 15
+
+
+class FileType(Enum):
+    QA_ENC = 0
+    QA_EXPORT = 1
+    QA_FILE = 2
+    QA_LOG = 3
+    QA_QUIZ = 4
+
