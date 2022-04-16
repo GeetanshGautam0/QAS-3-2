@@ -1,5 +1,6 @@
 import re
 from .qa_std import check_hex_contrast
+from .qa_custom import HexColor
 
 
 class Convert:
@@ -51,7 +52,7 @@ class Functions:
         return o
 
     @staticmethod
-    def calculate_more_contrast(one, two, color):
+    def calculate_more_contrast(one: HexColor, two: HexColor, color: HexColor):
         f, g = one, two
 
         if not check_hex_contrast(f, color)[0]:
