@@ -410,6 +410,10 @@ class _UI(Thread):
             filetypes=[('Quizzing Application Theme', qa_files.qa_theme_extn)]
         )
 
+        if len(req_files) <= 0:
+            self.enable_all_inputs()
+            return
+
         e1 = {**qa_functions.LoadTheme.auto_load_all()}
         e2, e3, e4 = [], [], []
         for k, v in e1.items():
