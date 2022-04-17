@@ -135,7 +135,6 @@ class Load:
         default = {}
         for kv in odefault.values():
             default = {**default, **kv}
-        print(default)
 
         if not os.path.isdir(direc):
             os.makedirs(direc)
@@ -168,8 +167,6 @@ class Load:
 
         for theme_and_data in Load.auto_load_all().values():
             theme = (*theme_and_data.values(), )[0]
-            print(ddp, dd, theme, sep='\n')
-
             if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
                 if dd != ddp: _set_pref(dd['file'], dd['theme'], dd['display_name'])
                 del dd
@@ -401,7 +398,8 @@ class Test:
         failures, warnings = [], []
 
         contrast_ratio_adjustment_tbl = {
-            'warning': 2.25555
+            'warning': 2.25555,
+            'accent': 2.0899
         }
 
         checks = (
@@ -490,4 +488,9 @@ class Test:
             return len(failures) == 0, failures, warnings
 
         else:
+            if len(failures) > 0:
+                sys.stderr.write(
+                    '\n' + f"-"*100 + "\nCheck theme failures:\n\t*" + "\n\t*".join(failure for failure in failures) + f"\n{'-'*100}\n\n"
+                )
+
             return len(failures) == 0

@@ -15,10 +15,12 @@ from PIL import Image, ImageTk
 from io import BytesIO
 
 LOGGER_AVAIL = False
-LOGGER_FUNC = lambda: 0
+LOGGER_FUNC = lambda *args: 0
 LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = ''
 DEBUG_NORM = False
+
+TTK_THEME = 'clam'
 
 
 _SVG_COLOR_REPL_ROOT = "<<<PYTHON__INSERT__COLOR__HERE>>>"
@@ -61,7 +63,8 @@ class MessagePrompts:
             ratio = (4 if not self.msg.long else 10) / 9
             wd_w = 500 if self.msg.long else 450
             wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-            self.window_size = [wd_w, int(ratio * wd_w)]
+            lwdw = 700 if 700 <= self.screen_dim[0] else self.screen_dim[0]
+            self.window_size = [lwdw if self.msg.long else wd_w, int(ratio * wd_w)]
             self.screen_pos = [
                 int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
                 int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -82,13 +85,15 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
             self.svg_label = tk.Label(self.title_frame)
             self.data_label = tk.Label(self.root)
             self.data_frame = tk.Frame(self.root)
-            self.data_txt = tk.Text(self.data_frame)
-            self.data_sc_bar = ttk.Scrollbar(self.data_frame)
+            self.data_txt = tk.Text(self.data_frame, wrap=tk.WORD)
+            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='My.TScrollbar')
             self.close_button = tk.Button(self.root, command=self.close)
 
             self.start()
@@ -235,6 +240,7 @@ class MessagePrompts:
                 del lCommand, cargs
 
             self.update_svg()
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
 
         def svg_set_path(self):
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
@@ -340,7 +346,7 @@ class MessagePrompts:
             self.close_button.config(text=self.msg.button_text)
             self.close_button.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, ipadx=self.padX, ipady=self.padY)
 
-            self.label_formatter(self.title_label, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE if not self.msg.long else ThemeUpdateVars.FONT_SIZE_TITLE)
+            self.label_formatter(self.title_label, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE if not self.msg.long else ThemeUpdateVars.FONT_SIZE_TITLE, padding=int(self.padX+self.svg_size[0]/2))
             self.button_formatter(self.close_button, True)
 
             self.update_ui()
@@ -376,7 +382,8 @@ class MessagePrompts:
             ratio = (4 if not self.msg.long else 10) / 9
             wd_w = 500 if self.msg.long else 450
             wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-            self.window_size = [wd_w, int(ratio * wd_w)]
+            lwdw = 700 if 700 <= self.screen_dim[0] else self.screen_dim[0]
+            self.window_size = [lwdw if self.msg.long else wd_w, int(ratio * wd_w)]
             self.screen_pos = [
                 int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
                 int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -397,16 +404,16 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.warning.color)
+
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
             self.svg_label = tk.Label(self.title_frame)
             self.data_label = tk.Label(self.root)
             self.data_frame = tk.Frame(self.root)
-            self.data_txt = tk.Text(self.data_frame)
-            self.data_sc_bar = ttk.Scrollbar(self.data_frame)
+            self.data_txt = tk.Text(self.data_frame, wrap=tk.WORD)
+            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='My.TScrollbar')
             self.close_button = tk.Button(self.root, command=self.close)
-
-            self.acc = 0
 
             self.start()
             self.root.mainloop()
@@ -552,6 +559,7 @@ class MessagePrompts:
                 del lCommand, cargs
 
             self.update_svg()
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.warning.color)
 
         def svg_set_path(self):
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
@@ -657,7 +665,7 @@ class MessagePrompts:
             self.close_button.config(text=self.msg.button_text)
             self.close_button.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, ipadx=self.padX, ipady=self.padY)
 
-            self.label_formatter(self.title_label, fg=ThemeUpdateVars.WARNING, size=ThemeUpdateVars.FONT_SIZE_LARGE if not self.msg.long else ThemeUpdateVars.FONT_SIZE_TITLE)
+            self.label_formatter(self.title_label, fg=ThemeUpdateVars.WARNING, size=ThemeUpdateVars.FONT_SIZE_LARGE if not self.msg.long else ThemeUpdateVars.FONT_SIZE_TITLE, padding=int(self.padX+self.svg_size[0]/2))
             self.button_formatter(self.close_button, True)
 
             self.update_ui()
@@ -694,7 +702,8 @@ class MessagePrompts:
             ratio = (4 if not self.msg.long else 10) / 9
             wd_w = 500 if self.msg.long else 450
             wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-            self.window_size = [wd_w, int(ratio * wd_w)]
+            lwdw = 700 if 700 <= self.screen_dim[0] else self.screen_dim[0]
+            self.window_size = [lwdw if self.msg.long else wd_w, int(ratio * wd_w)]
             self.screen_pos = [
                 int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
                 int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -715,16 +724,16 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.error.color)
+
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
             self.svg_label = tk.Label(self.title_frame)
             self.data_label = tk.Label(self.root)
             self.data_frame = tk.Frame(self.root)
-            self.data_txt = tk.Text(self.data_frame)
-            self.data_sc_bar = ttk.Scrollbar(self.data_frame)
+            self.data_txt = tk.Text(self.data_frame, wrap=tk.WORD)
+            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='My.TScrollbar')
             self.close_button = tk.Button(self.root, command=self.close)
-
-            self.acc = 0
 
             self.start()
             self.root.mainloop()
@@ -858,7 +867,6 @@ class MessagePrompts:
                         ok, rs = tr(lambda: element.config(wraplength=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
-
                     else:
                         lCommand = [True, 'Invalid args provided', 2]
 
@@ -870,6 +878,7 @@ class MessagePrompts:
                 del lCommand, cargs
 
             self.update_svg()
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.error.color)
 
         def svg_set_path(self):
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
@@ -975,7 +984,7 @@ class MessagePrompts:
             self.close_button.config(text=self.msg.button_text)
             self.close_button.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, ipadx=self.padX, ipady=self.padY)
 
-            self.label_formatter(self.title_label, fg=ThemeUpdateVars.ERROR, size=ThemeUpdateVars.FONT_SIZE_LARGE if not self.msg.long else ThemeUpdateVars.FONT_SIZE_TITLE)
+            self.label_formatter(self.title_label, fg=ThemeUpdateVars.ERROR, size=ThemeUpdateVars.FONT_SIZE_LARGE if not self.msg.long else ThemeUpdateVars.FONT_SIZE_TITLE, padding=int(self.padX+self.svg_size[0]/2))
             self.button_formatter(self.close_button, True)
 
             self.update_ui()
@@ -1003,6 +1012,43 @@ def get_svg(svg_file, background, size=None):
     p_img = ImageTk.PhotoImage(img)
 
     return p_img
+
+
+def configure_scrollbar_style(style: ttk.Style, theme: qa_functions.Theme, accent_color):
+    global TTK_THEME
+
+    style.theme_use(TTK_THEME)
+    style.layout("My.TScrollbar",
+                  [('My.Scrollbar.trough', {'children':
+                      [
+                          ('Vertical.Scrollbar.uparrow', {'side': 'top', 'sticky': ''}),
+                          ('Vertical.Scrollbar.downarrow', {'side': 'bottom', 'sticky': ''}),
+                          ('Vertical.Scrollbar.thumb', {'unit': '1', 'children':
+                              [('Vertical.Scrollbar.grip', {'sticky': ''})], 'sticky': 'nswe'})],
+                      'sticky': 'ns'})
+                   ])
+    # style.configure("My.TScrollbar", *style.configure("TScrollbar"))
+    style.configure("My.TScrollbar", troughcolor=theme.background.color)
+
+    style.configure(
+        'My.TScrollbar',
+        background=theme.background.color,
+        arrowcolor=accent_color
+    )
+    style.map(
+        "My.TScrollbar",
+        background=[
+            ("active", accent_color), ('disabled', theme.background.color)
+        ],
+        foreground=[
+            ("active", accent_color), ('disabled', theme.background.color)
+        ],
+        arrowcolor=[
+            ('disabled', theme.background.color)
+        ]
+    )
+
+    return style
 
 
 def gsuid(arg1: str = 'elForm'):

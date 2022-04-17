@@ -1,21 +1,21 @@
 {
   "file_info": {
-    "name":           "QuizzingApp.Themes.Default",
-    "display_name":   "Default",
+    "name":           "QuizzingApp.Themes.InstallationCheck",
+    "display_name":   "Installer Check",
     "avail_themes": {
       "num_themes":       2,
-      "light":            "Themes.Default.Light",
-      "dark":             "Themes.Default.Dark"
+      "light":            "Themes.InstallationCheck.One",
+      "dark":             "Themes.InstallationCheck.Two"
     }
 
   },
 
-  "Themes.Default.Light": {
+  "Themes.InstallationCheck.One": {
     "display_name":   "Light Mode",
 
     "background":     "#FFFFFF",
-    "foreground":     "#000000",
-    "accent":         "#2db2e7",
+    "foreground":     "#9d0000",
+    "accent":         "#2d0000",
 
     "error":          "#E01A00",
     "warning":        "#D6A630",
@@ -40,8 +40,8 @@
     }
   },
 
-  "Themes.Default.Dark": {
-    "display_name":   "Dark Mode",
+  "Themes.InstallationCheck.Two": {
+    "display_name":   "Darker Mode",
 
     "background":     "#202020",
     "foreground":     "#FFFFFF",

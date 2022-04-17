@@ -54,7 +54,8 @@ def load_file(file_type: qa_enum.FileType, raw_data: bytes) -> Union[type(None),
 
     try:
         assert isinstance(raw_data, bytes), 'Expected type \'bytes\' for raw_data input'
-        assert file_type in _ft_map, 'Invalid FILE_TYPE enum provided'
+        if file_type not in _ft_map:
+            return raw_data, data_type_converter(raw_data, str, ConverterFunctionArgs())
 
         raw_data = raw_data.strip()
 

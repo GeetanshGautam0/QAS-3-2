@@ -1,7 +1,7 @@
 from threading import Thread
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, PIL, os
+import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json
 from typing import *
-from tkinter import ttk
+from tkinter import ttk, filedialog
 from qa_functions.qa_enum import *
 from qa_prompts import gsuid
 from PIL import Image, ImageTk
@@ -63,9 +63,23 @@ class _UI(Thread):
         self.select_theme_button = tk.Button(self.theme_selector_panel)
         self.theme_selector_s_var = tk.StringVar(self.root)
         self.theme_selector_options = {'No themes loaded; click \'Refresh\' to load themes': ''}
-        self.theme_selector_dropdown = ttk.OptionMenu(self.theme_selector_panel, self.theme_selector_s_var, *self.theme_selector_options.keys())
+        self.theme_pre_installed_frame = tk.Frame(self.theme_selector_panel)
+        self.theme_pre_installed_lbl = tk.Label(self.theme_pre_installed_frame)
+        self.theme_selector_dropdown = ttk.OptionMenu(self.theme_pre_installed_frame, self.theme_selector_s_var, *self.theme_selector_options.keys())
         self.theme_selector_s_var.set(self.theme_pref[2])
+        self.install_new_frame = tk.Frame(self.theme_selector_panel)
+        self.install_new_label = tk.Label(self.install_new_frame)
+        self.install_new_button = ttk.Button(self.install_new_frame)
+
         self.prev_theme_selection = self.theme_selector_s_var.get()
+
+        self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
+        self.space_filler_2 = tk.Label(self.install_new_frame)
+
+        self.ttk_theme = 'clam'
+
+        self.ttk_style = ttk.Style()
+        self.ttk_style.theme_use(self.ttk_theme)
 
         self.start()
         self.root.mainloop()
@@ -208,17 +222,50 @@ class _UI(Thread):
 
             del lCommand, cargs
 
+        # TTK
+        self.ttk_style.configure(
+            'TMenubutton',
+            background=self.theme.background.color,
+            foreground=self.theme.accent.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            arrowcolor=self.theme.accent.color,
+            borderwidth=0
+        )
+
+        self.ttk_style.map(
+            'TMenubutton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)],
+            arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
+        )
+
+        self.ttk_style.configure(
+            'TButton',
+            background=self.theme.background.color,
+            foreground=self.theme.accent.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.accent.color,
+            bordercolor=0
+        )
+
+        self.ttk_style.map(
+            'TButton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        # External Update Calls
         self.update_theme_selector_options()
 
-    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG):
         if padding is None:
             padding = self.padX
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [bg if not accent else ThemeUpdateVars.ACCENT]]
+        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [fg if not accent else ThemeUpdateVars.BG]]
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [abg if not accent else ThemeUpdateVars.BG]]
+        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [afg if not accent else ThemeUpdateVars.ACCENT]]
         self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
         self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
@@ -261,6 +308,7 @@ class _UI(Thread):
         global DEBUG_NORM, APP_TITLE
         DEBUG_NORM = self.kwargs.get('debug')
         qa_prompts.DEBUG_NORM = DEBUG_NORM
+        qa_prompts.TTK_THEME = self.ttk_theme
 
         self.root.protocol('WM_DELETE_WINDOW', self.close)
         self.root.title(APP_TITLE)
@@ -277,13 +325,36 @@ class _UI(Thread):
         self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT)
         self.label_formatter(self.title_icon)
 
-        self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
-        self.update_requests[gsuid()] = [self.title_box, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
-        self.theme_selector_panel.pack()
-        self.theme_selector_dropdown.pack()
+        self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.title_box, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.theme_pre_installed_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.install_new_frame, TUC.BG, [TUV.BG]]
+
+        self.theme_selector_panel.config(text="Installed Themes")
+        self.theme_selector_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, ipadx=self.padX/2, ipady=self.padY/2)
+
+        self.space_filler_1.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.space_filler_2.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.label_formatter(self.space_filler_1)
+        self.label_formatter(self.space_filler_2)
+
+        self.theme_pre_installed_frame.pack(fill=tk.X, expand=False)
+        self.theme_selector_dropdown.pack(side=tk.RIGHT, padx=(0, self.padX), pady=self.padY, fill=tk.X, expand=False)
+        self.theme_pre_installed_lbl.config(text="Select an Installed Theme:", anchor=tk.E, justify=tk.RIGHT)
+        self.theme_pre_installed_lbl.pack(side=tk.LEFT, padx=(self.padX, 0), pady=self.padY, fill=tk.X, expand=False)
+
+        self.install_new_frame.pack(fill=tk.X, expand=False)
+        self.install_new_label.config(text="Want to try out a new theme?")
+        self.install_new_label.pack(fill=tk.X, expand=False, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
+        self.install_new_button.config(text="Install a New Theme", command=self.install_new_theme)
+        self.install_new_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
 
         self.theme_selector_s_var.trace('w', self.on_theme_drop_change)
+        self.label_formatter(self.theme_selector_panel, size=TUV.FONT_SIZE_MAIN)
+        self.label_formatter(self.theme_pre_installed_lbl, size=TUV.FONT_SIZE_MAIN)
+        self.label_formatter(self.install_new_label, size=TUV.FONT_SIZE_MAIN)
 
         self.update_ui()
 
@@ -299,7 +370,6 @@ class _UI(Thread):
             name, theme = (*tad.keys(),)[0], (*tad.values(),)[0]
 
             file_name = theme.theme_file_display_name
-            print(f'{file_name}: {name}')
             self.theme_selector_options[f'{file_name}: {name}'] = theme
 
         if og != self.theme_selector_options:
@@ -307,7 +377,7 @@ class _UI(Thread):
             self.theme_selector_s_var.set(self.theme_pref[2])
             self.theme_selector_dropdown['menu'].delete(0, tk.END)
             for option in self.theme_selector_options:
-                self.theme_selector_dropdown['menu'].add_command(
+                self.theme_selector_dropdown['menu'].add_radiobutton(
                     label=option, command=tk._setit(self.theme_selector_s_var, option)
                 )
 
@@ -331,6 +401,188 @@ class _UI(Thread):
                     new_theme.theme_file_path, new_theme.theme_code, f'{new_theme.theme_file_display_name}: {new_theme.theme_display_name}'
                 )
                 self.update_ui()
+
+    def install_new_theme(self):
+        self.disable_all_inputs()
+
+        req_files = filedialog.askopenfilenames(
+            title="Select Theme File",
+            filetypes=[('Quizzing Application Theme', qa_files.qa_theme_extn)]
+        )
+
+        e1 = {**qa_functions.LoadTheme.auto_load_all()}
+        e2, e3, e4 = [], [], []
+        for k, v in e1.items():
+            exs: qa_functions.Theme = (*v.values(),)[0]
+            e2.append({
+                'bg': exs.background.color,
+                'fg': exs.foreground.color,
+                'accent': exs.accent.color,
+                'error': exs.error.color,
+                'warning': exs.warning.color,
+                'okay': exs.okay.color,
+                'gray': exs.gray.color,
+                'ff': exs.font_face,
+                'faf': exs.font_alt_face,
+                'fss': exs.font_small_size,
+                'fms': exs.font_main_size,
+                'fls': exs.font_large_size,
+                'fts': exs.font_title_size,
+                'fxlts': exs.font_xl_title_size,
+                'bs': exs.border_size,
+                'bc': exs.border_color.color
+            })
+            e3.append((k, (*v.keys(),)[0], f"{exs.theme_file_display_name}: {exs.theme_display_name}"))
+            e4.append(f"{exs.theme_file_display_name}: {exs.theme_display_name}")
+
+        to_install = {}
+
+        for file in req_files:
+            file = file.replace('/', '\\')
+            fn = file.split('\\')[-1]
+
+            try:
+                if file.split('.')[-1] != qa_files.qa_theme_extn:
+                    raise Exception('Invalid file extension')
+
+                file_inst = qa_functions.File(file)
+                raw = qa_functions.OpenFile.load_file(file_inst, qa_functions.OpenFunctionArgs(bytes, False))
+                _, json_string = qa_files.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
+                theme_json = json.loads(json_string)
+                assert fn != qa_functions.Files.ThemePrefFile, f"Filename '{fn}' is not allowed (system reserved)"
+                assert 'file_info' in theme_json, 'File info unavailable'
+                assert 'avail_themes' in theme_json['file_info'], 'No themes available'
+                assert 'num_themes' in theme_json['file_info']['avail_themes'], 'No themes available'
+                assert len(theme_json['file_info']['avail_themes']) == theme_json['file_info']['avail_themes']['num_themes'] + 1, 'Corrupted theme data'
+                assert theme_json['file_info']['avail_themes']['num_themes'] > 0, 'No themes available'
+                avail_themes = {**theme_json['file_info']['avail_themes']}
+                avail_themes.pop('num_themes')
+
+                all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes)
+
+                it = []
+                ins = []
+
+                for _, td in all_theme_data.items():
+                    theme_name, theme_data = (*td.keys(),)[0], (*td.values(),)[0]
+                    theme_data: qa_functions.Theme
+
+                    comp_theme_dict = {
+                        'bg': theme_data.background.color,
+                        'fg': theme_data.foreground.color,
+                        'accent': theme_data.accent.color,
+                        'error': theme_data.error.color,
+                        'warning': theme_data.warning.color,
+                        'okay': theme_data.okay.color,
+                        'gray': theme_data.gray.color,
+                        'ff': theme_data.font_face,
+                        'faf': theme_data.font_alt_face,
+                        'fss': theme_data.font_small_size,
+                        'fms': theme_data.font_main_size,
+                        'fls': theme_data.font_large_size,
+                        'fts': theme_data.font_title_size,
+                        'fxlts': theme_data.font_xl_title_size,
+                        'bs': theme_data.border_size,
+                        'bc': theme_data.border_color.color
+                    }
+
+                    dn = f"{theme_data.theme_file_display_name}: {theme_data.theme_display_name}"
+
+                    if dn in e4:
+                        ins.append(dn)
+
+                    elif comp_theme_dict in e2:
+                        it.append((f"{fn}: {theme_data.theme_code}", e3[e2.index(comp_theme_dict)][0]))
+
+                    else:
+                        if fn not in to_install:
+                            to_install[fn] = ()
+
+                        to_install[fn] = (*to_install[fn], theme_data)
+
+                if len(it) + len(ins) > 0:
+                    raise Exception((("\n\tCouldn't install {} theme(s) from '{}': identical theme(s) already installed.\n\t\tFailed to install the following themes:\n\t\t\t*{}\n".format(str(len(it)), fn, "\n\t\t\t*".join(f"<{a}> = <{b}>" for a, b in it))) if len(it) > 0 else "") + ((("\n" if len(it) > 0 else "") +("\n\tCouldn't install {} theme(s) from '{}': theme with identical names already installed.\n\t\tFailed to install the following themes:\n\t\t\t*{}\n".format(str(len(ins)), fn, "\n\t\t\t*".join(j for j in ins)))) if len(ins) > 0 else ""))
+
+            except Exception as E:
+                qa_prompts.MessagePrompts.show_error(
+                    qa_prompts.InfoPacket(
+                        msg=f"""Failed to install theme from file '{fn}'.
+
+Error: {str(E)}
+Error Code: {hashlib.md5(str(E).encode()).hexdigest()}
+
+Technical Information:
+{traceback.format_exc()}""",
+                        title="Couldn't Install Theme"
+                    )
+                )
+
+        install_dir = f"{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}".replace('/','\\')
+        if not os.path.isdir(install_dir):
+            os.makedirs(install_dir)
+
+        for filename, themes in to_install.items():
+            themes: Tuple[qa_functions.Theme]
+
+            if len(themes) <= 0:
+                continue
+
+            theme_data_dict = {
+                'file_info':
+                    {
+                        'name': themes[0].theme_file_name,
+                        'display_name': themes[0].theme_file_display_name,
+                        'avail_themes': {
+                            'num_themes': len(themes)
+                        }
+                    }
+            }
+
+            for theme in themes:
+                theme_data_dict['file_info']['avail_themes'][theme.theme_display_name] = theme.theme_code
+                nt = {
+                    'display_name': theme.theme_display_name,
+                    'background': theme.background.color,
+                    'foreground': theme.foreground.color,
+                    'accent': theme.accent.color,
+                    'error': theme.error.color,
+                    'warning': theme.warning.color,
+                    'ok': theme.okay.color,
+                    'gray': theme.gray.color,
+                    'font': {
+                        'font_face': theme.font_face,
+                        'alt_font_face': theme.font_alt_face,
+                        'size_small': theme.font_small_size,
+                        'size_main': theme.font_main_size,
+                        'size_subtitle': theme.font_large_size,
+                        'size_title': theme.font_title_size,
+                        'size_xl_title': theme.font_xl_title_size
+                    },
+                    'border': {
+                        'size': theme.border_size,
+                        'colour': theme.border_color.color
+                    }
+                }
+
+                theme_data_dict = {**theme_data_dict, theme.theme_code: nt}
+
+            d2s = json.dumps(theme_data_dict, indent=4)
+            d2s2 = qa_files.generate_file(qa_functions.qa_enum.FileType.QA_THEME, d2s)
+            File = qa_functions.File(f"{install_dir}\\{filename}")
+            qa_functions.SaveFile.secure(
+                File, d2s2, qa_functions.SaveFunctionArgs(False, False, delete_backup=False, save_data_type=bytes)
+            )
+
+        self.enable_all_inputs()
+        self.update_ui()
+
+    def disable_all_inputs(self):
+        self.install_new_button.config(state=tk.DISABLED)
+        self.theme_selector_dropdown.config(state=tk.DISABLED)
+
+    def enable_all_inputs(self):
+        self.install_new_button.config(state=tk.NORMAL)
+        self.theme_selector_dropdown.config(state=tk.NORMAL)
 
     def __del__(self):
         self.thread.join(self, 0)
