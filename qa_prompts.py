@@ -39,7 +39,7 @@ class MessagePrompts:
     def show_info(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel] = None, qoc: bool = False):
         try:
             if root is None:
-                root = tk.Tk()
+                root = tk.Toplevel()
             MessagePrompts._CInfo(root, msg, qoc)
         except Exception as E:
             print(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
@@ -96,9 +96,12 @@ class MessagePrompts:
 
         def close(self):
             if self.qoc:
-                self.root.after(0, self.root.quit)
+                sys.exit()
             else:
-                self.root.after(0, self.root.destroy)
+                self.thread.join(self, 0)
+                self.root.after(0, self.root.quit)
+                self.root.withdraw()
+                self.root.title('Quizzing Application | Closed Prompt')
 
         def update_ui(self):
             self.load_theme()
@@ -350,7 +353,7 @@ class MessagePrompts:
     def show_warning(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel] = None, qoc: bool = False):
         try:
             if root is None:
-                root = tk.Tk()
+                root = tk.Toplevel()
             MessagePrompts._CWarning(root, msg, qoc)
 
         except Exception as E:
@@ -410,9 +413,12 @@ class MessagePrompts:
 
         def close(self):
             if self.qoc:
-                self.root.after(0, self.root.quit)
+                sys.exit()
             else:
-                self.root.after(0, self.root.destroy)
+                self.thread.join(self, 0)
+                self.root.after(0, self.root.quit)
+                self.root.withdraw()
+                self.root.title('Quizzing Application | Closed Prompt')
 
         def update_ui(self):
             self.load_theme()
@@ -664,8 +670,9 @@ class MessagePrompts:
     def show_error(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel] = None, qoc: bool = False):
         try:
             if root is None:
-                root = tk.Tk()
+                root = tk.Toplevel()
             MessagePrompts._CError(root, msg, qoc)
+            return
 
         except Exception as E:
             sys.stderr.write(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
@@ -724,9 +731,12 @@ class MessagePrompts:
 
         def close(self):
             if self.qoc:
-                self.root.after(0, self.root.quit)
+                sys.exit()
             else:
-                self.root.after(0, self.root.destroy)
+                self.thread.join(self, 0)
+                self.root.after(0, self.root.quit)
+                self.root.withdraw()
+                self.root.title('Quizzing Application | Closed Prompt')
 
         def update_ui(self):
             self.load_theme()

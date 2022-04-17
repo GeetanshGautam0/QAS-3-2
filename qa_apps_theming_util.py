@@ -1,5 +1,5 @@
 from threading import Thread
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, PIL
+import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, PIL, os
 from typing import *
 from tkinter import ttk
 from qa_functions.qa_enum import *
@@ -53,6 +53,19 @@ class _UI(Thread):
         self.title_box = tk.Frame(self.root)
         self.title_label = tk.Label(self.title_box)
         self.title_icon = tk.Label(self.title_box)
+        
+        self.IO_panel = tk.LabelFrame(self.root)
+        self.install_button = tk.Button(self.IO_panel)
+        self.export_button = tk.Button(self.IO_panel)
+
+        self.theme_selector_panel = tk.LabelFrame(self.root)
+        self.theme_pref = qa_functions.qa_theme_loader._load_pref_data()
+        self.select_theme_button = tk.Button(self.theme_selector_panel)
+        self.theme_selector_s_var = tk.StringVar(self.root)
+        self.theme_selector_options = {'No themes loaded; click \'Refresh\' to load themes': ''}
+        self.theme_selector_dropdown = ttk.OptionMenu(self.theme_selector_panel, self.theme_selector_s_var, *self.theme_selector_options.keys())
+        self.theme_selector_s_var.set(self.theme_pref[2])
+        self.prev_theme_selection = self.theme_selector_s_var.get()
 
         self.start()
         self.root.mainloop()
@@ -195,7 +208,7 @@ class _UI(Thread):
 
             del lCommand, cargs
 
-        # self.setup_png()
+        self.update_theme_selector_options()
 
     def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
         if padding is None:
@@ -267,12 +280,57 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
         self.update_requests[gsuid()] = [self.title_box, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
+        self.theme_selector_panel.pack()
+        self.theme_selector_dropdown.pack()
+
+        self.theme_selector_s_var.trace('w', self.on_theme_drop_change)
+
         self.update_ui()
 
     def load_png(self):
         i = Image.open(self.img_path)
         i = i.resize(self.img_size, Image.ANTIALIAS)
         self.img = ImageTk.PhotoImage(i)
+
+    def update_theme_selector_options(self):
+        og = {**self.theme_selector_options}
+        self.theme_selector_options = {}
+        for code, tad in qa_functions.LoadTheme.auto_load_all().items():
+            name, theme = (*tad.keys(),)[0], (*tad.values(),)[0]
+
+            file_name = theme.theme_file_display_name
+            print(f'{file_name}: {name}')
+            self.theme_selector_options[f'{file_name}: {name}'] = theme
+
+        if og != self.theme_selector_options:
+            self.theme_pref = qa_functions.qa_theme_loader._load_pref_data()
+            self.theme_selector_s_var.set(self.theme_pref[2])
+            self.theme_selector_dropdown['menu'].delete(0, tk.END)
+            for option in self.theme_selector_options:
+                self.theme_selector_dropdown['menu'].add_command(
+                    label=option, command=tk._setit(self.theme_selector_s_var, option)
+                )
+
+    def on_theme_drop_change(self, *args, **kwargs):
+        def nope():
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket("The requested theme wasn't found; refreshing list."),
+                qoc=False
+            )
+            self.update_ui()
+
+        if self.prev_theme_selection != self.theme_selector_s_var.get():
+            self.prev_theme_selection = self.theme_selector_s_var.get()
+            new_theme: qa_functions.Theme = self.theme_selector_options.get(self.theme_selector_s_var.get())
+            if not isinstance(new_theme, qa_functions.Theme):
+                nope()
+            elif not os.path.exists(new_theme.theme_file_path):
+                nope()
+            else:
+                qa_functions.qa_theme_loader._set_pref(
+                    new_theme.theme_file_path, new_theme.theme_code, f'{new_theme.theme_file_display_name}: {new_theme.theme_display_name}'
+                )
+                self.update_ui()
 
     def __del__(self):
         self.thread.join(self, 0)

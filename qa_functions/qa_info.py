@@ -69,7 +69,7 @@ class Files:
     default_dir = ".defaults"
     default_theme_dir = f".\\{default_src}\\{default_dir}\\.themes"
     default_theme_file = f"{default_theme_dir}\\default.json"
-    default_theme_file_code = "QuizzingApp.Themes.Default"
+    default_theme_file_code = ".\\.src\\.defaults\\.themes"
     default_theme_hashes = f"{default_theme_dir}\\hashes.json"
 
     # Theme (AppData)

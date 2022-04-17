@@ -15,7 +15,7 @@
 
     "background":     "#FFFFFF",
     "foreground":     "#000000",
-    "accent":         "#1C8087",
+    "accent":         "#157BB7",
 
     "error":          "#E01A00",
     "warning":        "#D6A630",
@@ -45,7 +45,7 @@
 
     "background":     "#202020",
     "foreground":     "#FFFFFF",
-    "accent":         "#229ca5",
+    "accent":         "#36A6E7",
 
     "error":          "#ff3a20",
     "warning":        "#efca08",

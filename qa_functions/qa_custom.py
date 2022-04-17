@@ -26,6 +26,8 @@ class Theme:
     theme_display_name:         str
     theme_code:                 str
 
+    theme_file_path:            str
+
     # Primary Colours
     background:                 HexColor
     foreground:                 HexColor

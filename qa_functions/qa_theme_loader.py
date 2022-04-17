@@ -1,4 +1,6 @@
 import json, hashlib, sys, re
+import traceback
+
 from .qa_custom import *
 from .qa_enum import *
 from .qa_file_handler import *
@@ -17,7 +19,8 @@ def _reset_pref():
     default_data = {
         't': {
             'file': "<DEFAULT>",
-            'theme': "<DEFAULT>"
+            'theme': "<DEFAULT>",
+            'display_name': "<DEFAULT>"
         }
     }
 
@@ -26,7 +29,7 @@ def _reset_pref():
         pref_file.close()
 
 
-def _set_pref(file, theme):
+def _set_pref(file, theme, display_name):
     file = _save_prep_path(file)
 
     direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
@@ -39,12 +42,72 @@ def _set_pref(file, theme):
         bef = json.loads(pref_file.read())
         pref_file.close()
 
+    if 't' not in bef:
+        bef['t'] = {}
+    elif not isinstance(bef['t'], dict):
+        bef['t'] = {}
+
     bef['t']['file'] = file
     bef['t']['theme'] = theme
+    bef['t']['display_name'] = display_name
 
     with open(fp, 'w') as pref_file:
         pref_file.write(json.dumps(bef, indent=4))
         pref_file.close()
+
+
+def _load_pref_data() -> list:
+    direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
+    fp = f"{direc}\\{Files.ThemePrefFile}"
+    odefault = Load._load_default()
+    default = {}
+    for kv in odefault.values():
+        default = {**default, **kv}
+
+    if not os.path.isdir(direc):
+        os.makedirs(direc)
+
+    if not os.path.isfile(fp):
+        _reset_pref()
+
+    raw = {}
+    with open(fp, 'r') as pref_file:
+        raw = json.loads(pref_file.read())
+        pref_file.close()
+
+    df, dd = \
+        data_at_dict_path('t\\file', raw)[0] and data_at_dict_path('t\\theme', raw)[0] and data_at_dict_path('t\\display_name', raw)[0], \
+        {'file': data_at_dict_path('t\\file', raw)[1], 'theme': data_at_dict_path('t\\theme', raw)[1], 'display_name': data_at_dict_path('t\\display_name', raw)[1]}
+
+    if not df:
+        _reset_pref()
+        return _load_pref_data()
+
+    dd['file'] = _load_path_prep(dd['file'])
+    dd['theme'] = _load_path_prep(dd['theme'])
+
+    ddp = {**dd}
+
+    if dd['file'] == '<DEFAULT>': dd['file'] = Files.default_theme_file_code
+    if dd['theme'] == '<DEFAULT>': dd['theme'] = list(default.values())[0].theme_code
+    if dd['display_name'] == '<DEFAULT>': dd['display_name'] = f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}'
+
+    for theme_and_data in Load.auto_load_all().values():
+        theme = (*theme_and_data.values(),)[0]
+        if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
+            if dd != ddp:
+                _set_pref(dd['file'], dd['theme'], dd['display_name'])
+                del ddp
+                return [*dd.values()]
+
+            return [*dd.values(), ]
+
+    print('[INFO] [PREF_LOADER] No match; DEFAULTING')
+    _set_pref(Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}')
+
+    del dd
+
+    return [Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}']
 
 
 def _load_path_prep(opath: str):
@@ -68,7 +131,11 @@ class Load:
     def auto_load_pref_theme() -> Theme:
         direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
         fp = f"{direc}\\{Files.ThemePrefFile}"
-        default = Load._load_default()
+        odefault = Load._load_default()
+        default = {}
+        for kv in odefault.values():
+            default = {**default, **kv}
+        print(default)
 
         if not os.path.isdir(direc):
             os.makedirs(direc)
@@ -83,8 +150,8 @@ class Load:
             pref_file.close()
 
         df, dd = \
-            data_at_dict_path('t', raw)[0] and data_at_dict_path('t\\file', raw)[0] and data_at_dict_path('t\\theme', raw)[0], \
-            {'file': data_at_dict_path('t\\file', raw)[1], 'theme': data_at_dict_path('t\\theme', raw)[1]}
+            data_at_dict_path('t\\file', raw)[0] and data_at_dict_path('t\\theme', raw)[0] and data_at_dict_path('t\\display_name', raw)[0], \
+            {'file': data_at_dict_path('t\\file', raw)[1], 'theme': data_at_dict_path('t\\theme', raw)[1], 'display_name': data_at_dict_path('t\\display_name', raw)[1]}
 
         if not df:
             _reset_pref()
@@ -97,15 +164,19 @@ class Load:
 
         if dd['file'] == '<DEFAULT>': dd['file'] = Files.default_theme_file_code
         if dd['theme'] == '<DEFAULT>': dd['theme'] = list(default.values())[0].theme_code
+        if dd['display_name'] == '<DEFAULT>': dd['display_name'] = f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}'
 
-        for theme in Load.auto_load_all().values():
-            if theme.theme_file_name == dd['file'] and theme.theme_code == dd['theme']:
-                if dd != ddp: _set_pref(dd['file'], dd['theme'])
+        for theme_and_data in Load.auto_load_all().values():
+            theme = (*theme_and_data.values(), )[0]
+            print(ddp, dd, theme, sep='\n')
+
+            if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
+                if dd != ddp: _set_pref(dd['file'], dd['theme'], dd['display_name'])
                 del dd
                 return theme
 
         print('[INFO] [THEME_LOADER] No match; DEFAULTING')
-        _set_pref(Files.default_theme_file_code, list(default.values())[0].theme_code)
+        _set_pref(Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}')
 
         del dd
 
@@ -113,8 +184,8 @@ class Load:
 
     @staticmethod
     def auto_load_all() -> dict:
-        output = Load._load_default()
-        extn = qa_files.qa_file_extn
+        output = {}
+        extn = qa_files.qa_theme_extn
 
         direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
         if not os.path.exists(direc):
@@ -129,7 +200,7 @@ class Load:
         with os.scandir(direc) as fls:
             for file in fls:
                 if file.name.endswith(extn):
-                    fp = f"{file.path}"
+                    fp = file.path
 
                     try:
                         with open(fp, 'r') as theme_file:
@@ -152,10 +223,22 @@ class Load:
                     avail_themes.pop('num_themes')
 
                     file_acc += 1
-                    themes[len(themes)] = (avail_themes, raw)
+                    themes[len(themes)] = (avail_themes, raw, fp)
 
-        for at, t in themes.values():
-            output = {**output, **Load._load_theme(t, at, False)}
+        for at, t, fp in themes.values():
+            try:
+                nd = Load._load_theme(fp, t, at, False)
+            except Exception as E:
+                fn = fp.replace('/', '\\').split('\\')[-1]
+                stri = f"Failed to load theme from '{fn}': {str(E)}; \n{traceback.format_exc()}"
+                sys.stderr.write(f"{stri}\n")
+                messagebox.showerror('Automatic Theme Loading Manager', f'DELETED CORRUPTED THEME FILE\n{stri}')
+                os.remove(fp)
+                continue
+
+            output = {**output, **nd}
+
+        output = {**output, **Load._load_default()}
 
         print("[INFO] [THEME_LOADER] Found %d files from the AppData directory" % file_acc)
 
@@ -193,7 +276,7 @@ class Load:
             themes = {**json_data['file_info']['avail_themes']}
             themes.pop('num_themes')
 
-            return Load._load_theme(json_data, themes, _skip_test=True)
+            return Load._load_theme(default_direc, json_data, themes, _skip_test=True)
 
         output_acc = {}
 
@@ -207,10 +290,8 @@ class Load:
 
         return output_acc
 
-
     @staticmethod
-    def _load_theme(raw_theme_json: dict, theme_names: dict, _skip_test: bool = False) -> dict:
-
+    def _load_theme(file_path, raw_theme_json: dict, theme_names: dict, _skip_test: bool = False) -> dict:
         o = {}
 
         for theme_name, theme in theme_names.items():
@@ -225,6 +306,7 @@ class Load:
                 raw_theme_json['file_info']['display_name'],
                 t['display_name'],
                 theme,
+                file_path,
                 HexColor(t['background']),
                 HexColor(t['foreground']),
                 HexColor(t['accent']),
@@ -243,7 +325,7 @@ class Load:
                 HexColor(t['border']['colour']),
             )
 
-            o = {**o, t['display_name']: ot}
+            o = {**o, theme: {t['display_name']: ot}}
 
         return o
 
