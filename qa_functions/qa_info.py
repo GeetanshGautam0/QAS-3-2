@@ -75,6 +75,7 @@ class Files:
     # Theme (AppData)
     ad_theme_folder = ".themes"
     ThemePrefFile = "pref.json"
+    ThemeCustomFile = "userDefined.qaTheme"
 
     # Icons
     icoRoot = ".\\.src\\.icons\\.app_ico"

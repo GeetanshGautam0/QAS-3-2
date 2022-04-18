@@ -188,7 +188,7 @@ class Save:
             # Check whether we are allowed to modify the file
             pass
 
-        while not os.path.exists(file_obj.path):
+        while not os.path.exists(file_obj.path) and len(file_obj.path.strip()) > 0:
             os.makedirs(file_obj.path)
 
         return None

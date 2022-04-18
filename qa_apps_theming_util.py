@@ -1,5 +1,5 @@
 from threading import Thread
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json
+import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json, random
 from typing import *
 from tkinter import ttk, filedialog
 from qa_functions.qa_enum import *
@@ -71,10 +71,16 @@ class _UI(Thread):
         self.install_new_label = tk.Label(self.install_new_frame)
         self.install_new_button = ttk.Button(self.install_new_frame)
 
+        self.online_theme_frame = tk.Frame(self.theme_selector_panel)
+        self.online_theme_label1 = tk.Label(self.online_theme_frame)
+        self.online_theme_label2 = tk.Label(self.online_theme_frame)
+        self.online_theme_button = ttk.Button(self.online_theme_frame)
+        
         self.prev_theme_selection = self.theme_selector_s_var.get()
 
         self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
         self.space_filler_2 = tk.Label(self.install_new_frame)
+        self.space_filler_3 = tk.Label(self.online_theme_frame)
 
         self.ttk_theme = 'clam'
 
@@ -331,14 +337,15 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [self.title_box, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.theme_pre_installed_frame, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.install_new_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.online_theme_frame, TUC.BG, [TUV.BG]]
 
         self.theme_selector_panel.config(text="Installed Themes")
         self.theme_selector_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, ipadx=self.padX/2, ipady=self.padY/2)
 
-        self.space_filler_1.pack(fill=tk.X, expand=True, side=tk.RIGHT)
-        self.space_filler_2.pack(fill=tk.X, expand=True, side=tk.RIGHT)
-        self.label_formatter(self.space_filler_1)
-        self.label_formatter(self.space_filler_2)
+        for sf in (self.space_filler_3, self.space_filler_2, self.space_filler_1):
+            sf.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+            self.label_formatter(sf)
+            sf.config(text=" "*25)
 
         self.theme_pre_installed_frame.pack(fill=tk.X, expand=False)
         self.theme_selector_dropdown.pack(side=tk.RIGHT, padx=(0, self.padX), pady=self.padY, fill=tk.X, expand=False)
@@ -351,10 +358,17 @@ class _UI(Thread):
         self.install_new_button.config(text="Install a New Theme", command=self.install_new_theme)
         self.install_new_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
 
+        self.online_theme_frame.pack(fill=tk.X, expand=False)
+        self.online_theme_label1.config(text="Alternatively, to DOWNLOAD a new theme, click")
+        self.online_theme_label1.pack(fill=tk.X, expand=False, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
+        self.online_theme_button.config(text="here", command=self.online_download)
+        self.online_theme_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
+
         self.theme_selector_s_var.trace('w', self.on_theme_drop_change)
         self.label_formatter(self.theme_selector_panel, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.theme_pre_installed_lbl, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.install_new_label, size=TUV.FONT_SIZE_MAIN)
+        self.label_formatter(self.online_theme_label1, size=TUV.FONT_SIZE_MAIN)
 
         self.update_ui()
 
@@ -402,13 +416,50 @@ class _UI(Thread):
                 )
                 self.update_ui()
 
-    def install_new_theme(self):
+    def online_download(self):
+        self.disable_all_inputs()
+
+        tmp_dir = f"{qa_functions.App.appdata_dir}\\.tmp\\.downloads".replace('/', '\\')
+        tmp_file_path = f"{tmp_dir}\\{random.randint(1000, 9999)}.qaTheme"
+        if not os.path.isdir(tmp_dir):
+            os.makedirs(tmp_dir)
+        elif os.path.isdir(tmp_file_path):
+            os.remove(tmp_file_path)
+
+        qa_prompts.MessagePrompts.show_warning(
+            qa_prompts.InfoPacket("Do not download/install themes from any sources that you do not trust; if you wish to abort the download process, click the \"Cancel\" button on the next screeen. ")
+        )
+
+        qa_prompts.InputPrompts.DownloadFile(qa_prompts.DownloadPacket(tmp_file_path))
+        if not os.path.isfile(tmp_file_path):
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket('Failed to download theme from requested URL')
+            )
+            return
+
+        try:
+            File = qa_functions.File(tmp_file_path)
+            raw = qa_functions.OpenFile.load_file(File, qa_functions.OpenFunctionArgs(bytes))
+            _, raw2 = qa_files.load_file(qa_functions.FileType.QA_THEME, raw)
+            self.install_new_theme((tmp_file_path, ))
+            os.remove(tmp_file_path)
+
+        except Exception as E:
+            sys.stderr.write(traceback.format_exc())
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(f'Failed to install theme: {str(E)}')
+            )
+
+        self.update_ui()
+        self.enable_all_inputs()
+
+    def install_new_theme(self, files=None):
         self.disable_all_inputs()
 
         req_files = filedialog.askopenfilenames(
             title="Select Theme File",
             filetypes=[('Quizzing Application Theme', qa_files.qa_theme_extn)]
-        )
+        ) if not isinstance(files, tuple) else files
 
         if len(req_files) <= 0:
             self.enable_all_inputs()
@@ -453,7 +504,7 @@ class _UI(Thread):
                 raw = qa_functions.OpenFile.load_file(file_inst, qa_functions.OpenFunctionArgs(bytes, False))
                 _, json_string = qa_files.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
                 theme_json = json.loads(json_string)
-                assert fn != qa_functions.Files.ThemePrefFile, f"Filename '{fn}' is not allowed (system reserved)"
+                assert fn not in (qa_functions.Files.ThemePrefFile, qa_functions.ThemeCustomFile), f"Filename '{fn}' is not allowed (system reserved)"
                 assert 'file_info' in theme_json, 'File info unavailable'
                 assert 'avail_themes' in theme_json['file_info'], 'No themes available'
                 assert 'num_themes' in theme_json['file_info']['avail_themes'], 'No themes available'
@@ -464,8 +515,7 @@ class _UI(Thread):
 
                 all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes)
 
-                it = []
-                ins = []
+                it, ins = [], []
 
                 for _, td in all_theme_data.items():
                     theme_name, theme_data = (*td.keys(),)[0], (*td.values(),)[0]
@@ -582,10 +632,12 @@ Technical Information:
 
     def disable_all_inputs(self):
         self.install_new_button.config(state=tk.DISABLED)
+        self.online_theme_button.config(state=tk.DISABLED)
         self.theme_selector_dropdown.config(state=tk.DISABLED)
 
     def enable_all_inputs(self):
         self.install_new_button.config(state=tk.NORMAL)
+        self.online_theme_button.config(state=tk.NORMAL)
         self.theme_selector_dropdown.config(state=tk.NORMAL)
 
     def __del__(self):
