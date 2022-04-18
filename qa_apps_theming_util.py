@@ -70,17 +70,15 @@ class _UI(Thread):
         self.install_new_frame = tk.Frame(self.theme_selector_panel)
         self.install_new_label = tk.Label(self.install_new_frame)
         self.install_new_button = ttk.Button(self.install_new_frame)
-
-        self.online_theme_frame = tk.Frame(self.theme_selector_panel)
-        self.online_theme_label1 = tk.Label(self.online_theme_frame)
-        self.online_theme_label2 = tk.Label(self.online_theme_frame)
-        self.online_theme_button = ttk.Button(self.online_theme_frame)
-        
         self.prev_theme_selection = self.theme_selector_s_var.get()
+        self.online_theme_button = ttk.Button(self.install_new_frame)
+        self.theme_uninstall_frame = tk.Frame(self.theme_selector_panel)
+        self.theme_uninstall_lbl = tk.Label(self.theme_uninstall_frame)
+        self.theme_uninstall_button = ttk.Button(self.theme_uninstall_frame, style='Err.TButton')
 
         self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
         self.space_filler_2 = tk.Label(self.install_new_frame)
-        self.space_filler_3 = tk.Label(self.online_theme_frame)
+        self.space_filler_3 = tk.Label(self.theme_uninstall_frame)
 
         self.ttk_theme = 'clam'
 
@@ -260,6 +258,21 @@ class _UI(Thread):
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
 
+        self.ttk_style.configure(
+            'Err.TButton',
+            background=self.theme.background.color,
+            foreground=self.theme.error.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.error.color,
+            bordercolor=0
+        )
+
+        self.ttk_style.map(
+            'Err.TButton',
+            background=[('active', self.theme.error.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
         # External Update Calls
         self.update_theme_selector_options()
 
@@ -337,15 +350,14 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [self.title_box, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.theme_pre_installed_frame, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.install_new_frame, TUC.BG, [TUV.BG]]
-        self.update_requests[gsuid()] = [self.online_theme_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.theme_uninstall_frame, TUC.BG, [TUV.BG]]
 
         self.theme_selector_panel.config(text="Installed Themes")
         self.theme_selector_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, ipadx=self.padX/2, ipady=self.padY/2)
 
-        for sf in (self.space_filler_3, self.space_filler_2, self.space_filler_1):
+        for sf in (self.space_filler_2, self.space_filler_1, self.space_filler_3):
             sf.pack(fill=tk.X, expand=True, side=tk.RIGHT)
             self.label_formatter(sf)
-            sf.config(text=" "*25)
 
         self.theme_pre_installed_frame.pack(fill=tk.X, expand=False)
         self.theme_selector_dropdown.pack(side=tk.RIGHT, padx=(0, self.padX), pady=self.padY, fill=tk.X, expand=False)
@@ -353,22 +365,24 @@ class _UI(Thread):
         self.theme_pre_installed_lbl.pack(side=tk.LEFT, padx=(self.padX, 0), pady=self.padY, fill=tk.X, expand=False)
 
         self.install_new_frame.pack(fill=tk.X, expand=False)
-        self.install_new_label.config(text="Want to try out a new theme?")
+        self.install_new_label.config(text="Want to try a new theme?")
         self.install_new_label.pack(fill=tk.X, expand=False, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
-        self.install_new_button.config(text="Install a New Theme", command=self.install_new_theme)
+        self.online_theme_button.config(text="Download (Online)", command=self.online_download)
+        self.online_theme_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
+        self.install_new_button.config(text="Install (Local)", command=self.install_new_theme)
         self.install_new_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
 
-        self.online_theme_frame.pack(fill=tk.X, expand=False)
-        self.online_theme_label1.config(text="Alternatively, to DOWNLOAD a new theme, click")
-        self.online_theme_label1.pack(fill=tk.X, expand=False, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
-        self.online_theme_button.config(text="here", command=self.online_download)
-        self.online_theme_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
+        self.theme_uninstall_frame.pack(fill=tk.X, expand=False)
+        self.theme_uninstall_lbl.config(text="No longer using a theme?")
+        self.theme_uninstall_lbl.pack(fill=tk.X, expand=False, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
+        self.theme_uninstall_button.config(text="Uninstall a Theme", command=self.uninstall)
+        self.theme_uninstall_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
 
         self.theme_selector_s_var.trace('w', self.on_theme_drop_change)
         self.label_formatter(self.theme_selector_panel, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.theme_pre_installed_lbl, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.install_new_label, size=TUV.FONT_SIZE_MAIN)
-        self.label_formatter(self.online_theme_label1, size=TUV.FONT_SIZE_MAIN)
+        self.label_formatter(self.theme_uninstall_lbl, size=TUV.FONT_SIZE_MAIN)
 
         self.update_ui()
 
@@ -420,7 +434,7 @@ class _UI(Thread):
         self.disable_all_inputs()
 
         tmp_dir = f"{qa_functions.App.appdata_dir}\\.tmp\\.downloads".replace('/', '\\')
-        tmp_file_path = f"{tmp_dir}\\{random.randint(1000, 9999)}.qaTheme"
+        tmp_file_path = f"{tmp_dir}\\{random.randint(1000, 9999)}.qa.tmp.download.qaTheme"
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
         elif os.path.isdir(tmp_file_path):
@@ -461,7 +475,9 @@ class _UI(Thread):
             filetypes=[('Quizzing Application Theme', qa_files.qa_theme_extn)]
         ) if not isinstance(files, tuple) else files
 
-        if len(req_files) <= 0:
+        to_install = {}
+
+        if len(req_files) <= 0 and len(to_install) <= 0:
             self.enable_all_inputs()
             return
 
@@ -490,8 +506,6 @@ class _UI(Thread):
             e3.append((k, (*v.keys(),)[0], f"{exs.theme_file_display_name}: {exs.theme_display_name}"))
             e4.append(f"{exs.theme_file_display_name}: {exs.theme_display_name}")
 
-        to_install = {}
-
         for file in req_files:
             file = file.replace('/', '\\')
             fn = file.split('\\')[-1]
@@ -504,7 +518,7 @@ class _UI(Thread):
                 raw = qa_functions.OpenFile.load_file(file_inst, qa_functions.OpenFunctionArgs(bytes, False))
                 _, json_string = qa_files.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
                 theme_json = json.loads(json_string)
-                assert fn not in (qa_functions.Files.ThemePrefFile, qa_functions.ThemeCustomFile), f"Filename '{fn}' is not allowed (system reserved)"
+                assert fn not in (qa_functions.Files.ThemePrefFile, qa_functions.Files.ThemeCustomFile), f"Filename '{fn}' is not allowed (system reserved)"
                 assert 'file_info' in theme_json, 'File info unavailable'
                 assert 'avail_themes' in theme_json['file_info'], 'No themes available'
                 assert 'num_themes' in theme_json['file_info']['avail_themes'], 'No themes available'
@@ -630,15 +644,80 @@ Technical Information:
         self.enable_all_inputs()
         self.update_ui()
 
+    def uninstall(self):
+        self.disable_all_inputs()
+
+        all_themes = qa_functions.LoadTheme.auto_load_all(False)
+        ls = {f"{(*v.values(),)[0].theme_file_display_name}: {(*v.values(),)[0].theme_display_name}": (*v.values(),)[0] for v in all_themes.values()}
+
+        if len(all_themes) <= 0:
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('No installed themes found'))
+            self.enable_all_inputs()
+            return
+
+        s_mem = qa_functions.SMem()
+        qa_prompts.InputPrompts.OptionPrompt(s_mem, set(ls), "Select a theme to uninstall")
+        selection = s_mem.get()
+        if selection == "0":
+            return
+
+        ot = ls[selection]
+        ot: qa_functions.Theme
+        of = qa_functions.File(ot.theme_file_path)
+
+        if os.path.isfile(of.file_path):
+            try:
+                raw = qa_functions.OpenFile.load_file(of, qa_functions.OpenFunctionArgs(bytes))
+                _, r2 = qa_files.load_file(qa_functions.FileType.QA_THEME, raw)
+                theme_json = json.loads(r2)
+                assert qa_functions.TestTheme.check_file(theme_json), 'invalid file'
+                os.remove(of.file_path)
+
+                theme_json['file_info']['avail_themes']['num_themes'] -= 1
+                theme_json.pop(ot.theme_code)
+                theme_json['file_info']['avail_themes'].pop(
+                    [*theme_json['file_info']['avail_themes'].keys()][
+                        [*theme_json['file_info']['avail_themes'].values()].index(ot.theme_code)
+                    ]
+                )
+
+                fn = of.file_name
+
+                ok = fn not in (qa_functions.Files.ThemePrefFile, qa_functions.Files.ThemeCustomFile)
+                ok &= 'file_info' in theme_json
+                ok &= 'avail_themes' in theme_json['file_info']
+                ok &= 'num_themes' in theme_json['file_info']['avail_themes']
+                ok &= len(theme_json['file_info']['avail_themes']) == theme_json['file_info']['avail_themes']['num_themes'] + 1
+                ok &= theme_json['file_info']['avail_themes']['num_themes'] > 0
+
+                if ok:
+                    nt = json.dumps(theme_json, indent=4)
+                    prp = qa_files.generate_file(qa_functions.FileType.QA_THEME, nt)
+                    qa_functions.SaveFile.secure(of, prp, qa_functions.SaveFunctionArgs(False, save_data_type=bytes))
+
+                qa_prompts.MessagePrompts.show_info(
+                    qa_prompts.InfoPacket(f'Successfully uninstalled theme "{selection}"')
+                )
+
+            except Exception as E:
+                sys.stderr.write(f"{traceback.format_exc()}\n")
+                os.remove(of.file_path)
+
+        self.update_theme_selector_options()
+        self.update_ui()
+        self.enable_all_inputs()
+
     def disable_all_inputs(self):
         self.install_new_button.config(state=tk.DISABLED)
         self.online_theme_button.config(state=tk.DISABLED)
         self.theme_selector_dropdown.config(state=tk.DISABLED)
+        self.theme_uninstall_button.config(state=tk.DISABLED)
 
     def enable_all_inputs(self):
         self.install_new_button.config(state=tk.NORMAL)
         self.online_theme_button.config(state=tk.NORMAL)
         self.theme_selector_dropdown.config(state=tk.NORMAL)
+        self.theme_uninstall_button.config(state=tk.NORMAL)
 
     def __del__(self):
         self.thread.join(self, 0)

@@ -1,0 +1,84 @@
+{
+    "file_info": {
+        "name": "QuizzingApp.Themes.OfficialAddons",
+        "display_name": "Official Addons",
+        "avail_themes": {
+            "num_themes": 3,
+            "mc_light": "QA.OA.ML",
+            "mc_dark": "QA.OA.MD",
+            "pst_dark": "QA.OA.PD"
+        }
+    },
+    "QA.OA.ML": {
+        "display_name": "Monochromatic Light",
+        "background": "#ffffff",
+        "foreground": "#2e2e2e",
+        "accent": "#000000",
+        "gray": "#737373",
+        "error": "#000000",
+        "warning": "#000000",
+        "ok": "#000000",
+        "font": {
+            "font_face":        "Montserrat",
+            "alt_font_face":    "Century Gothic",
+
+            "size_small":       10,
+            "size_main":        13,
+            "size_subtitle":    20,
+            "size_title":       28,
+            "size_xl_title":    40
+        },
+        "border": {
+            "size":             0,
+            "colour":           "#FFFFFF"
+        }
+    },
+    "QA.OA.MD": {
+        "display_name": "Monochromatic Dark",
+        "background": "#202020",
+        "foreground": "#C4C4C4",
+        "accent": "#ffffff",
+        "gray": "#949494",
+        "error": "#ffffff",
+        "warning": "#ffffff",
+        "ok": "#ffffff",
+        "font": {
+            "font_face":        "Montserrat",
+            "alt_font_face":    "Century Gothic",
+
+            "size_small":       10,
+            "size_main":        13,
+            "size_subtitle":    20,
+            "size_title":       28,
+            "size_xl_title":    40
+        },
+        "border": {
+            "size":             0,
+            "colour":           "#202020"
+        }
+    },
+    "QA.OA.PD": {
+        "display_name": "Dark Pastel",
+        "background": "#202020",
+        "foreground": "#ffffff",
+        "accent": "#23B5D3",
+        "gray": "#8a8e91",
+        "error": "#ed6a5a",
+        "warning": "#ffc65c",
+        "ok": "#cbdf90",
+        "font": {
+            "font_face":        "Montserrat",
+            "alt_font_face":    "Century Gothic",
+
+            "size_small":       10,
+            "size_main":        13,
+            "size_subtitle":    20,
+            "size_title":       28,
+            "size_xl_title":    40
+        },
+        "border": {
+            "size":             0,
+            "colour":           "#202020"
+        }
+    }
+}

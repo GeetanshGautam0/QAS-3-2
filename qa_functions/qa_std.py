@@ -1,7 +1,7 @@
 from tkinter import messagebox
 import wcag_contrast_ratio, tkinter as tk
 import time, random, hashlib
-
+from shared_memory_dict import SharedMemoryDict
 from .qa_custom import *
 from .qa_err import raise_error
 from .qa_info import App
@@ -569,3 +569,24 @@ def gen_short_uid(prefix: str = "qa") -> str:
 
     r *= ra if ra != 0 else 1
     return f"{prefix}::{t}{r}::{random.random() + random.randint(0, 9)}"
+
+
+class SMem:
+    def __init__(self):
+        self.r1 = random.randint(10, 99)
+        self.r2 = random.randint(10, 99)
+        self.r3 = random.randint(10, 99)
+        self.r4 = random.randint(10, 99)
+        self.r5 = int(random.randint(10000, 99999))
+        _addr = "%s%s%s%s" % (self.r4, self.r3, self.r1, self.r2)
+        self.mem = SharedMemoryDict(name=_addr, size=SMem._pro_000_s_mem_addr_0_size())
+
+    def set(self, data: str):
+        self.mem[str(self.r5)] = data
+
+    def get(self):
+        return self.mem.get(str(self.r5))
+
+    @staticmethod
+    def _pro_000_s_mem_addr_0_size():
+        return 2048

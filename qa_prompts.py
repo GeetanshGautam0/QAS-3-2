@@ -1588,6 +1588,335 @@ class InputPrompts:
         def __del__(self):
             self.thread.join(self, 0)
 
+    class OptionPrompt(threading.Thread):
+        def __init__(self, s_mem: qa_functions.SMem, options: set, title: str, msg: str = ""):
+            super().__init__()
+            self.thread = threading.Thread
+            self.thread.__init__(self)
+
+            self.root = tk.Toplevel()
+            self.s_mem = s_mem
+            self.msg = msg
+            self.title = title
+
+            self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
+            ratio = 2 / 3
+            wd_w = 500 if 500 <= self.screen_dim[0] else self.screen_dim[0]
+            self.window_size = [wd_w, int(ratio * wd_w)]
+            self.screen_pos = [
+                int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
+                int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
+            ]
+
+            self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
+            self.theme_update_map = {}
+
+            self.padX = 20
+            self.padY = 10
+
+            self.load_theme()
+            self.update_requests = {}
+
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_button_style(self.ttk_style, self.theme)
+            self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
+
+            self.title_frame = tk.Frame(self.root)
+            self.title_label = tk.Label(self.title_frame)
+            self.msg_lbl = tk.Label(self.root)
+            self.button_panel = tk.Frame(self.root)
+            self.select_button = ttk.Button(self.button_panel, command=self.select)
+            self.close_button = ttk.Button(self.button_panel, command=self.close)
+            self.error_label = tk.Label(self.root)
+
+            self.drpd_var = tk.StringVar()
+            self.def_val = "<Select>"
+            self.drpd_var.set(self.def_val)
+            self.options = [*options]
+            self.dropdown = ttk.OptionMenu(self.root, self.drpd_var, self.def_val, *self.options)
+
+            self.err_acc = 0
+
+            self.head_label = tk.Label(self.root)
+
+            self.start()
+            self.root.mainloop()
+
+        def close(self):
+            self.thread.join(self, 0)
+            self.root.after(0, self.root.quit)
+            self.root.withdraw()
+            self.root.title('Quizzing Application | Closed Prompt')
+
+        def update_ui(self):
+            self.load_theme()
+
+            def tr(com) -> Tuple[bool, str]:
+                try:
+                    com()
+                    return True, '<no errors>'
+                except Exception as E:
+                    return False, str(E)
+
+            def log_error(com: str, el, reason: str, ind: int):
+                if LOGGER_AVAIL:
+                    LOGGER_FUNC([qa_functions.LoggingPackage(
+                        LoggingLevel.ERROR,
+                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
+                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+                    )])
+                else:
+                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+
+            def log_norm(com: str, el):
+                if LOGGER_AVAIL:
+                    LOGGER_FUNC([qa_functions.LoggingPackage(
+                        LoggingLevel.DEBUG,
+                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
+                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+                    )])
+                else:
+                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+
+            for elID, (element, command, args) in self.update_requests.items():
+                lCommand = [False]
+                cargs = []
+                for index, arg in enumerate(args):
+                    cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+
+                    if isinstance(cargs[index], qa_functions.HexColor):
+                        cargs[index] = cargs[index].color
+
+                if command in self.theme_update_map:
+                    sys.stderr.write(
+                        "[WARNING] {}: Provided ThemeUpdateVars member instead of ThemeUpdateCommands member\n".format(element)
+                    )
+                    continue
+
+                if command == ThemeUpdateCommands.BG:  # Background
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(bg=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.FG:  # Foreground
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(fg=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(activebackground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(activeforeground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(highlightthickness=cargs[0], bd=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.FONT:  # Font
+                    if len(cargs) == 2:
+                        ok, rs = tr(lambda: element.config(font=(cargs[0], cargs[1])))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.CUSTOM:  # Custom
+                    if len(cargs) <= 0:
+                        lCommand = [True, 'Function not provided', 1]
+                    elif len(cargs) == 1:
+                        ok, rs = tr(cargs[0])
+                        if not ok:
+                            lCommand = [True, rs, 0]
+                    elif len(cargs) > 1:
+                        print(cargs)
+                        ok, rs = tr(lambda: cargs[0](cargs[1::]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(wraplength=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                if lCommand[0] is True:
+                    log_error(command.name, element, lCommand[1], lCommand[2])
+                elif DEBUG_NORM:
+                    log_norm(command.name, element)
+
+                del lCommand, cargs
+
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_button_style(self.ttk_style, self.theme)
+            self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
+
+            self.ttk_style.configure(
+                'TMenubutton',
+                background=self.theme.background.color,
+                foreground=self.theme.accent.color,
+                font=(self.theme.font_face, self.theme.font_main_size),
+                arrowcolor=self.theme.accent.color,
+                borderwidth=0
+            )
+
+            self.ttk_style.map(
+                'TMenubutton',
+                background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color)],
+                foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)],
+                arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
+            )
+
+        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+            if padding is None:
+                padding = self.padX
+
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+
+        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+            if padding is None:
+                padding = self.padX
+
+            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+
+            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+
+        def load_theme(self):
+            self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
+
+            self.theme_update_map = {
+                ThemeUpdateVars.BG: self.theme.background,
+                ThemeUpdateVars.FG: self.theme.foreground,
+                ThemeUpdateVars.ACCENT: self.theme.accent,
+                ThemeUpdateVars.ERROR: self.theme.error,
+                ThemeUpdateVars.WARNING: self.theme.warning,
+                ThemeUpdateVars.OKAY: self.theme.okay,
+                ThemeUpdateVars.GRAY: self.theme.gray,
+                ThemeUpdateVars.DEFAULT_FONT_FACE: self.theme.font_face,
+                ThemeUpdateVars.ALT_FONT_FACE: self.theme.font_alt_face,
+                ThemeUpdateVars.FONT_SIZE_TITLE: self.theme.font_title_size,
+                ThemeUpdateVars.FONT_SIZE_LARGE: self.theme.font_large_size,
+                ThemeUpdateVars.FONT_SIZE_MAIN: self.theme.font_main_size,
+                ThemeUpdateVars.FONT_SIZE_SMALL: self.theme.font_small_size,
+                ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
+                ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
+            }
+
+        def run(self):
+            TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+            self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
+            self.root.title("Quizzing Application | URL Input")
+            self.root.protocol("WM_DELETE_WINDOW", self.close)
+            self.root.focus_get()
+            self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+
+            self.title_frame.pack(fill=tk.X, expand=False)
+            self.title_label.config(text="Select an Item", justify=tk.LEFT, anchor=tk.W)
+            self.title_label.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+
+            self.button_panel.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY)
+            self.close_button.config(text="Cancel", command=self.exit)
+            self.select_button.config(text="Confirm", command=self.select)
+            self.close_button.pack(fill=tk.X, expand=True, side=tk.LEFT, padx=(0, self.padX / 4))
+            self.select_button.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+
+            self.error_label.config(text="")
+            self.error_label.pack(fill=tk.X, padx=self.padX, pady=0, expand=False, side=tk.BOTTOM)
+
+            self.head_label.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, self.padY/4))
+            self.dropdown.pack(fill=tk.X, expand=False, padx=self.padX)
+            self.head_label.config(text=self.title, justify=tk.LEFT, anchor=tk.W)
+
+            self.msg_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+            self.msg_lbl.config(
+                text=("Warning: Only download files from sources that you trust." + (f"\n{self.msg}" if len(self.msg) > 0 else ""))
+            )
+
+            self.label_formatter(self.title_label, fg=TUV.ACCENT, size=TUV.FONT_SIZE_TITLE)
+            self.label_formatter(self.msg_lbl, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
+            self.label_formatter(self.head_label, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
+            self.label_formatter(self.error_label, fg=TUV.ERROR, size=TUV.FONT_SIZE_SMALL)
+
+            self.update_requests[gsuid()] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid()] = [self.button_panel, TUC.BG, [TUV.BG]]
+
+            self.update_ui()
+
+        def select(self):
+            self.select_button.config(state=tk.DISABLED)
+            self.close_button.config(state=tk.DISABLED)
+            self.dropdown.config(state=tk.DISABLED)
+
+            if self.drpd_var.get().strip() == self.def_val.strip():
+                self.err_acc += 1
+                self.error_label.config(text=f"Please select an item ({self.err_acc})")
+                self.select_button.config(state=tk.NORMAL)
+                self.close_button.config(state=tk.NORMAL)
+                self.dropdown.config(state=tk.NORMAL)
+                return
+
+            self.error_label.config(text="")
+
+            self.s_mem.set(self.drpd_var.get())
+            self.close()
+
+        def exit(self):
+            self.s_mem.set(str(0))
+            self.close()
+
+        def __del__(self):
+            self.thread.join(self, 0)
+
 
 def get_svg(svg_file, background, size=None):
     if isinstance(background, str):

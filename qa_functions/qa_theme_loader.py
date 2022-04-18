@@ -180,7 +180,7 @@ class Load:
         return (*default.values(), )[0]
 
     @staticmethod
-    def auto_load_all() -> dict:
+    def auto_load_all(inc_def: bool = True) -> dict:
         output = {}
         extn = qa_files.qa_theme_extn
 
@@ -235,7 +235,8 @@ class Load:
 
             output = {**output, **nd}
 
-        output = {**output, **Load._load_default()}
+        if inc_def:
+            output = {**output, **Load._load_default()}
 
         print("[INFO] [THEME_LOADER] Found %d files from the AppData directory" % file_acc)
 
