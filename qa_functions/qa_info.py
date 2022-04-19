@@ -80,6 +80,9 @@ class Files:
     # Icons
     icoRoot = ".\\.src\\.icons\\.app_ico"
     TU_ico = f"{icoRoot}\\themer.ico"
+    AT_ico = f"{icoRoot}\\admin_tools.ico"
+    QF_ico = f"{icoRoot}\\quizzing_tool.ico"
+    RU_ico = f"{icoRoot}\\ftsra.ico"
 
 
 class Encryption:

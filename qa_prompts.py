@@ -1510,7 +1510,7 @@ class InputPrompts:
             p, r2 = tr(r.data.decode)
             p &= isinstance(r2, str)
             if p:
-                p &= 10000 > len(r2) > 0
+                p &= 100000 >= len(r2) > 0
                 r2 = r2.strip()
 
             if not p:
@@ -1878,9 +1878,7 @@ class InputPrompts:
             self.head_label.config(text=self.title, justify=tk.LEFT, anchor=tk.W)
 
             self.msg_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
-            self.msg_lbl.config(
-                text=("Warning: Only download files from sources that you trust." + (f"\n{self.msg}" if len(self.msg) > 0 else ""))
-            )
+            self.msg_lbl.config(text=self.msg)
 
             self.label_formatter(self.title_label, fg=TUV.ACCENT, size=TUV.FONT_SIZE_TITLE)
             self.label_formatter(self.msg_lbl, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)

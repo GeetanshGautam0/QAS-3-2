@@ -1,9 +1,9 @@
 from threading import Thread
 import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json, random
 from typing import *
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, colorchooser
 from qa_functions.qa_enum import *
-from qa_prompts import gsuid
+from qa_prompts import gsuid, configure_scrollbar_style
 from PIL import Image, ImageTk
 
 
@@ -50,13 +50,15 @@ class _UI(Thread):
         self.img = None
         self.load_png()
 
+        self.ttk_theme = self.kwargs['ttk_theme']
+
+        self.ttk_style = ttk.Style()
+        self.ttk_style.theme_use(self.ttk_theme)
+        self.ttk_style = self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+
         self.title_box = tk.Frame(self.root)
         self.title_label = tk.Label(self.title_box)
         self.title_icon = tk.Label(self.title_box)
-        
-        self.IO_panel = tk.LabelFrame(self.root)
-        self.install_button = tk.Button(self.IO_panel)
-        self.export_button = tk.Button(self.IO_panel)
 
         self.theme_selector_panel = tk.LabelFrame(self.root)
         self.theme_pref = qa_functions.qa_theme_loader._load_pref_data()
@@ -75,15 +77,34 @@ class _UI(Thread):
         self.theme_uninstall_frame = tk.Frame(self.theme_selector_panel)
         self.theme_uninstall_lbl = tk.Label(self.theme_uninstall_frame)
         self.theme_uninstall_button = ttk.Button(self.theme_uninstall_frame, style='Err.TButton')
+        
+        self.showcase_root_frame = tk.LabelFrame(self.root)
+        self.showcase_canvas = tk.Canvas(self.showcase_root_frame)
+        self.showcase_frame = tk.Frame(self.showcase_canvas)
+        self.showcase_vsb = ttk.Scrollbar(self.showcase_root_frame, style='My.TScrollbar')
+
+        self.showcase_f1 = tk.Frame(self.showcase_frame)
+        self.showcase_f2 = tk.Frame(self.showcase_frame)
+        self.showcase_f3 = tk.Frame(self.showcase_frame)
+        self.showcase_f4 = tk.Frame(self.showcase_frame)
+
+        self.showcase_bg = tk.Button(self.showcase_f1)
+        self.showcase_fg = tk.Button(self.showcase_f1)
+        self.showcase_accent = tk.Button(self.showcase_f2)
+        self.showcase_gray = tk.Button(self.showcase_f2)
+        self.showcase_error = tk.Button(self.showcase_f3)
+        self.showcase_warning = tk.Button(self.showcase_f3)
+        self.showcase_okay = tk.Button(self.showcase_f4)
+        self.showcase_border_color = tk.Button(self.showcase_f4)
+
+        self.export_button_panel = tk.LabelFrame(self.root)
+        self.export_theme_button = ttk.Button(self.export_button_panel, command=self.export_theme)
+        self.save_theme_button = ttk.Button(self.export_button_panel, command=self.save_custom_theme)
+        self.preview_button = ttk.Button(self.export_button_panel, command=self.preview_change)
 
         self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
         self.space_filler_2 = tk.Label(self.install_new_frame)
         self.space_filler_3 = tk.Label(self.theme_uninstall_frame)
-
-        self.ttk_theme = 'clam'
-
-        self.ttk_style = ttk.Style()
-        self.ttk_style.theme_use(self.ttk_theme)
 
         self.start()
         self.root.mainloop()
@@ -95,8 +116,8 @@ class _UI(Thread):
 
         self.root.quit()
 
-    def update_ui(self):
-        self.load_theme()
+    def update_ui(self, theme=None):
+        self.load_theme(theme)
 
         def tr(com) -> Tuple[bool, str]:
             try:
@@ -205,8 +226,7 @@ class _UI(Thread):
                     if not ok:
                         lCommand = [True, rs, 0]
                 elif len(cargs) > 1:
-                    print(cargs)
-                    ok, rs = tr(lambda: cargs[0](cargs[1::]))
+                    ok, rs = tr(lambda: cargs[0](*cargs[1::]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -249,7 +269,10 @@ class _UI(Thread):
             foreground=self.theme.accent.color,
             font=(self.theme.font_face, self.theme.font_main_size),
             focuscolor=self.theme.accent.color,
-            bordercolor=0
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
         )
 
         self.ttk_style.map(
@@ -264,7 +287,10 @@ class _UI(Thread):
             foreground=self.theme.error.color,
             font=(self.theme.font_face, self.theme.font_main_size),
             focuscolor=self.theme.error.color,
-            bordercolor=0
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
         )
 
         self.ttk_style.map(
@@ -272,6 +298,69 @@ class _UI(Thread):
             background=[('active', self.theme.error.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
+
+        self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+
+        HC = qa_functions.HexColor
+        bw = int(0.025*self.window_size[0])
+
+        self.showcase_bg.config(
+            text=f"Background\n{self.theme.background.color}",
+            background=self.theme.background.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.background).color,
+            width=bw
+        )
+
+        self.showcase_fg.config(
+            text=f"Foreground\n{self.theme.foreground.color}",
+            background=self.theme.foreground.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.foreground).color,
+            width=bw
+        )
+
+        self.showcase_accent.config(
+            text=f"Accent\n{self.theme.accent.color}",
+            background=self.theme.accent.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.accent).color,
+            width=bw
+        )
+
+        self.showcase_gray.config(
+            text=f"Gray\n{self.theme.gray.color}",
+            background=self.theme.gray.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.gray).color,
+            width=bw
+        )
+
+        self.showcase_warning.config(
+            text=f"Warning\n{self.theme.warning.color}",
+            background=self.theme.warning.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.warning).color,
+            width=bw
+        )
+
+        self.showcase_okay.config(
+            text=f"Okay\n{self.theme.okay.color}",
+            background=self.theme.okay.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.okay).color,
+            width=bw
+        )
+
+        self.showcase_error.configure(
+            text=f"Error\n{self.theme.error.color}",
+            background=self.theme.error.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.error).color,
+            width=bw
+        )
+
+        self.showcase_border_color.configure(
+            text=f"Border\n{self.theme.border_color.color}",
+            background=self.theme.border_color.color,
+            foreground=qa_functions.qa_colors.Functions.calculate_more_contrast(HC("#ffffff"), HC("#000000"), self.theme.border_color).color,
+            width=bw
+        )
+
+        self.showcase_canvas.config(bd=0, highlightthickness=0)
 
         # External Update Calls
         self.update_theme_selector_options()
@@ -291,6 +380,13 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
         self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
+        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.CUSTOM, [lambda tbc, tbs: button.configure(
+            highlightbackground=tbc,
+            bd=tbs,
+            highlightcolor=tbc,
+            highlightthickness=tbs
+        ), ThemeUpdateVars.BORDER_COLOR, ThemeUpdateVars.BORDER_SIZE]]
+
     def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
         if padding is None:
             padding = self.padX
@@ -301,8 +397,12 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
         self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-    def load_theme(self):
-        self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
+    def load_theme(self, theme=None):
+        if theme is None:
+            self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
+        else:
+            sys.stdout.write("[PREVIEW] using provided theme\n")
+            self.theme = theme
 
         self.theme_update_map = {
             ThemeUpdateVars.BG: self.theme.background,
@@ -320,7 +420,7 @@ class _UI(Thread):
             ThemeUpdateVars.FONT_SIZE_SMALL: self.theme.font_small_size,
             ThemeUpdateVars.FONT_SIZE_XL_TITLE: self.theme.font_xl_title_size,
             ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
-            ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
+            ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
         }
 
     def run(self):
@@ -351,6 +451,13 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [self.theme_pre_installed_frame, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.install_new_frame, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.theme_uninstall_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_root_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_canvas, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_f1, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_f2, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_f3, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_f4, TUC.BG, [TUV.BG]]
 
         self.theme_selector_panel.config(text="Installed Themes")
         self.theme_selector_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, ipadx=self.padX/2, ipady=self.padY/2)
@@ -379,12 +486,97 @@ class _UI(Thread):
         self.theme_uninstall_button.pack(fill=tk.X, expand=False, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
 
         self.theme_selector_s_var.trace('w', self.on_theme_drop_change)
-        self.label_formatter(self.theme_selector_panel, size=TUV.FONT_SIZE_MAIN)
+        self.label_formatter(self.theme_selector_panel, size=TUV.FONT_SIZE_SMALL)
         self.label_formatter(self.theme_pre_installed_lbl, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.install_new_label, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.theme_uninstall_lbl, size=TUV.FONT_SIZE_MAIN)
 
+        # self.showcase_font_frame = tk.Frame(self.showcase_frame)
+        # self.showcase_font_small = tk.Label(self.showcase_font_frame)
+        # self.showcase_font_main = tk.Label(self.showcase_font_frame)
+        # self.showcase_font_large = tk.Label(self.showcase_font_frame)
+        # self.showcase_font_title = tk.Label(self.showcase_font_frame)
+        # self.showcase_font_xl_title = tk.Label(self.showcase_font_frame)
+        # + border_size + border_color
+
+        self.showcase_root_frame.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
+        self.showcase_canvas.pack(fill=tk.BOTH, expand=True, side=tk.LEFT, padx=(self.padX/2, 0), pady=self.padY)
+        self.showcase_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT, padx=(0, self.padX/2), pady=self.padY)
+        self.export_button_panel.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.RIGHT)
+        self.showcase_root_frame.config(text="Current theme. Click on an item to change its value")
+        self.export_button_panel.config(text="Export")
+
+        self.export_theme_button.pack(fill=tk.Y, expand=True, padx=self.padX, pady=self.padY)
+        self.export_theme_button.config(text="Export Theme")
+        self.save_theme_button.pack(fill=tk.Y, expand=True, padx=self.padX, pady=(0, self.padY))
+        self.save_theme_button.config(text="Save Theme")
+
+        self.label_formatter(self.showcase_root_frame, size=TUV.FONT_SIZE_SMALL)
+        self.label_formatter(self.export_button_panel, size=TUV.FONT_SIZE_SMALL)
+
+        self.showcase_vsb.configure(command=self.showcase_canvas.yview)
+        self.showcase_canvas.configure(yscrollcommand=self.showcase_vsb.set)
+
+        self.showcase_bg.pack(fill=tk.X, expand=True, side=tk.LEFT)
+        self.showcase_bg.config(command=self.onBGClick)
+        self.button_formatter(self.showcase_bg)
+
+        self.showcase_fg.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.showcase_fg.config(command=self.onFGClick)
+        self.button_formatter(self.showcase_fg)
+
+        self.showcase_accent.pack(fill=tk.X, expand=True, side=tk.LEFT)
+        self.showcase_accent.config(command=self.onAccentClick)
+        self.button_formatter(self.showcase_accent)
+
+        self.showcase_gray.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.showcase_gray.config(command=self.onGrayClick)
+        self.button_formatter(self.showcase_gray)
+
+        self.showcase_error.pack(fill=tk.X, expand=True, side=tk.LEFT)
+        self.showcase_error.config(command=self.onErrorClick)
+        self.button_formatter(self.showcase_error)
+
+        self.showcase_warning.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.showcase_warning.config(command=self.onWarningClick)
+        self.button_formatter(self.showcase_warning)
+
+        self.showcase_okay.pack(fill=tk.X, expand=True, side=tk.LEFT)
+        self.showcase_okay.config(command=self.onOkayClick)
+        self.button_formatter(self.showcase_okay)
+
+        self.showcase_border_color.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.showcase_border_color.config(command=self.onBCClick)
+        self.button_formatter(self.showcase_border_color)
+
+        self.showcase_f1.pack(fill=tk.X, expand=True)
+        self.showcase_f2.pack(fill=tk.X, expand=True)
+        self.showcase_f3.pack(fill=tk.X, expand=True)
+        self.showcase_f4.pack(fill=tk.X, expand=True)
+
+        self.showcase_canvas.create_window(
+            (0, 0),
+            window=self.showcase_frame,
+            anchor="nw",
+            tags="self.showcase_frame"
+        )
+
+        self.showcase_frame.update()
+        self.showcase_frame.bind("<Configure>", self.onFrameConfig)
+        self.showcase_canvas.bind("<MouseWheel>", self._on_mousewheel)
+
         self.update_ui()
+
+    def _on_mousewheel(self, event):
+        """
+        Straight out of stackoverflow
+        Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
+        Change: added "int" around the first arg
+        """
+        self.showcase_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def onFrameConfig(self, event):
+        self.showcase_canvas.configure(scrollregion=self.showcase_canvas.bbox("all"))
 
     def load_png(self):
         i = Image.open(self.img_path)
@@ -449,6 +641,7 @@ class _UI(Thread):
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket('Failed to download theme from requested URL')
             )
+            self.enable_all_inputs()
             return
 
         try:
@@ -464,7 +657,6 @@ class _UI(Thread):
                 qa_prompts.InfoPacket(f'Failed to install theme: {str(E)}')
             )
 
-        self.update_ui()
         self.enable_all_inputs()
 
     def install_new_theme(self, files=None):
@@ -535,24 +727,7 @@ class _UI(Thread):
                     theme_name, theme_data = (*td.keys(),)[0], (*td.values(),)[0]
                     theme_data: qa_functions.Theme
 
-                    comp_theme_dict = {
-                        'bg': theme_data.background.color,
-                        'fg': theme_data.foreground.color,
-                        'accent': theme_data.accent.color,
-                        'error': theme_data.error.color,
-                        'warning': theme_data.warning.color,
-                        'okay': theme_data.okay.color,
-                        'gray': theme_data.gray.color,
-                        'ff': theme_data.font_face,
-                        'faf': theme_data.font_alt_face,
-                        'fss': theme_data.font_small_size,
-                        'fms': theme_data.font_main_size,
-                        'fls': theme_data.font_large_size,
-                        'fts': theme_data.font_title_size,
-                        'fxlts': theme_data.font_xl_title_size,
-                        'bs': theme_data.border_size,
-                        'bc': theme_data.border_color.color
-                    }
+                    comp_theme_dict = gen_cmp_theme_dict(theme_data)
 
                     dn = f"{theme_data.theme_file_display_name}: {theme_data.theme_display_name}"
 
@@ -642,7 +817,6 @@ Technical Information:
             )
 
         self.enable_all_inputs()
-        self.update_ui()
 
     def uninstall(self):
         self.disable_all_inputs()
@@ -659,6 +833,7 @@ Technical Information:
         qa_prompts.InputPrompts.OptionPrompt(s_mem, set(ls), "Select a theme to uninstall")
         selection = s_mem.get()
         if selection == "0":
+            self.enable_all_inputs()
             return
 
         ot = ls[selection]
@@ -704,7 +879,6 @@ Technical Information:
                 os.remove(of.file_path)
 
         self.update_theme_selector_options()
-        self.update_ui()
         self.enable_all_inputs()
 
     def disable_all_inputs(self):
@@ -712,15 +886,168 @@ Technical Information:
         self.online_theme_button.config(state=tk.DISABLED)
         self.theme_selector_dropdown.config(state=tk.DISABLED)
         self.theme_uninstall_button.config(state=tk.DISABLED)
+        self.showcase_bg.config(state=tk.DISABLED)
+        self.showcase_fg.config(state=tk.DISABLED)
+        self.showcase_accent.config(state=tk.DISABLED)
+        self.showcase_gray.config(state=tk.DISABLED)
+        self.showcase_error.config(state=tk.DISABLED)
+        self.showcase_warning.config(state=tk.DISABLED)
+        self.showcase_okay.config(state=tk.DISABLED)
+        self.export_theme_button.config(state=tk.DISABLED)
+        self.save_theme_button.config(state=tk.DISABLED)
+        self.showcase_border_color.config(state=tk.DISABLED)
 
     def enable_all_inputs(self):
         self.install_new_button.config(state=tk.NORMAL)
         self.online_theme_button.config(state=tk.NORMAL)
         self.theme_selector_dropdown.config(state=tk.NORMAL)
         self.theme_uninstall_button.config(state=tk.NORMAL)
+        self.showcase_bg.config(state=tk.NORMAL)
+        self.showcase_fg.config(state=tk.NORMAL)
+        self.showcase_accent.config(state=tk.NORMAL)
+        self.showcase_gray.config(state=tk.NORMAL)
+        self.showcase_error.config(state=tk.NORMAL)
+        self.showcase_warning.config(state=tk.NORMAL)
+        self.showcase_okay.config(state=tk.NORMAL)
+        self.export_theme_button.config(state=tk.NORMAL)
+        self.save_theme_button.config(state=tk.NORMAL)
+        self.showcase_border_color.config(state=tk.NORMAL)
+        self.update_ui()
+
+    def export_theme(self):
+        pass
+
+    def on_prev_click(self, tp, exs):
+        self.disable_all_inputs()
+
+        print(exs, self.theme_update_map[exs])
+
+        if tp == 'color':
+            ncolor = colorchooser.askcolor(self.theme_update_map[exs].color)
+            if None in ncolor:
+                self.enable_all_inputs()
+                return
+            self.preview_change(exs, qa_functions.HexColor(ncolor[1]))
+
+        self.enable_all_inputs()
+
+    def onBGClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.BG)
+
+    def onFGClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.FG)
+
+    def onAccentClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.ACCENT)
+
+    def onErrorClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.ERROR)
+
+    def onOkayClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.OKAY)
+
+    def onWarningClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.WARNING)
+
+    def onGrayClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.GRAY)
+
+    def onBCClick(self):
+        self.on_prev_click('color', ThemeUpdateVars.BORDER_COLOR)
+
+    def save_custom_theme(self):
+        self.disable_all_inputs()
+        pr_theme_full = qa_functions.LoadTheme.auto_load_pref_theme()
+        pr_theme = gen_cmp_theme_dict(pr_theme_full)
+        cr_theme = gen_cmp_theme_dict(self.theme)
+
+        if pr_theme == cr_theme:
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('No changes made to theme'))
+            self.enable_all_inputs()
+            return
+
+        self.enable_all_inputs()
+
+    def preview_change(self, change_key, change):
+        self.disable_all_inputs()
+        TUV = ThemeUpdateVars
+
+        ntheme = clone_theme(self.theme)
+
+        if isinstance(change, qa_functions.HexColor):
+            if change_key == TUV.BG:
+                ntheme.background = change
+            elif change_key == TUV.FG:
+                ntheme.foreground = change
+            elif change_key == TUV.ACCENT:
+                ntheme.accent = change
+            elif change_key == TUV.GRAY:
+                ntheme.gray = change
+            elif change_key == TUV.ERROR:
+                ntheme.error = change
+            elif change_key == TUV.WARNING:
+                ntheme.warning = change
+            elif change_key == TUV.OKAY:
+                ntheme.okay = change
+        elif type(change) in (int, float):
+            if change_key == TUV.FONT_SIZE_SMALL:
+                ntheme.font_small_size = change
+            elif change_key == TUV.FONT_SIZE_MAIN:
+                ntheme.font_main_size = change
+            elif change_key == TUV.FONT_SIZE_LARGE:
+                ntheme.font_large_size = change
+            elif change_key == TUV.FONT_SIZE_TITLE:
+                ntheme.title = change
+            elif change_key == TUV.FONT_SIZE_XL_TITLE:
+                ntheme.font_xl_title_size = change
+        elif isinstance(change, str):
+            if change_key == TUV.DEFAULT_FONT_FACE:
+                ntheme.font_face = change
+            elif change_key == TUV.ALT_FONT_FACE:
+                ntheme.font_alt_face = change
+
+        if gen_cmp_theme_dict(ntheme) != gen_cmp_theme_dict(self.theme):
+            self.update_ui(ntheme)
+        else:
+            sys.stdout.write("no changes in theme\n")
+
+        self.enable_all_inputs()
 
     def __del__(self):
         self.thread.join(self, 0)
+
+
+def clone_theme(theme_data: qa_functions.Theme):
+    return qa_functions.Theme(
+        theme_data.theme_file_name, theme_data.theme_file_display_name, theme_data.theme_display_name, theme_data.theme_code,
+        theme_file_path=theme_data.theme_file_path,
+        background=theme_data.background, foreground=theme_data.foreground, accent=theme_data.accent,
+        gray=theme_data.gray, error=theme_data.error, warning=theme_data.warning, okay=theme_data.okay,
+        font_face=theme_data.font_face, font_alt_face=theme_data.font_alt_face, font_small_size=theme_data.font_small_size,
+        font_main_size=theme_data.font_main_size, font_large_size=theme_data.font_large_size, font_title_size=theme_data.font_title_size,
+        font_xl_title_size=theme_data.font_xl_title_size, border_size=theme_data.border_size, border_color=theme_data.border_color
+    )
+
+
+def gen_cmp_theme_dict(theme_data: qa_functions.Theme) -> dict:
+    return {
+        'bg': theme_data.background.color.upper(),
+        'fg': theme_data.foreground.color.upper(),
+        'accent': theme_data.accent.color.upper(),
+        'error': theme_data.error.color.upper(),
+        'warning': theme_data.warning.color.upper(),
+        'okay': theme_data.okay.color.upper(),
+        'gray': theme_data.gray.color.upper(),
+        'ff': theme_data.font_face.upper(),
+        'faf': theme_data.font_alt_face.upper(),
+        'fss': theme_data.font_small_size,
+        'fms': theme_data.font_main_size,
+        'fls': theme_data.font_large_size,
+        'fts': theme_data.font_title_size,
+        'fxlts': theme_data.font_xl_title_size,
+        'bs': theme_data.border_size,
+        'bc': theme_data.border_color.color.upper()
+    }
 
 
 def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):

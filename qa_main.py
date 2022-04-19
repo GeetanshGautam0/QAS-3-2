@@ -1,5 +1,6 @@
 import sys, traceback, time, random, click, hashlib
 from qa_functions.qa_std import *
+import qa_functions
 from tkinter import messagebox
 from qa_apps_admin_tools import RunApp as Admin_RunApp
 from qa_apps_quizzing_form import RunApp as Quizzer_RunApp
@@ -25,8 +26,16 @@ class _Run(Thread):
 
         self._run_acc = 0
 
+    def close(self):
+        messagebox.showerror('Crash', 'Unexpected shut down of application instance manager [FATAL]')
+        sys.exit('AIM_SD')
+
+    def tk_err_handler(self, exc, val, tb):
+        messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{traceback.format_exc()}")
+        sys.exit('AIM_TK_CRASH')
+
     def call(self) -> Union[tk.Tk, tk.Toplevel]:
-        global _bg_window
+        global _bg_window, _ico_map
 
         if self._run_acc >= 1:
             return self.shell
@@ -34,6 +43,9 @@ class _Run(Thread):
         self.base_root = tk.Tk()
         self.base_root.withdraw()
         self.base_root.title('Quizzing Application - AIM || Running')
+        self.base_root.iconbitmap(_ico_map[self.func])
+        self.base_root.protocol("WM_DELETE_WINDOW", self.close)
+        tk.Tk.report_callback_exception = self.tk_err_handler
 
         _ui_shell = self.func(self, _bg_window, **self.tokens)
         self.shell_ready = True
@@ -122,6 +134,13 @@ _application_map = {
     'RecoveryUtil':                             RecoveryUtil_RunApp,
 }
 
+_ico_map = {
+    Admin_RunApp:                               qa_functions.Files.AT_ico,
+    ThemingUtil_RunApp:                         qa_functions.Files.TU_ico,
+    RecoveryUtil_RunApp:                        qa_functions.Files.RU_ico,
+    Quizzer_RunApp:                             qa_functions.Files.QF_ico,
+}
+
 
 _CLI_help_app_calls = f"""To call an application, use the following tokens:
 \tAdministrator Tools: {Application.ADMINISTRATOR_TOOLS.name}
@@ -146,6 +165,7 @@ def _CLIHandler():
 @click.argument('app_name', type=click.Choice(CLI_AllowedApplications))
 @click.option('--open_file', help="open qa_files that is supplied in args", is_flag=True)
 @click.option('--file_path', help="path of qa_files to open", default=None)
+@click.option('--ttk_theme', help="TTK theme to use (default = clam)", default='clam')
 @click.option('--debug', help='enable debugging', is_flag=True)
 def start_app(**kwargs):
     default_cli_handling(**kwargs)

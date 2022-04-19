@@ -10,7 +10,7 @@ _DEFAULT_DATA_TYPE = bytes
 
 class HexColor:
     def __init__(self, color: str):
-        self.color = color
+        self.color = color.upper()
         assert self.check, 'Color provided does not match expected pattern (1)'
 
     def check(self):
