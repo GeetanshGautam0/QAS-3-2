@@ -167,6 +167,7 @@ class Load:
 
         for theme_and_data in Load.auto_load_all().values():
             theme = (*theme_and_data.values(), )[0]
+
             if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
                 if dd != ddp: _set_pref(dd['file'], dd['theme'], dd['display_name'])
                 del dd

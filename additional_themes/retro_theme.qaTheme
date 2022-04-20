@@ -1,0 +1,33 @@
+{
+    "file_info": {
+        "name": "QuizzingApp.Community.OfficialAddons",
+        "display_name": "Official Addons",
+        "avail_themes": {
+            "num_themes": 1,
+            "ugen_exp": "Themes.Custom.RetroTheme"
+        }
+    },
+    "Themes.Custom.RetroTheme": {
+        "display_name": "Retro Theme",
+        "background": "#000080",
+        "foreground": "#FFFFFF",
+        "accent": "#FFFF00",
+        "error": "#FF5959",
+        "warning": "#FFFF00",
+        "ok": "#00FF00",
+        "gray": "#949494",
+        "font": {
+            "font_face": "Montserrat",
+            "alt_font_face": "Century Gothic",
+            "size_small": 10,
+            "size_main": 13,
+            "size_subtitle": 20,
+            "size_title": 28,
+            "size_xl_title": 40
+        },
+        "border": {
+            "size": 0,
+            "colour": "#202020"
+        }
+    }
+}

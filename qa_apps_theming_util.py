@@ -1,3 +1,4 @@
+import shutil
 from threading import Thread
 import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json, random
 from typing import *
@@ -790,6 +791,7 @@ Technical Information:
                 )
 
         install_dir = f"{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}".replace('/','\\')
+        installed = []
         if not os.path.isdir(install_dir):
             os.makedirs(install_dir)
 
@@ -844,8 +846,10 @@ Technical Information:
             qa_functions.SaveFile.secure(
                 File, d2s2, qa_functions.SaveFunctionArgs(False, False, delete_backup=False, save_data_type=bytes)
             )
+            installed.append(f"{install_dir}\\{filename}")
 
         self.enable_all_inputs()
+        return installed
 
     def uninstall(self):
         self.disable_all_inputs()
@@ -944,7 +948,117 @@ Technical Information:
         self.update_ui()
 
     def export_theme(self):
-        pass
+        self.disable_all_inputs()
+        saved = self.save_custom_theme(True, True)
+
+        if saved:
+            new_file_name = filedialog.asksaveasfilename(defaultextension='.qaTheme', filetypes=(('Quizzing App Theme', 'qaTheme'), ))
+            if not isinstance(new_file_name, str):
+                self.enable_all_inputs()
+                return
+            elif not len(new_file_name) > 0:
+                self.enable_all_inputs()
+                return
+
+            new_file_name = new_file_name.replace('/', '\\')
+
+            try:
+                s_mem = qa_functions.SMem()
+                sep = ">>%QuizzingApp.ICManager.sep1%2>>"
+
+                qa_prompts.InputPrompts.DEntryPrompt(s_mem, sep, ['File Display Name', 'Theme Display Name'])
+                raw = s_mem.get()
+                if raw.strip() == '0' or sep not in raw:
+                    self.enable_all_inputs()
+                    return
+
+                fdp, tdn = raw.split(sep)
+
+                self.load_theme()           # "Save" sets the custom theme as the default theme; use it.
+                ct = clone_theme(self.theme)
+
+                fdp_toks, fdp_clean = fdp.split(' '), []
+                for tok in fdp_toks:
+                    fdp_clean.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
+                fdp_clean = ' '.join(i for i in fdp_clean)
+
+                tdp_toks, tdp_clean = tdn.split(' '), []
+                for tok in tdp_toks:
+                    tdp_clean.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
+                tdp_clean = ' '.join(i for i in tdp_clean)
+
+                ct.theme_file_display_name = fdp_clean
+                ct.theme_display_name = tdp_clean
+                ct.theme_file_name = f"QuizzingApp.Community.{fdp_clean.replace(' ', '')}"
+                ct.theme_code = f"Themes.Custom.{tdp_clean.replace(' ', '')}"
+                ct.theme_file_path = new_file_name
+
+                nt = {
+                    'display_name': ct.theme_display_name,
+                    'background': ct.background.color,
+                    'foreground': ct.foreground.color,
+                    'accent': ct.accent.color,
+                    'error': ct.error.color,
+                    'warning': ct.warning.color,
+                    'ok': ct.okay.color,
+                    'gray': ct.gray.color,
+                    'font': {
+                        'font_face': ct.font_face,
+                        'alt_font_face': ct.font_alt_face,
+                        'size_small': ct.font_small_size,
+                        'size_main': ct.font_main_size,
+                        'size_subtitle': ct.font_large_size,
+                        'size_title': ct.font_title_size,
+                        'size_xl_title': ct.font_xl_title_size
+                    },
+                    'border': {
+                        'size': ct.border_size,
+                        'colour': ct.border_color.color
+                    }
+                }
+                file_data = {
+                    'file_info': {
+                        'name': ct.theme_file_name,
+                        'display_name': ct.theme_file_display_name,
+                        'avail_themes': {
+                            'num_themes': 1,
+                            'ugen_exp': ct.theme_code
+                        }
+                    },
+                    ct.theme_code: {
+                        **nt
+                    }
+                }
+
+                file_bytes = qa_files.generate_file(qa_functions.FileType.QA_THEME, json.dumps(file_data, indent=4))
+                file = qa_functions.File(new_file_name)
+                assert qa_functions.SaveFile.secure(file, file_bytes, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)), "SaveError"
+
+                nf = self.install_new_theme((new_file_name,))[0]
+                qa_functions.qa_theme_loader._set_pref(nf, ct.theme_code, f'{ct.theme_file_display_name}: {ct.theme_display_name}')
+
+                qa_prompts.MessagePrompts.show_info(
+                    qa_prompts.InfoPacket(
+                        f"Your theme was successfully saved and installed; it's called '{ct.theme_file_display_name}: {ct.theme_display_name}' and it has already been selected for you! This theme is now available for use throughout the Quizzing Application Suite. At any time, you may uninstall this theme like any other installed theme.",
+                        title="Congratulations!"
+                    )
+                )
+
+            except Exception as E:
+                qa_prompts.MessagePrompts.show_error(
+                    qa_prompts.InfoPacket(
+f"""Failed to export your theme;
+Error: {str(E)}
+Error Code: {hashlib.md5(str(E).encode()).hexdigest()}
+
+Technical Information:
+{traceback.format_exc()}      
+"""
+                    )
+                )
+
+        self.enable_all_inputs()
+        return
 
     def on_prev_click(self, tp, exs):
         self.disable_all_inputs()
@@ -986,16 +1100,16 @@ Technical Information:
         self.rst_theme = True
         self.update_ui()
 
-    def save_custom_theme(self):
+    def save_custom_theme(self, internal_call=False, _bypass_changes_check=False):
         self.disable_all_inputs()
         pr_theme_full = qa_functions.LoadTheme.auto_load_pref_theme()
         pr_theme = gen_cmp_theme_dict(pr_theme_full)
         cr_theme = gen_cmp_theme_dict(self.theme)
 
-        if pr_theme == cr_theme:
+        if pr_theme == cr_theme and not _bypass_changes_check:
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('No changes made to theme'))
             self.enable_all_inputs()
-            return
+            return False
 
         nt = {
             'display_name': 'Custom Theme',
@@ -1027,10 +1141,10 @@ Technical Information:
             string = f"In the following message, an \"AA Contrast\" error means that there is insufficient contrast between the state color and the background color.\n\nCouldn't save your theme as it failed {len(failures)} checks:\n\t*%s\n\nTo reset the theme, click 'Reset Theme'" % "\n\t*".join(failure for failure in failures)
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(string))
             self.enable_all_inputs()
-            return
+            return False
 
         elif len(warnings) > 0:
-            string = f"In the following message, an \"AAA Contrast\" error means that the contrast between the state color and the background color is merely SATISFACTORY.\n\nYour theme passed the basic tests, but raised warning(s) on {len(warnings)} checks:\n\t*%s\n\nTo reset the theme, click 'Reset Theme'" % "\n\t*".join(warning for warning in warnings)
+            string = f"In the following message, an \"AAA Contrast\" error means that the contrast between the state color and the background color is merely SATISFACTORY.\n\nYour theme passed the basic tests, but raised warning(s) on {len(warnings)} checks:\n\t*%s" % "\n\t*".join(warning for warning in warnings)
             qa_prompts.MessagePrompts.show_warning(qa_prompts.InfoPacket(string))
 
         try:
@@ -1065,17 +1179,25 @@ Technical Information:
                 )
             )
             self.enable_all_inputs()
-            return
+            return False
 
-        qa_prompts.MessagePrompts.show_info(
-            qa_prompts.InfoPacket(
-                "Your theme was successfully saved; to use it, select 'User Generated: Custom Theme' from the dropdown above! This theme is now available for use throughout the Quizzing Application Suite. At any time, you may uninstall this theme like any other installed theme. To share your theme, click on 'Export.'",
-                title="Congratulations!"
-            )
+        # Set as preferred (=> current) theme
+        qa_functions.qa_theme_loader._set_pref(
+            f"{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}\\{qa_functions.Files.ThemeCustomFile}".replace('/', '\\'),
+            'User.Custom.Theme',
+            'User Generated: Custom Theme'
         )
 
+        if not internal_call:
+            qa_prompts.MessagePrompts.show_info(
+                qa_prompts.InfoPacket(
+                    "Your theme was successfully saved; it's called 'User Generated: Custom Theme' and it has already been selected for you! This theme is now available for use throughout the Quizzing Application Suite. At any time, you may uninstall this theme like any other installed theme. To share your theme, click on 'Export.'",
+                    title="Congratulations!"
+                )
+            )
+
         self.enable_all_inputs()
-        return
+        return True
 
     def preview_change(self, change_key, change):
         self.disable_all_inputs()
