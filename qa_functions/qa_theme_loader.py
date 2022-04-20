@@ -423,7 +423,6 @@ class Test:
         )
 
         acc = [0, []]
-
         for item_name, item_type in checks:
             e, d = data_at_dict_path(item_name, theme_data)
             f1 = acc[0]
@@ -477,7 +476,7 @@ class Test:
                                 acc[1].append(f"`{theme_name}` - Error #{acc[0]}: Color value for `{item_name}` fails AA contrast check.")
 
                             if not AAA:
-                                warnings.append(f"`{theme_name}` - Warning: Colour value for `{theme_name}` does not pass AAA contrast check (non-fatal.)")
+                                warnings.append(f"`{theme_name}` - Warning: Colour value for `{item_name}` does not pass AAA contrast check (non-fatal.)")
 
                         else:
                             acc[0] += 1

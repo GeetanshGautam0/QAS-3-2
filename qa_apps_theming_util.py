@@ -38,6 +38,8 @@ class _UI(Thread):
 
         self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
         self.theme_update_map = {}
+        self.tmp_theme = clone_theme(self.theme)
+        self.rst_theme = True
 
         self.padX = 20
         self.padY = 10
@@ -100,6 +102,7 @@ class _UI(Thread):
         self.export_button_panel = tk.LabelFrame(self.root)
         self.export_theme_button = ttk.Button(self.export_button_panel, command=self.export_theme)
         self.save_theme_button = ttk.Button(self.export_button_panel, command=self.save_custom_theme)
+        self.reset_theme_button = ttk.Button(self.export_button_panel, command=self.reset_theme, style='Contrast.TButton')
         self.preview_button = ttk.Button(self.export_button_panel, command=self.preview_change)
 
         self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
@@ -299,6 +302,26 @@ class _UI(Thread):
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
 
+        cb_fg = qa_functions.qa_colors.Functions.calculate_more_contrast(qa_functions.HexColor("#000000"), qa_functions.HexColor("#ffffff"), self.theme.background).color
+
+        self.ttk_style.configure(
+            'Contrast.TButton',
+            background=self.theme.background.color,
+            foreground=cb_fg,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.error.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Contrast.TButton',
+            background=[('active', cb_fg), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
         self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
 
         HC = qa_functions.HexColor
@@ -398,11 +421,14 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
     def load_theme(self, theme=None):
-        if theme is None:
+        if theme is None and (gen_cmp_theme_dict(self.tmp_theme) == self.theme or self.rst_theme):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
+            self.rst_theme = False
         else:
             sys.stdout.write("[PREVIEW] using provided theme\n")
-            self.theme = theme
+            if theme is not None:
+                self.theme = theme
+                self.tmp_theme = theme
 
         self.theme_update_map = {
             ThemeUpdateVars.BG: self.theme.background,
@@ -504,12 +530,14 @@ class _UI(Thread):
         self.showcase_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT, padx=(0, self.padX/2), pady=self.padY)
         self.export_button_panel.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.RIGHT)
         self.showcase_root_frame.config(text="Current theme. Click on an item to change its value")
-        self.export_button_panel.config(text="Export")
+        self.export_button_panel.config(text="Custom Theme IO")
 
         self.export_theme_button.pack(fill=tk.Y, expand=True, padx=self.padX, pady=self.padY)
-        self.export_theme_button.config(text="Export Theme")
         self.save_theme_button.pack(fill=tk.Y, expand=True, padx=self.padX, pady=(0, self.padY))
-        self.save_theme_button.config(text="Save Theme")
+        self.reset_theme_button.pack(fill=tk.Y, expand=True, padx=self.padX, pady=(0, self.padY))
+        self.export_theme_button.config(text="Export")
+        self.save_theme_button.config(text="Save")
+        self.reset_theme_button.config(text="Reset")
 
         self.label_formatter(self.showcase_root_frame, size=TUV.FONT_SIZE_SMALL)
         self.label_formatter(self.export_button_panel, size=TUV.FONT_SIZE_SMALL)
@@ -620,6 +648,7 @@ class _UI(Thread):
                 qa_functions.qa_theme_loader._set_pref(
                     new_theme.theme_file_path, new_theme.theme_code, f'{new_theme.theme_file_display_name}: {new_theme.theme_display_name}'
                 )
+                self.rst_theme = True
                 self.update_ui()
 
     def online_download(self):
@@ -920,8 +949,6 @@ Technical Information:
     def on_prev_click(self, tp, exs):
         self.disable_all_inputs()
 
-        print(exs, self.theme_update_map[exs])
-
         if tp == 'color':
             ncolor = colorchooser.askcolor(self.theme_update_map[exs].color)
             if None in ncolor:
@@ -955,6 +982,10 @@ Technical Information:
     def onBCClick(self):
         self.on_prev_click('color', ThemeUpdateVars.BORDER_COLOR)
 
+    def reset_theme(self):
+        self.rst_theme = True
+        self.update_ui()
+
     def save_custom_theme(self):
         self.disable_all_inputs()
         pr_theme_full = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -966,7 +997,85 @@ Technical Information:
             self.enable_all_inputs()
             return
 
+        nt = {
+            'display_name': 'Custom Theme',
+            'background': self.theme.background.color,
+            'foreground': self.theme.foreground.color,
+            'accent': self.theme.accent.color,
+            'error': self.theme.error.color,
+            'warning': self.theme.warning.color,
+            'ok': self.theme.okay.color,
+            'gray': self.theme.gray.color,
+            'font': {
+                'font_face': self.theme.font_face,
+                'alt_font_face': self.theme.font_alt_face,
+                'size_small': self.theme.font_small_size,
+                'size_main': self.theme.font_main_size,
+                'size_subtitle': self.theme.font_large_size,
+                'size_title': self.theme.font_title_size,
+                'size_xl_title': self.theme.font_xl_title_size
+            },
+            'border': {
+                'size': self.theme.border_size,
+                'colour': self.theme.border_color.color
+            }
+        }
+
+        passed, failures, warnings = qa_functions.TestTheme.check_theme('UserGen', nt, True)
+
+        if not passed:
+            string = f"In the following message, an \"AA Contrast\" error means that there is insufficient contrast between the state color and the background color.\n\nCouldn't save your theme as it failed {len(failures)} checks:\n\t*%s\n\nTo reset the theme, click 'Reset Theme'" % "\n\t*".join(failure for failure in failures)
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(string))
+            self.enable_all_inputs()
+            return
+
+        elif len(warnings) > 0:
+            string = f"In the following message, an \"AAA Contrast\" error means that the contrast between the state color and the background color is merely SATISFACTORY.\n\nYour theme passed the basic tests, but raised warning(s) on {len(warnings)} checks:\n\t*%s\n\nTo reset the theme, click 'Reset Theme'" % "\n\t*".join(warning for warning in warnings)
+            qa_prompts.MessagePrompts.show_warning(qa_prompts.InfoPacket(string))
+
+        try:
+            file_data = {
+                'file_info': {
+                    'name': 'QuizzingApp.SystemReserved.User.Custom',
+                    'display_name': 'User Generated',
+                    'avail_themes': {
+                        'num_themes': 1,
+                        'ugen_cs': 'User.Custom.Theme'
+                    }
+                },
+                'User.Custom.Theme': {
+                    **nt
+                }
+            }
+
+            file_bytes = qa_files.generate_file(qa_functions.FileType.QA_THEME, json.dumps(file_data, indent=4))
+            file = qa_functions.File(f"{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}\\{qa_functions.Files.ThemeCustomFile}".replace('/', '\\'))
+            assert qa_functions.SaveFile.secure(file, file_bytes, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)), "SaveError"
+
+        except Exception as E:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(
+f"""Failed to save your theme;
+Error: {str(E)}
+Error Code: {hashlib.md5(str(E).encode()).hexdigest()}
+
+Technical Information:
+{traceback.format_exc()}      
+"""
+                )
+            )
+            self.enable_all_inputs()
+            return
+
+        qa_prompts.MessagePrompts.show_info(
+            qa_prompts.InfoPacket(
+                "Your theme was successfully saved; to use it, select 'User Generated: Custom Theme' from the dropdown above! This theme is now available for use throughout the Quizzing Application Suite. At any time, you may uninstall this theme like any other installed theme. To share your theme, click on 'Export.'",
+                title="Congratulations!"
+            )
+        )
+
         self.enable_all_inputs()
+        return
 
     def preview_change(self, change_key, change):
         self.disable_all_inputs()
@@ -989,6 +1098,8 @@ Technical Information:
                 ntheme.warning = change
             elif change_key == TUV.OKAY:
                 ntheme.okay = change
+            elif change_key == TUV.BORDER_COLOR:
+                ntheme.border_color = change
         elif type(change) in (int, float):
             if change_key == TUV.FONT_SIZE_SMALL:
                 ntheme.font_small_size = change
@@ -1000,6 +1111,8 @@ Technical Information:
                 ntheme.title = change
             elif change_key == TUV.FONT_SIZE_XL_TITLE:
                 ntheme.font_xl_title_size = change
+            elif change_key == TUV.BORDER_SIZE:
+                ntheme.border_size = change
         elif isinstance(change, str):
             if change_key == TUV.DEFAULT_FONT_FACE:
                 ntheme.font_face = change
@@ -1031,8 +1144,8 @@ def clone_theme(theme_data: qa_functions.Theme):
 
 def gen_cmp_theme_dict(theme_data: qa_functions.Theme) -> dict:
     return {
-        'bg': theme_data.background.color.upper(),
-        'fg': theme_data.foreground.color.upper(),
+        'background': theme_data.background.color.upper(),
+        'foreground': theme_data.foreground.color.upper(),
         'accent': theme_data.accent.color.upper(),
         'error': theme_data.error.color.upper(),
         'warning': theme_data.warning.color.upper(),
