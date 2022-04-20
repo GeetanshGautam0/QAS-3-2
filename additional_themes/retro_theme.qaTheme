@@ -17,7 +17,7 @@
         "ok": "#00FF00",
         "gray": "#949494",
         "font": {
-            "font_face": "Montserrat",
+            "font_face": "Courier",
             "alt_font_face": "Century Gothic",
             "size_small": 10,
             "size_main": 13,

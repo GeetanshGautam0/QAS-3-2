@@ -2,7 +2,7 @@ import shutil
 from threading import Thread
 import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json, random
 from typing import *
-from tkinter import ttk, filedialog, colorchooser
+from tkinter import ttk, filedialog, colorchooser, font
 from qa_functions.qa_enum import *
 from qa_prompts import gsuid, configure_scrollbar_style
 from PIL import Image, ImageTk
@@ -32,6 +32,7 @@ class _UI(Thread):
         wd_w = 700
         wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
         self.window_size = [wd_w, int(ratio * wd_w)]
+        self.window_size[0] = 790
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
             int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -85,6 +86,7 @@ class _UI(Thread):
         self.showcase_canvas = tk.Canvas(self.showcase_root_frame)
         self.showcase_frame = tk.Frame(self.showcase_canvas)
         self.showcase_vsb = ttk.Scrollbar(self.showcase_root_frame, style='My.TScrollbar')
+        self.showcase_xsb = ttk.Scrollbar(self.showcase_root_frame, style='MyHoriz.TScrollbar', orient=tk.HORIZONTAL)
 
         self.showcase_f1 = tk.Frame(self.showcase_frame)
         self.showcase_f2 = tk.Frame(self.showcase_frame)
@@ -99,6 +101,27 @@ class _UI(Thread):
         self.showcase_warning = tk.Button(self.showcase_f3)
         self.showcase_okay = tk.Button(self.showcase_f4)
         self.showcase_border_color = tk.Button(self.showcase_f4)
+
+        self.showcase_font_all = tk.Frame(self.showcase_frame)
+        self.showcase_primary = tk.LabelFrame(self.showcase_font_all)
+        self.showcase_alt = tk.LabelFrame(self.showcase_font_all)
+
+        self.showcase_primary_font = ttk.Button(self.showcase_primary, command=self.prim_font)
+        self.showcase_alt_font = ttk.Button(self.showcase_alt, command=self.alt_font)
+
+        self.showcase_fp_1 = tk.Button(self.showcase_primary)
+        self.showcase_fp_2 = tk.Button(self.showcase_primary)
+        self.showcase_fp_3 = tk.Button(self.showcase_primary)
+        self.showcase_fp_4 = tk.Button(self.showcase_primary)
+        self.showcase_fp_5 = tk.Button(self.showcase_primary)
+
+        self.showcase_ap_1 = tk.Button(self.showcase_alt)
+        self.showcase_ap_2 = tk.Button(self.showcase_alt)
+        self.showcase_ap_3 = tk.Button(self.showcase_alt)
+        self.showcase_ap_4 = tk.Button(self.showcase_alt)
+        self.showcase_ap_5 = tk.Button(self.showcase_alt)
+
+        self.showcase_border_size = ttk.Button(self.showcase_frame, command=self.border_size)
 
         self.export_button_panel = tk.LabelFrame(self.root)
         self.export_theme_button = ttk.Button(self.export_button_panel, command=self.export_theme)
@@ -384,6 +407,28 @@ class _UI(Thread):
             width=bw
         )
 
+        self.showcase_border_size.config(
+            text=f"Border Size: {self.theme.border_size}"
+        )
+
+        self.showcase_primary_font.config(text=f"Primary Font: {self.theme.font_face}")
+        self.showcase_alt_font.config(text=f"Alternative Font: {self.theme.font_alt_face}")
+
+        self.showcase_ap_1.config(text=f"Small: {self.theme.font_small_size}")
+        self.showcase_fp_1.config(text=f"Small: {self.theme.font_small_size}")
+
+        self.showcase_ap_2.config(text=f"Primary: {self.theme.font_main_size}")
+        self.showcase_fp_2.config(text=f"Primary: {self.theme.font_main_size}")
+
+        self.showcase_ap_3.config(text=f"Large: {self.theme.font_large_size}")
+        self.showcase_fp_3.config(text=f"Large: {self.theme.font_large_size}")
+
+        self.showcase_ap_4.config(text=f"Title: {self.theme.font_title_size}")
+        self.showcase_fp_4.config(text=f"Title: {self.theme.font_title_size}")
+
+        self.showcase_ap_5.config(text=f"Extra Large: {self.theme.font_xl_title_size}")
+        self.showcase_fp_5.config(text=f"Extra Large: {self.theme.font_xl_title_size}")
+
         self.showcase_canvas.config(bd=0, highlightthickness=0)
 
         # External Update Calls
@@ -485,6 +530,7 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [self.showcase_f2, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.showcase_f3, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.showcase_f4, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.showcase_font_all, TUC.BG, [TUV.BG]]
 
         self.theme_selector_panel.config(text="Installed Themes")
         self.theme_selector_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, ipadx=self.padX/2, ipady=self.padY/2)
@@ -518,19 +564,12 @@ class _UI(Thread):
         self.label_formatter(self.install_new_label, size=TUV.FONT_SIZE_MAIN)
         self.label_formatter(self.theme_uninstall_lbl, size=TUV.FONT_SIZE_MAIN)
 
-        # self.showcase_font_frame = tk.Frame(self.showcase_frame)
-        # self.showcase_font_small = tk.Label(self.showcase_font_frame)
-        # self.showcase_font_main = tk.Label(self.showcase_font_frame)
-        # self.showcase_font_large = tk.Label(self.showcase_font_frame)
-        # self.showcase_font_title = tk.Label(self.showcase_font_frame)
-        # self.showcase_font_xl_title = tk.Label(self.showcase_font_frame)
-        # + border_size + border_color
-
         self.showcase_root_frame.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(0, self.padY), side=tk.LEFT)
+        self.showcase_xsb.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY)
         self.showcase_canvas.pack(fill=tk.BOTH, expand=True, side=tk.LEFT, padx=(self.padX/2, 0), pady=self.padY)
         self.showcase_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT, padx=(0, self.padX/2), pady=self.padY)
         self.export_button_panel.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.RIGHT)
-        self.showcase_root_frame.config(text="Current theme. Click on an item to change its value")
+        self.showcase_root_frame.config(text="Current theme. Click on any item below to change its value")
         self.export_button_panel.config(text="Custom Theme IO")
 
         self.export_theme_button.pack(fill=tk.Y, expand=True, padx=self.padX, pady=self.padY)
@@ -541,10 +580,13 @@ class _UI(Thread):
         self.reset_theme_button.config(text="Reset")
 
         self.label_formatter(self.showcase_root_frame, size=TUV.FONT_SIZE_SMALL)
+        self.label_formatter(self.showcase_primary, size=TUV.FONT_SIZE_SMALL)
+        self.label_formatter(self.showcase_alt, size=TUV.FONT_SIZE_SMALL)
         self.label_formatter(self.export_button_panel, size=TUV.FONT_SIZE_SMALL)
 
         self.showcase_vsb.configure(command=self.showcase_canvas.yview)
-        self.showcase_canvas.configure(yscrollcommand=self.showcase_vsb.set)
+        self.showcase_xsb.configure(command=self.showcase_canvas.xview)
+        self.showcase_canvas.configure(yscrollcommand=self.showcase_vsb.set, xscrollcommand=self.showcase_xsb.set)
 
         self.showcase_bg.pack(fill=tk.X, expand=True, side=tk.LEFT)
         self.showcase_bg.config(command=self.onBGClick)
@@ -583,6 +625,60 @@ class _UI(Thread):
         self.showcase_f3.pack(fill=tk.X, expand=True)
         self.showcase_f4.pack(fill=tk.X, expand=True)
 
+        self.showcase_border_size.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.showcase_font_all.pack(fill=tk.X, expand=False)
+        self.showcase_primary.pack(fill=tk.BOTH, expand=True)
+        self.showcase_alt.pack(fill=tk.BOTH, expand=True)
+
+        self.showcase_primary_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0))
+        self.showcase_alt_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0))
+
+        self.showcase_primary.config(text="Primary Font")
+        self.showcase_alt.config(text="Alternative Font")
+
+        self.showcase_ap_1.config(command=self.font_size_small)
+        self.showcase_ap_1.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_ap_2.config(command=self.font_size_medium)
+        self.showcase_ap_2.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_ap_3.config(command=self.font_size_large)
+        self.showcase_ap_3.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_ap_4.config(command=self.font_size_title)
+        self.showcase_ap_4.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_ap_5.config(command=self.font_size_xl)
+        self.showcase_ap_5.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.showcase_fp_1.config(command=self.font_size_small)
+        self.showcase_fp_1.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_fp_2.config(command=self.font_size_medium)
+        self.showcase_fp_2.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_fp_3.config(command=self.font_size_large)
+        self.showcase_fp_3.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_fp_4.config(command=self.font_size_title)
+        self.showcase_fp_4.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+        self.showcase_fp_5.config(command=self.font_size_xl)
+        self.showcase_fp_5.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.button_formatter(self.showcase_fp_1, size=TUV.FONT_SIZE_SMALL)
+        self.button_formatter(self.showcase_fp_2, size=TUV.FONT_SIZE_MAIN)
+        self.button_formatter(self.showcase_fp_3, size=TUV.FONT_SIZE_LARGE)
+        self.button_formatter(self.showcase_fp_4, size=TUV.FONT_SIZE_TITLE)
+        self.button_formatter(self.showcase_fp_5, size=TUV.FONT_SIZE_XL_TITLE)
+        self.button_formatter(self.showcase_ap_1, size=TUV.FONT_SIZE_SMALL, font=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_2, size=TUV.FONT_SIZE_MAIN, font=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_3, size=TUV.FONT_SIZE_LARGE, font=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_4, size=TUV.FONT_SIZE_TITLE, font=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_5, size=TUV.FONT_SIZE_XL_TITLE, font=TUV.ALT_FONT_FACE)
+
+        # Final things
         self.showcase_canvas.create_window(
             (0, 0),
             window=self.showcase_frame,
@@ -1094,6 +1190,7 @@ Technical Information:
         self.on_prev_click('color', ThemeUpdateVars.GRAY)
 
     def onBCClick(self):
+        self.font_picker()
         self.on_prev_click('color', ThemeUpdateVars.BORDER_COLOR)
 
     def reset_theme(self):
@@ -1247,6 +1344,64 @@ Technical Information:
             sys.stdout.write("no changes in theme\n")
 
         self.enable_all_inputs()
+
+    def font_picker(self):
+        self.disable_all_inputs()
+
+        s_mem = qa_functions.SMem()
+        qa_prompts.InputPrompts.OptionPrompt(s_mem, set(font.families()), "Pick a font")
+        self.enable_all_inputs()
+
+        if s_mem.get().strip() == '0':
+            return None
+        else:
+            return s_mem.get()
+
+    def prim_font(self):
+        new_font = self.font_picker()
+        if isinstance(new_font, str):
+            self.preview_change(ThemeUpdateVars.DEFAULT_FONT_FACE, new_font)
+
+    def alt_font(self):
+        new_font = self.font_picker()
+        if isinstance(new_font, str):
+            self.preview_change(ThemeUpdateVars.ALT_FONT_FACE, new_font)
+
+    def font_size_picker(self, current, var, name):
+        self.disable_all_inputs()
+
+        s_mem = qa_functions.SMem()
+        qa_prompts.InputPrompts.SEntryPrompt(s_mem, f'New size for \'{name}\':', str(current).strip())
+        self.enable_all_inputs()
+
+        if s_mem.get().strip() == str(current).strip():
+            return None
+        else:
+            try:
+                f = int(s_mem.get())
+                if var == ThemeUpdateVars.BORDER_SIZE: assert f <= 10, "Border size must be smaller than 10"
+                else: assert 60 >= f >= 3, "Font size must be between size 3 and size 60"
+                self.preview_change(var, f)
+            except Exception as E:
+                qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(f'Invalid font size provided: {E}'))
+
+    def font_size_small(self):
+        self.font_size_picker(self.theme.font_small_size, ThemeUpdateVars.FONT_SIZE_SMALL, 'small')
+
+    def font_size_medium(self):
+        self.font_size_picker(self.theme.font_main_size, ThemeUpdateVars.FONT_SIZE_MAIN, 'primary')
+
+    def font_size_large(self):
+        self.font_size_picker(self.theme.font_large_size, ThemeUpdateVars.FONT_SIZE_LARGE, 'large')
+
+    def font_size_title(self):
+        self.font_size_picker(self.theme.font_title_size, ThemeUpdateVars.FONT_SIZE_TITLE, 'title')
+
+    def font_size_xl(self):
+        self.font_size_picker(self.theme.font_xl_title_size, ThemeUpdateVars.FONT_SIZE_XL_TITLE, 'XL')
+
+    def border_size(self):
+        self.font_size_picker(self.theme.border_size, ThemeUpdateVars.BORDER_SIZE, 'border size')
 
     def __del__(self):
         self.thread.join(self, 0)
