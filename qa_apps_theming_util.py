@@ -1190,7 +1190,6 @@ Technical Information:
         self.on_prev_click('color', ThemeUpdateVars.GRAY)
 
     def onBCClick(self):
-        self.font_picker()
         self.on_prev_click('color', ThemeUpdateVars.BORDER_COLOR)
 
     def reset_theme(self):
@@ -1349,7 +1348,7 @@ Technical Information:
         self.disable_all_inputs()
 
         s_mem = qa_functions.SMem()
-        qa_prompts.InputPrompts.OptionPrompt(s_mem, set(font.families()), "Pick a font")
+        qa_prompts.InputPrompts.OptionPrompt(s_mem, font.families(), "Pick a font")
         self.enable_all_inputs()
 
         if s_mem.get().strip() == '0':
