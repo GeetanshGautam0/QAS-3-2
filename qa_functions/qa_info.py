@@ -87,3 +87,13 @@ class Files:
 
 class Encryption:
     default_key: bytes = b"oyJeLcbVk6_w9tbKJArWCZLSBjS8ZfK9M-cAygf6SRQ="
+
+
+class OnlineFiles:
+    class Addons:
+        class Theme:
+            all_files = (
+                'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/retro_theme.qaTheme',
+                'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/theme_addons.qaTheme',
+                'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/high_contrast.qaTheme',
+            )

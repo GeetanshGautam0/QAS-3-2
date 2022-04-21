@@ -7,6 +7,7 @@ from qa_apps_quizzing_form import RunApp as Quizzer_RunApp
 from qa_apps_recovery_util import RunApp as RecoveryUtil_RunApp
 from qa_apps_theming_util import RunApp as ThemingUtil_RunApp
 from threading import Thread
+from qa_installer_functions.addons_installer import RunAddonsInstaller
 
 
 _bg_window = None
@@ -43,7 +44,8 @@ class _Run(Thread):
         self.base_root = tk.Tk()
         self.base_root.withdraw()
         self.base_root.title('Quizzing Application - AIM || Running')
-        self.base_root.iconbitmap(_ico_map[self.func])
+        if self.func in _ico_map:
+            self.base_root.iconbitmap(_ico_map[self.func])
         self.base_root.protocol("WM_DELETE_WINDOW", self.close)
         tk.Tk.report_callback_exception = self.tk_err_handler
 
@@ -73,7 +75,7 @@ class _ApplicationInstanceManager:
 
         try:
             if self.name not in _application_map:
-                raise InvalidCLIArgument("ApplicationName", f'{self.name}', _CLI_help_app_calls)
+                raise InvalidCLIArgument("ApplicationName", f'{self.name}', "")
 
             func = _application_map[self.name]
             inst = _Run(func, self.tokens)
@@ -132,6 +134,8 @@ _application_map = {
     Application.RECOVERY_UTIL.value:            RecoveryUtil_RunApp,
     Application.RECOVERY_UTIL:                  RecoveryUtil_RunApp,
     'RecoveryUtil':                             RecoveryUtil_RunApp,
+
+    'InstallThemeAddons':                       RunAddonsInstaller,
 }
 
 _ico_map = {
@@ -141,15 +145,7 @@ _ico_map = {
     Quizzer_RunApp:                             qa_functions.Files.QF_ico,
 }
 
-
-_CLI_help_app_calls = f"""To call an application, use the following tokens:
-\tAdministrator Tools: {Application.ADMINISTRATOR_TOOLS.name}
-\tQuizzing Form      : {Application.QUIZZING_FORM.name}
-\tTheming Utility    : {Application.THEMING_UTIL.name}
-\tRecovery Utility   : {Application.RECOVERY_UTIL.name}
-"""
-
-CLI_AllowedApplications = ['AdminTools', 'QuizzingForm', 'RecoveryUtil', 'ThemingUtil']
+CLI_AllowedApplications = ['AdminTools', 'QuizzingForm', 'RecoveryUtil', 'ThemingUtil', 'InstallThemeAddons']
 
 
 def default_cli_handling(**kwargs):

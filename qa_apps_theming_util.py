@@ -453,7 +453,9 @@ class _UI(Thread):
             highlightbackground=tbc,
             bd=tbs,
             highlightcolor=tbc,
-            highlightthickness=tbs
+            highlightthickness=tbs,
+            borderwidth=tbs,
+            relief=tk.RIDGE
         ), ThemeUpdateVars.BORDER_COLOR, ThemeUpdateVars.BORDER_SIZE]]
 
     def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):

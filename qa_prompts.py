@@ -21,6 +21,7 @@ TTK_THEME = 'clam'
 
 _SVG_COLOR_REPL_ROOT = "<<<PYTHON__INSERT__COLOR__HERE>>>"
 
+
 @dataclass
 class InfoPacket:
     msg: str
@@ -999,7 +1000,7 @@ class MessagePrompts:
 
 class InputPrompts:
     class DownloadFile(threading.Thread):
-        def __init__(self, data: DownloadPacket):
+        def __init__(self, data: DownloadPacket, url=None):
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -1021,6 +1022,8 @@ class InputPrompts:
 
             self.padX = 20
             self.padY = 10
+            self.url = url
+            self.download_queued = False
 
             self.load_theme()
             self.update_requests = {}
@@ -1092,10 +1095,13 @@ class InputPrompts:
             if self.downloading:
                 return
 
-            self.thread.join(self, 0)
             self.root.after(0, self.root.quit)
-            self.root.withdraw()
-            self.root.title('Quizzing Application | Closed Prompt')
+            self.thread.join(self, 0)
+
+            try:
+                self.root.withdraw()
+                self.root.title('Quizzing Application | Closed Prompt')
+            except: pass
 
         def update_ui(self):
             self.load_theme()
@@ -1238,6 +1244,9 @@ class InputPrompts:
             self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
             self.ttk_style = configure_button_style(self.ttk_style, self.theme, self.theme.accent.color if not self.success else self.theme.okay.color)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
+
+            if self.download_queued:
+                self.start_download()
 
             if self.success:
                 self.title_label.config(fg=self.theme.okay.color)
@@ -1425,27 +1434,36 @@ class InputPrompts:
 
             self.page_input.pack(fill=tk.BOTH, expand=True)
 
+            if isinstance(self.url, str):
+                self.url_entry.config(state=tk.DISABLED)
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, self.url.strip())
+                self.download_queued = True
+
             self.update_requests[gsuid()] = [self.url_entry, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
 
             self.update_ui()
 
         def start_download(self):
+            self.download_queued = False
+
             if self.downloading:
-                return
+                return False
 
             self.close_button.config(state=tk.DISABLED)
             self.download_button.config(state=tk.DISABLED)
             self.url_entry.config(state=tk.DISABLED)
 
-            raw = self.url_entry.get().strip()
+            raw = self.url_entry.get().strip() if not isinstance(self.url, str) else self.url.strip()
             urls = check_url_regex(raw)
             if len(urls) != 1:
+                sys.stderr.write(f'{raw},\n\t{urls}\n')
                 self.err_acc += 1
                 self.error_label.config(text=f"Invalid URL provided ({self.err_acc})")
                 self.close_button.config(state=tk.NORMAL)
                 self.url_entry.config(state=tk.NORMAL)
                 self.download_button.config(state=tk.NORMAL)
-                return
+                return False
 
             self.error_label.config(text="")
             self.downloading = True
@@ -1455,6 +1473,7 @@ class InputPrompts:
             self.load_file()
             if not self.success and os.path.isfile(self.data.output_file):
                 os.remove(self.data.output_file)
+                return False
 
         def load_file(self):
             def tr(com, *args):
@@ -1463,7 +1482,7 @@ class InputPrompts:
                     print(traceback.format_exc())
                     return False, str(E)
 
-            url = self.url_entry.get().strip()
+            url = self.url_entry.get().strip() if not isinstance(self.url, str) else self.url.strip()
 
             self.title_label.config(text="Downloading File")
             self.loading_step1_m.pack(fill=tk.BOTH, expand=False)
@@ -1491,7 +1510,8 @@ class InputPrompts:
 
             self.root.update()
             self.update_svg()
-            self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step1_I))
+            if self.loading_step1_I in self.blank_icon_reqs:
+                self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step1_I))
 
             # Request
             p, r = tr(self.http.request, 'GET', url)
@@ -1506,8 +1526,8 @@ class InputPrompts:
 
             self.ok_icon_reqs.append(self.loading_step1_I)
             self.update_svg()
-
-            self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step2_I))
+            if self.loading_step2_I in self.blank_icon_reqs:
+                self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step2_I))
             p, r2 = tr(r.data.decode)
             p &= isinstance(r2, str)
             if p:
@@ -1526,7 +1546,8 @@ class InputPrompts:
             self.ok_icon_reqs.append(self.loading_step2_I)
             self.update_svg()
 
-            self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step3_I))
+            if self.loading_step3_I in self.blank_icon_reqs:
+                self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step3_I))
             p, r3 = tr(qa_functions.File, self.data.output_file)
             if p:
                 r3: qa_functions.File
@@ -1545,8 +1566,8 @@ class InputPrompts:
 
             self.ok_icon_reqs.append(self.loading_step3_I)
             self.update_svg()
-
-            self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step4_I))
+            if self.loading_step4_I in self.blank_icon_reqs:
+                self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step4_I))
             ogh = hashlib.sha3_512(r2.encode()).hexdigest()
             p, file = tr(qa_functions.File, self.data.output_file)
             nfh = None
@@ -1580,7 +1601,11 @@ class InputPrompts:
             self.success = True
             self.error_label.config(text="")
             self.update_ui()
-            return
+            self.root.update()
+            if isinstance(self.url, str):
+                self.exit_download()
+            else:
+                return
 
         def exit_download(self):
             self.downloading = False
