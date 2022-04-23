@@ -1,6 +1,9 @@
-import os
+import os, urllib3
 
 
-def RunUpdater(cli="start --ReadFlags", path=".qa_update\\"):
-    os.system(f"{path}update.exe {cli}")
+def RunUpdater(cli="--ReadFlags", path=".qa_update\\"):
+    os.system(f"{path}qa_update_app.exe start {cli}")
 
+
+def UpdateSuite():
+    pass
