@@ -1,8 +1,14 @@
-import sys, traceback, time, random, click, hashlib, ctypes, threading, urllib3, \
-    tkinter as tk, os
+import sys, traceback, click, ctypes, threading, urllib3, tkinter as tk, os, json, appdirs
 from tkinter import messagebox, ttk
-from qa_functions import qa_nv_flags as NVF_Handler, qa_info as AppInfo
 
+
+with open('.\\.config\\main_config.json', 'r') as file:
+    d = file.read()
+    file.close()
+nv_json_data = json.loads(d)
+
+NV_ROOT = f"{appdirs.user_data_dir(nv_json_data['application']['appdata_app_name'], nv_json_data['application']['app_author'], str(nv_json_data['application']['version']), nv_json_data['application']['appdata_roaming'])}\\.nvf"
+NV_DELIMITER = "=="
 
 _NV_ROOT = "L_UPDATE"
 HTTP = urllib3.PoolManager(
@@ -31,7 +37,15 @@ _THEME = {  # DEFAULT.DEFAULT.LIGHT
       "size_xl_title":    40
     }
 }
-_COMMANDS = AppInfo.Misc.update_commands
+with open('.config\\update_commands.json', 'r') as file:
+    _OC = json.loads(file.read())
+    file.close()
+
+_COMMANDS = {}
+for command, val in _OC.items():
+    _COMMANDS[command] = []
+    for url, dst in val.items():
+        _COMMANDS[command].append([url, dst])
 
 
 class UpdaterUI(threading.Thread):
@@ -152,13 +166,13 @@ class UpdaterUI(threading.Thread):
         for command in [*self.downloads]:
             if command == 'ReadFlags':
                 self.insert_item('Looking for commands in NVF folder.')
-                n_coms = NVF_Handler.yield_all_flags_as_list(_NV_ROOT)
+                n_coms = nv_yield_all_flags_as_list(_NV_ROOT)
                 for nc in n_coms:
                     if nc in _COMMANDS:
                         self.downloads.append(nc)
                     else:
                         self.insert_item(f"   * Invalid command found in NVF: {nc}")
-                        NVF_Handler.delete_flag(_NV_ROOT, nc)
+                        nv_delete_flag(_NV_ROOT, nc)
 
                 while 'ReadFlags' in self.downloads:
                     self.downloads.pop(self.downloads.index('ReadFlags'))
@@ -184,11 +198,16 @@ class UpdaterUI(threading.Thread):
 
         self.clear_lb()
         self.insert_item('Checking connection.')
+
+        self.root.update()
+
         success, _ = tr(HTTP.request, 'GET', 'https://www.google.com')
         if not success:
             self.insert_item('Connection not established')
             self.close_button.config(text="RETRY")
             return
+
+        self.root.update()
 
         success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
         if not success:
@@ -196,11 +215,15 @@ class UpdaterUI(threading.Thread):
             self.close_button.config(text="RETRY")
             return
 
+        self.root.update()
+
         self.insert_item('')
         self.insert_item('Successfully established connection')
         self.insert_item('Starting downloads')
 
         self.close_button.config(command=self.close, text="CLOSE")
+
+        self.root.update()
 
         if len(self.downloads) <= 0:
             self.insert_item('No download commands provided', _THEME['background'], _THEME['error'], _THEME['error'])
@@ -212,6 +235,8 @@ class UpdaterUI(threading.Thread):
         self.close_button.config(state=tk.DISABLED)
 
         self.downloads = {*self.downloads}  # Remove duplicates
+
+        self.root.update()
 
         for command in self.downloads:
             self.insert_item(f' ')
@@ -252,10 +277,12 @@ class UpdaterUI(threading.Thread):
                         continue
 
                     self.insert_item(f'Successfully downloaded \'{dst_file_name}\'', fg=_THEME['ok'], sfg=_THEME['ok'])
-                    NVF_Handler.delete_flag(_NV_ROOT, command)
+                    nv_delete_flag(_NV_ROOT, command)
 
             else:
                 self.insert_item(f"Unknown command \"{command}\"", fg=_THEME['error'], sfg=_THEME['error'])
+
+            self.root.update()
 
         self.okay_to_close = True
         self.close_button.config(state=tk.NORMAL)
@@ -311,6 +338,41 @@ def tr(command, *args, **kwargs):
         return True, command(*args, **kwargs)
     except Exception as excep:
         return False, excep
+
+
+def nv_check_flag(script: str, name: str):
+    global NV_ROOT, NV_DELIMITER
+
+    name = name.replace(NV_DELIMITER, '__')
+    return os.path.exists(f"{NV_ROOT}\\{script}{NV_DELIMITER}{name}")
+
+
+def nv_delete_flag(script: str, name: str):
+    global NV_ROOT, NV_DELIMITER
+
+    name = name.replace(NV_DELIMITER, '__')
+
+    if nv_check_flag(script, name):
+        os.remove(f"{NV_ROOT}\\{script}{NV_DELIMITER}{name}")
+
+
+def nv_yield_all_flags_as_list(script: str):
+    global NV_ROOT, NV_DELIMITER
+
+    acc = []
+
+    if os.path.isdir(NV_ROOT):
+        for item in os.listdir(NV_ROOT):
+            if isinstance(script, type):
+                if script is any:
+                    acc.append(item.replace('__', NV_DELIMITER))
+
+                continue
+
+            if item.split(NV_DELIMITER)[0].lower().strip() == script.lower().strip():
+                acc.append(item.split(NV_DELIMITER)[1].replace('__', NV_DELIMITER))
+
+    return acc
 
 
 if __name__ == "__main__":

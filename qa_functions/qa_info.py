@@ -97,12 +97,3 @@ class OnlineFiles:
                 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/theme_addons.qaTheme',
                 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/high_contrast.qaTheme',
             )
-
-
-class Misc:
-    update_commands = {
-        'DEFAULT_THEME': (
-            ('https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.src/.defaults/.themes/default.json', '.src\\.defaults\\.themes\\default.json'),
-            ('https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.src/.defaults/.themes/hashes.json', '.src\\.defaults\\.themes\\hashes.json'),
-        )
-    }

@@ -1,6 +1,6 @@
 import os
 
 
-def RunUpdater(cli="--ReadFlags"):
-    os.system(f"update.exe {cli}")
+def RunUpdater(cli="start --ReadFlags", path="qa_update\\"):
+    os.system(f"{path}update.exe {cli}")
 

@@ -1,2 +1,2 @@
 from .addons_installer import *
-from update import *
+from .update import *
