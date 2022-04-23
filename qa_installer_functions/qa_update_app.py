@@ -9,6 +9,7 @@ nv_json_data = json.loads(d)
 
 NV_ROOT = f"{appdirs.user_data_dir(nv_json_data['application']['appdata_app_name'], nv_json_data['application']['app_author'], str(nv_json_data['application']['version']), nv_json_data['application']['appdata_roaming'])}\\.nvf"
 NV_DELIMITER = "=="
+URL_BASE = nv_json_data['application']['root_update_url']
 
 _NV_ROOT = "L_UPDATE"
 HTTP = urllib3.PoolManager(
@@ -140,7 +141,7 @@ class UpdaterUI(threading.Thread):
     def run(self):
         tk.Tk.report_callback_exception = self.err
 
-        self.root.title("Quizzing App | Updater")
+        self.root.title("Quizzing App | Updater v2")
         self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.window_pos[0]}+{self.window_pos[1]}")
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         if os.path.isfile('.src\\.icons\\.app_ico\\updater.ico'):
@@ -149,7 +150,7 @@ class UpdaterUI(threading.Thread):
         self.error_label.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.BOTTOM)
         self.frame_1.pack(fill=tk.BOTH, expand=True)
 
-        self.title_label.config(text="Updating Scripts", justify=tk.LEFT, anchor=tk.W)
+        self.title_label.config(text=self.kwargs['title'], justify=tk.LEFT, anchor=tk.W)
         self.title_label.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
         self.activity_box.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
@@ -194,7 +195,7 @@ class UpdaterUI(threading.Thread):
             self.close_button.config(text="CLOSE", command=self.close)
 
     def start_downloads(self):
-        global _THEME, _COMMANDS, _NV_ROOT, HTTP
+        global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE
 
         self.clear_lb()
         self.insert_item('Checking connection.')
@@ -240,13 +241,12 @@ class UpdaterUI(threading.Thread):
 
         for command in self.downloads:
             self.insert_item(f' ')
-
             if command in _COMMANDS:
                 self.insert_item(f'Running command \"{command}\".')
                 files = _COMMANDS[command]
-                for url, dst_file in files:
+                for c_url, dst_file in files:
                     try:
-                        success, result = tr(HTTP.request, 'GET', url)
+                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
                         if not success:
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue
@@ -304,6 +304,7 @@ def _cli_handler():
 @click.option('--ReadFlags', help='find commands in .nvf folder', is_flag=True)
 @click.option('--Update', help="specify command", is_flag=False)
 @click.option('--Console', help="open debugging console", is_flag=True)
+@click.option('--Title', help="title to be displayed on the UI", is_flag=False, default="Updating App")
 @click.option('--noAdmin', help='do not ask for UAC elevation', is_flag=True)
 def start(**kwargs):
     if _is_admin() or kwargs['noadmin']:

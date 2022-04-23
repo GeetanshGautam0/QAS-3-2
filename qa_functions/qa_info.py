@@ -38,6 +38,8 @@ class App:
     build_id = hashlib.md5(ConfigurationFile.json_data['application']['build_id_str'].encode(ENCODING)).hexdigest()
     build_name = ConfigurationFile.json_data['application']['build_title']
 
+    github_url_base = ConfigurationFile.json_data['application']['root_update_url']
+
 
 class Extensions:
     class Logging:
@@ -93,7 +95,7 @@ class OnlineFiles:
     class Addons:
         class Theme:
             all_files = (
-                'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/retro_theme.qaTheme',
-                'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/theme_addons.qaTheme',
-                'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/additional_themes/high_contrast.qaTheme',
+                f'{App.github_url_base}/additional_themes/retro_theme.qaTheme',
+                f'{App.github_url_base}/additional_themes/theme_addons.qaTheme',
+                f'{App.github_url_base}/additional_themes/high_contrast.qaTheme',
             )
