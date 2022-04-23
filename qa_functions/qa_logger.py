@@ -9,12 +9,18 @@ import threading, time, sys, os
 
 
 # Version Checking
-LOGGER_SCRIPT_VERSION_HASH = create_script_version_hash(__file__)
+LOGGER_SCRIPT_VERSION_HASH = create_script_version_hash(__file__, True)
 print(f"{LOGGER_SCRIPT_VERSION_HASH=}")
-check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
+try:
+    check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
+except AssertionError:
+    sys.stderr.write("[WARNING] Potential logger script hash mismatch\n")
 
 EXPECTED_F_IO_H_SVH = EXPECTED['byLogger']['FILE_IO_HANDLER']
-check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
+try:
+    check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
+except AssertionError:
+    sys.stderr.write("[WARNING] Potentially outdated FIO SVH expected by logger.")
 
 # Global Variables
 DEBUGGING_ENABLED = False

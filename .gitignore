@@ -5,3 +5,6 @@ test.txt
 qa_functions/__pycache__/*
 qa_files/__pycache__/*
 test2.py
+compiled/*
+build/*
+*.spec

@@ -12,7 +12,7 @@ Source Code: geetanshgautam0.github.io/QAS3-2
 
 from .qa_custom import *
 from .qa_err import raise_error
-import os, random, hashlib, time, shutil, traceback
+import os, random, hashlib, time, shutil, traceback, sys
 from cryptography.fernet import Fernet, InvalidToken
 
 from .qa_info import Extensions
@@ -24,9 +24,13 @@ from .qa_std import data_type_converter
 from .qa_svh import create_script_version_hash
 from .qa_svh import check_hash
 
-FILE_IO_HANDLER_SCRIPT_VERSION_HASH = create_script_version_hash(os.path.abspath(__file__))
+FILE_IO_HANDLER_SCRIPT_VERSION_HASH = create_script_version_hash(os.path.abspath(__file__), True)
 print(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}")
-check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
+
+try:
+    check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
+except AssertionError:
+    sys.stderr.write("[WARNING] Potential FileIOHandler hash mismatch\n")
 
 
 class Open:

@@ -331,7 +331,7 @@ class Load:
 
 class Test:
     @staticmethod
-    def check_file(json_data: dict) -> bool:  # TODO: Add tests here
+    def check_file(json_data: dict, re_results: bool = False) -> bool:  # TODO: Add tests here
         failures, warnings = [], []
         abort = False
 
@@ -393,7 +393,7 @@ class Test:
 
             sys.stderr.write(f"{'-' * 100}\n\n")
 
-        return len(failures) == 0
+        return len(failures) == 0 if not re_results else (len(failures) == 0, failures, warnings)
 
     @staticmethod
     def check_theme(theme_name: str, theme_data: dict, re_failures: bool = False) -> Union[bool, Tuple[bool, List, List]]:
