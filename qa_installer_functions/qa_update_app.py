@@ -94,10 +94,15 @@ class UpdaterUI(threading.Thread):
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1
+        self.activity_box.yview(tk.END)
+        self.root.update()
 
     def clear_lb(self):
         self.activity_acc = 0
         self.activity_box.delete(0, tk.END)
+        self.activity_box.yview(tk.END)
+
+        self.root.update()
 
     def update_theme(self):
         global _THEME

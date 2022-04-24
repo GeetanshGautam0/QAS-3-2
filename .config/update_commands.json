@@ -11,5 +11,85 @@
   },
   "MAIN_CONFIG": {
     ".config/main_config.json": ".config\\main_config.json"
+  },
+  "ICONS": {
+    ".src/.icons/.app_ico/admin_tools.ico": ".src/.icons/.app_ico/admin_tools.ico",
+    ".src/.icons/.app_ico/cmfbackup.ico": ".src/.icons/.app_ico/cmfbackup.ico",
+    ".src/.icons/.app_ico/cmflog.ico": ".src/.icons/.app_ico/cmflog.ico",
+    ".src/.icons/.app_ico/ftsra.ico": ".src/.icons/.app_ico/ftsra.ico",
+    ".src/.icons/.app_ico/qaEnc.ico": ".src/.icons/.app_ico/qaEnc.ico",
+    ".src/.icons/.app_ico/qaExport.ico": ".src/.icons/.app_ico/qaExport.ico",
+    ".src/.icons/.app_ico/qaFile.ico": ".src/.icons/.app_ico/qaFile.ico",
+    ".src/.icons/.app_ico/qaLog.ico": ".src/.icons/.app_ico/qaLog.ico",
+    ".src/.icons/.app_ico/qaQuiz.ico": ".src/.icons/.app_ico/qaQuiz.ico",
+    ".src/.icons/.app_ico/qaScore.ico": ".src/.icons/.app_ico/qaScore.ico",
+    ".src/.icons/.app_ico/quizzing_tool.ico": ".src/.icons/.app_ico/quizzing_tool.ico",
+    ".src/.icons/.app_ico/setup.ico": ".src/.icons/.app_ico/setup.ico",
+    ".src/.icons/.app_ico/themer.ico": ".src/.icons/.app_ico/themer.ico",
+    ".src/.icons/.app_ico/updater.ico": ".src/.icons/.app_ico/updater.ico",
+
+    ".src/.icons/.app_ico/.png/admin_tools.png": ".src/.icons/.app_ico/.png/admin_tools.png",
+    ".src/.icons/.app_ico/.png/cmfbackup.png": ".src/.icons/.app_ico/.png/cmfbackup.png",
+    ".src/.icons/.app_ico/.png/cmflog.png": ".src/.icons/.app_ico/.png/cmflog.png",
+    ".src/.icons/.app_ico/.png/ftsra.png": ".src/.icons/.app_ico/.png/ftsra.png",
+    ".src/.icons/.app_ico/.png/qaEnc.png": ".src/.icons/.app_ico/.png/qaEnc.png",
+    ".src/.icons/.app_ico/.png/qaExport.png": ".src/.icons/.app_ico/.png/qaExport.png",
+    ".src/.icons/.app_ico/.png/qaFile.png": ".src/.icons/.app_ico/.png/qaFile.png",
+    ".src/.icons/.app_ico/.png/qaLog.png": ".src/.icons/.app_ico/.png/qaLog.png",
+    ".src/.icons/.app_ico/.png/qaQuiz.png": ".src/.icons/.app_ico/.png/qaQuiz.png",
+    ".src/.icons/.app_ico/.png/qaScore.png": ".src/.icons/.app_ico/.png/qaScore.png",
+    ".src/.icons/.app_ico/.png/quizzing_tool.png": ".src/.icons/.app_ico/.png/quizzing_tool.png",
+    ".src/.icons/.app_ico/.png/setup.png": ".src/.icons/.app_ico/.png/setup.png",
+    ".src/.icons/.app_ico/.png/themer.png": ".src/.icons/.app_ico/.png/themer.png",
+    ".src/.icons/.app_ico/.png/updater.png": ".src/.icons/.app_ico/.png/updater.png",
+
+    ".src/.icons/.error/base_icon.svg": ".src/.icons/.error/base_icon.svg",
+    ".src/.icons/.info/base_icon.svg": ".src/.icons/.info/base_icon.svg",
+    ".src/.icons/.warning/base_icon.svg": ".src/.icons/.warning/base_icon.svg",
+    ".src/.icons/.progress/blank.svg": ".src/.icons/.error/progress/blank.svg",
+    ".src/.icons/.progress/checkmark.svg": ".src/.icons/.error/progress/checkmark.svg",
+    ".src/.icons/.progress/exclamation.svg": ".src/.icons/.error/progress/exclamation.svg",
+    ".src/.icons/.misc/www.svg": ".src/.icons/.error/misc/www.svg"
+  },
+  "MODULES_QA_INSTALLER": {
+    "qa_installer_functions/__init__.py": "qa_installer_functions/__init__.py",
+    "qa_installer_functions/addons_installer.py": "qa_installer_functions/addons_installer.py",
+    "qa_installer_functions/qa_update_app.py": "qa_installer_functions/qa_update_app.py",
+    "qa_installer_functions/qa_update.py": "qa_installer_functions/qa_update.py"
+  },
+  "MODULES_QA_FUNCTIONS": {
+    "qa_functions/__init__.py": "qa_functions/__init__.py",
+    "qa_functions/qa_colors.py": "qa_functions/qa_colors.py",
+    "qa_functions/qa_custom.py": "qa_functions/qa_custom.py",
+    "qa_functions/qa_diagnostics.py": "qa_functions/qa_diagnostics.py",
+    "qa_functions/qa_enum.py": "qa_functions/qa_enum.py",
+    "qa_functions/qa_err.py": "qa_functions/qa_err.py",
+    "qa_functions/qa_file_handler.py": "qa_functions/qa_file_handler.py",
+    "qa_functions/qa_info.py": "qa_functions/qa_info.py",
+    "qa_functions/qa_logger.py": "qa_functions/qa_logger.py",
+    "qa_functions/qa_nv_flags.py": "qa_functions/qa_nv_flags.py",
+    "qa_functions/qa_std.py": "qa_functions/qa_std.py",
+    "qa_functions/qa_svh.py": "qa_functions/qa_svh.py",
+    "qa_functions/qa_theme_loader.py": "qa_functions/qa_theme_loader.py"
+  },
+  "MODULES_QA_FILES": {
+    "qa_files/__init__.py": "qa_files/__init__.py",
+    "qa_files/qa_file_std.py": "qa_files/qa_file_std.py",
+    "qa_files/qa_files_ltbl.py": "qa_files/qa_files_ltbl.py"
+  },
+  "DEV_ESSENTIALS_PKG": {
+    ".gitignore": ".gitignore",
+    "_config.yml": "_config.yml",
+    "compile.bat": "compile.bat",
+    "README.md": "README.md"
+  },
+  "APP_SCRIPTS": {
+    "qa_apps_admin.py": "qa_apps_admin.py",
+    "qa_apps_quizzing_form.py": "qa_apps_quizzing_form.py",
+    "qa_apps_recovery_util.py": "qa_apps_recovery_util.py",
+    "qa_apps_theming_util.py": "qa_apps_theming_util.py",
+    "qa_file_run.py": "qa_file_run.py",
+    "qa_main.py": "qa_main.py",
+    "qa_prompts.py": "qa_prompts.py"
   }
 }
