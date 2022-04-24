@@ -84,7 +84,7 @@
     "README.md": "README.md"
   },
   "APP_SCRIPTS": {
-    "qa_apps_admin_tools.py": "qa_apps_admin.py",
+    "qa_apps_admin_tools.py": "qa_apps_admin_tools.py",
     "qa_apps_quizzing_form.py": "qa_apps_quizzing_form.py",
     "qa_apps_recovery_util.py": "qa_apps_recovery_util.py",
     "qa_apps_theming_util.py": "qa_apps_theming_util.py",
