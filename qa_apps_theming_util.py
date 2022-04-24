@@ -15,7 +15,7 @@ _THEME_FILE_TYPE = qa_functions.qa_enum.FileType.QA_THEME
 LOGGER_AVAIL = False
 LOGGER_FUNC = qa_functions.NormalLogger
 LOGGING_FILE_NAME = ''
-LOGGING_SCRIPT_NAME = ''
+LOGGING_SCRIPT_NAME = script_name
 DEBUG_NORM = False
 
 
@@ -160,8 +160,8 @@ class _UI(Thread):
                     f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
-            else:
-                sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+
+            sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
         def log_norm(com: str, el):
             if LOGGER_AVAIL:
@@ -170,8 +170,8 @@ class _UI(Thread):
                     f'Applied command \'{com}\' to {el} successfully <{elID}>',
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
-            else:
-                print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+
+            sys.stdout.write(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>\n")
 
         for elID, (element, command, args) in self.update_requests.items():
             lCommand = [False]
@@ -499,7 +499,6 @@ class _UI(Thread):
 
     def run(self):
         global DEBUG_NORM, APP_TITLE
-        DEBUG_NORM = self.kwargs.get('debug')
         qa_prompts.DEBUG_NORM = DEBUG_NORM
         qa_prompts.TTK_THEME = self.ttk_theme
 

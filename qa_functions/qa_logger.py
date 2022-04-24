@@ -4,6 +4,10 @@ from .qa_file_handler import Save
 from .qa_info import App
 from .qa_info import Files
 from .qa_info import Extensions
+try:
+    import qa_files
+except:
+    from .. import qa_files
 
 import threading, time, sys, os
 
@@ -31,7 +35,7 @@ class _MultiThreadingLogger(threading.Thread):
         threading.Thread.__init__(self)
 
         self.file = \
-            File(f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{Extensions.Logging.extn_str}")
+            File(f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{qa_files.qa_log_extn}")
         self.data = package.data.strip()
         self.level = package.logging_level
         self.s_name = package.script_name

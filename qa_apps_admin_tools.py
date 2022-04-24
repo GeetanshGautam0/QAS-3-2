@@ -1,9 +1,15 @@
 from threading import Thread
 import tkinter as tk, sys
 from typing import *
+import qa_functions
 
 
 script_name = "APP_AT"
+LOGGER_AVAIL = False
+LOGGER_FUNC = qa_functions.NormalLogger
+LOGGING_FILE_NAME = ''
+LOGGING_SCRIPT_NAME = script_name
+DEBUG_NORM = False
 
 
 class _UI(Thread):

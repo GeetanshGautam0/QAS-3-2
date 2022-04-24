@@ -1,11 +1,13 @@
-import sys, traceback, time, random, click, hashlib
+import sys, traceback, time, random, click, hashlib, datetime
+
+import qa_files
 from qa_functions.qa_std import *
 import qa_functions
 from tkinter import messagebox
-from qa_apps_admin_tools import RunApp as Admin_RunApp
-from qa_apps_quizzing_form import RunApp as Quizzer_RunApp
-from qa_apps_recovery_util import RunApp as RecoveryUtil_RunApp
-from qa_apps_theming_util import RunApp as ThemingUtil_RunApp
+import qa_apps_admin_tools as AdminTools
+import qa_apps_quizzing_form as QuizzingForm
+import qa_apps_recovery_util as RecoveryUtils
+import qa_apps_theming_util as ThemingUtil
 from threading import Thread
 from qa_installer_functions.addons_installer import RunAddonsInstaller
 
@@ -77,6 +79,13 @@ class _ApplicationInstanceManager:
             if self.name not in _application_map:
                 raise InvalidCLIArgument("ApplicationName", f'{self.name}', "")
 
+            if self.tokens['debug'] or self.tokens['debug_all']:
+                for Script in (AdminTools, QuizzingForm, RecoveryUtils, ThemingUtil):
+                    Script.DEBUG_NORM = self.tokens['debug_all']
+                    Script.LOGGER_AVAIL = True
+                    Script.LOGGER_FUNC = qa_functions.NormalLogger
+                    Script.LOGGING_FILE_NAME = datetime.datetime.now().strftime('%b %d, %Y %H-%M-%S')
+
             func = _application_map[self.name]
             inst = _Run(func, self.tokens)
             ui_shell = inst.call()
@@ -115,34 +124,19 @@ class _ApplicationInstanceManager:
 
 
 _application_map = {
-    Application.ADMINISTRATOR_TOOLS.name:       Admin_RunApp,
-    Application.ADMINISTRATOR_TOOLS.value:      Admin_RunApp,
-    Application.ADMINISTRATOR_TOOLS:            Admin_RunApp,
-    'AdminTools':                               Admin_RunApp,
-
-    Application.QUIZZING_FORM.name:             Quizzer_RunApp,
-    Application.QUIZZING_FORM.value:            Quizzer_RunApp,
-    Application.QUIZZING_FORM:                  Quizzer_RunApp,
-    'QuizzingForm':                             Quizzer_RunApp,
-
-    Application.THEMING_UTIL.name:              ThemingUtil_RunApp,
-    Application.THEMING_UTIL.value:             ThemingUtil_RunApp,
-    Application.THEMING_UTIL:                   ThemingUtil_RunApp,
-    'ThemingUtil':                              ThemingUtil_RunApp,
-
-    Application.RECOVERY_UTIL.name:             RecoveryUtil_RunApp,
-    Application.RECOVERY_UTIL.value:            RecoveryUtil_RunApp,
-    Application.RECOVERY_UTIL:                  RecoveryUtil_RunApp,
-    'RecoveryUtil':                             RecoveryUtil_RunApp,
+    'AdminTools':                               AdminTools.RunApp,
+    'QuizzingForm':                             QuizzingForm.RunApp,
+    'ThemingUtil':                              ThemingUtil.RunApp,
+    'RecoveryUtil':                             RecoveryUtils.RunApp,
 
     'InstallThemeAddons':                       RunAddonsInstaller,
 }
 
 _ico_map = {
-    Admin_RunApp:                               qa_functions.Files.AT_ico,
-    ThemingUtil_RunApp:                         qa_functions.Files.TU_ico,
-    RecoveryUtil_RunApp:                        qa_functions.Files.RU_ico,
-    Quizzer_RunApp:                             qa_functions.Files.QF_ico,
+    AdminTools:                                 qa_functions.Files.AT_ico,
+    ThemingUtil:                                qa_functions.Files.TU_ico,
+    RecoveryUtils:                              qa_functions.Files.RU_ico,
+    QuizzingForm:                               qa_functions.Files.QF_ico,
 }
 
 CLI_AllowedApplications = ['AdminTools', 'QuizzingForm', 'RecoveryUtil', 'ThemingUtil', 'InstallThemeAddons']
@@ -163,6 +157,7 @@ def _CLIHandler():
 @click.option('--file_path', help="path of qa_files to open", default=None)
 @click.option('--ttk_theme', help="TTK theme to use (default = clam)", default='clam')
 @click.option('--debug', help='enable debugging', is_flag=True)
+@click.option('--debug_all', help='enable debugging (ALL LEVELS)', is_flag=True)
 def start_app(**kwargs):
     default_cli_handling(**kwargs)
     app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)
