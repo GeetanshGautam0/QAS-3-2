@@ -55,7 +55,7 @@
     "qa_installer_functions/__init__.py": "qa_installer_functions/__init__.py",
     "qa_installer_functions/addons_installer.py": "qa_installer_functions/addons_installer.py",
     "qa_installer_functions/qa_update_app.py": "qa_installer_functions/qa_update_app.py",
-    "qa_installer_functions/qa_update.py": "qa_installer_functions/qa_update.py"
+    "qa_installer_functions/update.py": "qa_installer_functions/update.py"
   },
   "MODULES_QA_FUNCTIONS": {
     "qa_functions/__init__.py": "qa_functions/__init__.py",
