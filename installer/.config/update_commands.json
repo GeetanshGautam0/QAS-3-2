@@ -1,0 +1,8 @@
+{
+  "UPDATE_COMMANDS": {
+    ".config/update_commands.json": ".config\\update_commands.json"
+  },
+  "UPDATE_MANIFEST": {
+    ".config/update_manifest.json": ".config\\update_manifest.json"
+  }
+}
