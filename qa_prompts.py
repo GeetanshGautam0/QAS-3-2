@@ -131,7 +131,7 @@ class MessagePrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -141,7 +141,7 @@ class MessagePrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -450,7 +450,7 @@ class MessagePrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -460,7 +460,7 @@ class MessagePrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -770,7 +770,7 @@ class MessagePrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -780,7 +780,7 @@ class MessagePrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -1121,7 +1121,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -1131,7 +1131,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -1692,7 +1692,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -1702,7 +1702,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -2015,7 +2015,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -2025,7 +2025,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -2346,7 +2346,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
             def log_norm(com: str, el):
                 if LOGGER_AVAIL:
@@ -2356,7 +2356,7 @@ class InputPrompts:
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )])
                 else:
-                    print(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>")
+                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]

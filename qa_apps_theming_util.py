@@ -161,7 +161,7 @@ class _UI(Thread):
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stderr.write(f"[ERROR] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+            sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
         def log_norm(com: str, el):
             if LOGGER_AVAIL:
@@ -171,7 +171,7 @@ class _UI(Thread):
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stdout.write(f"[DEBUG] Applied command \'{com}\' to {el} successfully <{elID}>\n")
+            sys.stdout.write(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>\n")
 
         for elID, (element, command, args) in self.update_requests.items():
             lCommand = [False]
