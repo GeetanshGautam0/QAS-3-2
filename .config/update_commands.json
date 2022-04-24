@@ -8,5 +8,8 @@
   },
   "UPDATE_MANIFEST": {
     ".config/update_manifest.json": ".config\\update_manifest.json"
+  },
+  "MAIN_CONFIG": {
+    ".config/main_config.json": ".config\\main_config.json"
   }
 }

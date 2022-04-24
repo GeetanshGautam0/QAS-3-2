@@ -376,5 +376,27 @@ def nv_yield_all_flags_as_list(script: str):
     return acc
 
 
+def nv_create_flag(script: str, name: str):
+    global NV_ROOT, NV_DELIMITER
+
+    if not os.path.isdir(NV_ROOT):
+        os.makedirs(NV_ROOT)
+
+    name = name.replace(NV_DELIMITER, '__')
+
+    if not nv_check_flag(script, name):
+        with open(f"{NV_ROOT}\\{script}{NV_DELIMITER}{name}", 'w') as flag:
+            flag.close()
+
+
+def nv_clear_all_app_flags(script: str):
+    global NV_ROOT, NV_DELIMITER
+
+    if os.path.isdir(NV_ROOT):
+        for item in os.listdir(NV_ROOT):
+            if item.split(NV_DELIMITER)[0].lower().strip() == script.lower().strip():
+                os.remove(f"{NV_ROOT}\\{item}")
+
+
 if __name__ == "__main__":
     _cli_handler()
