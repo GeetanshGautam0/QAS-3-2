@@ -2,9 +2,9 @@ import sys, traceback, click, ctypes, threading, urllib3, tkinter as tk, os, jso
 from tkinter import messagebox, ttk
 
 
-with open('.\\.config\\main_config.json', 'r') as file:
-    d = file.read()
-    file.close()
+with open('.\\.config\\main_config.json', 'r') as mc_file:
+    d = mc_file.read()
+    mc_file.close()
 nv_json_data = json.loads(d)
 
 NV_ROOT = f"{appdirs.user_data_dir(nv_json_data['application']['appdata_app_name'], nv_json_data['application']['app_author'], str(nv_json_data['application']['version']), nv_json_data['application']['appdata_roaming'])}\\.nvf"
@@ -38,9 +38,6 @@ _THEME = {  # DEFAULT.DEFAULT.LIGHT
       "size_xl_title":    40
     }
 }
-with open('.config\\update_commands.json', 'r') as file:
-    _OC = json.loads(file.read())
-    file.close()
 
 _COMMANDS = {}
 
@@ -49,7 +46,7 @@ def load_commands() -> dict:
     global _COMMANDS
 
     with open('.config\\update_commands.json', 'r') as file2:
-        _OC2 = json.loads(file.read())
+        _OC2 = json.loads(file2.read())
         file2.close()
 
     _COMMANDS = {}
@@ -97,7 +94,7 @@ class UpdaterUI(threading.Thread):
         self.start()
         self.root.mainloop()
 
-    def err(self):
+    def err(self, *args, **kwargs):
         global _THEME
 
         self.okay_to_close = True
@@ -181,34 +178,79 @@ class UpdaterUI(threading.Thread):
         self.load_commands()
 
     def load_commands(self):
-        self.downloads: list
+        global _COMMANDS, HTTP
 
-        for command in [*self.downloads]:
-            if command == 'ReadFlags':
-                self.insert_item('Looking for commands in NVF folder.')
-                n_coms = nv_yield_all_flags_as_list(_NV_ROOT)
-                for nc in n_coms:
-                    if nc in _COMMANDS:
-                        self.downloads.append(nc)
+        if not self.kwargs['updateall']:
+            self.downloads: list
+
+            for command in [*self.downloads]:
+                if command == 'ReadFlags':
+                    self.insert_item('Looking for commands in NVF folder.')
+                    n_coms = nv_yield_all_flags_as_list(_NV_ROOT)
+                    for nc in n_coms:
+                        if nc in _COMMANDS:
+                            self.downloads.append(nc)
+                        else:
+                            self.insert_item(f"   * Invalid command found in NVF: {nc}")
+                            nv_delete_flag(_NV_ROOT, nc)
+
+                    while 'ReadFlags' in self.downloads:
+                        self.downloads.pop(self.downloads.index('ReadFlags'))
+
+                elif command not in _COMMANDS:
+                    self.insert_item(f"Invalid command found: {command}", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
+                    while command in self.downloads:
+                        self.downloads.pop(self.downloads.index(command))
+
+            self.insert_item('')
+            self.downloads = set(self.downloads)
+
+        else:
+            success, _ = tr(HTTP.request, 'GET', 'https://www.google.com')
+            if not success:
+                self.insert_item('Connection not established')
+                self.close_button.config(text="RETRY", command=self.load_commands)
+                return
+
+            self.root.update()
+
+            success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
+            if not success:
+                self.insert_item('Connection not established (1)')
+                self.close_button.config(text="RETRY", command=self.load_commands)
+                return
+
+            for coms in (_COMMANDS['UPDATE_COMMANDS'], _COMMANDS['UPDATE_MANIFEST']):
+                for c_url, dst_file in coms:
+                    success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                    if not success:
+                        self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
+                        self.close_button.config(text="RETRY", command=self.load_commands)
+                        return
+
+                    dst_dir = "\\".join(folder for folder in dst_file.replace('/', '\\').split('\\')[:-1:])
+                    dst_file_name = dst_file.replace('/', '\\').split('\\')[-1]
+                    dst_dir = dst_dir.strip('\\')
+
+                    if dst_dir.strip() in ('.', '', '<root>', '.\\', './', '\\.', '/.'):
+                        file = dst_file_name
                     else:
-                        self.insert_item(f"   * Invalid command found in NVF: {nc}")
-                        nv_delete_flag(_NV_ROOT, nc)
+                        if not os.path.isdir(dst_dir):
+                            os.makedirs(dst_dir)
+                        file = dst_file
 
-                while 'ReadFlags' in self.downloads:
-                    self.downloads.pop(self.downloads.index('ReadFlags'))
+                    with open(file, 'wb') as dst_f:
+                        dst_f.write(result.data)
+                        dst_f.close()
 
-            elif command not in _COMMANDS:
-                self.insert_item(f"Invalid command found: {command}", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
-                while command in self.downloads:
-                    self.downloads.pop(self.downloads.index(command))
-
-        self.insert_item('')
-        self.downloads = set(self.downloads)
+            load_commands()
+            self.downloads = load_manifest()['secondary']
 
         if len(self.downloads) >= 1:
             self.insert_item('Updating will run the following commands:')
             for command in self.downloads:
                 self.insert_item(f'\t* {command}')
+            self.close_button.config(text="START", command=self.start_downloads)
         else:
             self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
             self.close_button.config(text="CLOSE", command=self.close)
@@ -320,6 +362,8 @@ class Install(threading.Thread):
         self.thread = threading.Thread
         self.thread.__init__(self)
 
+        load_commands()
+
         self.okay_to_close = True
 
         self.root = tk.Tk()
@@ -351,7 +395,7 @@ class Install(threading.Thread):
         self.start()
         self.root.mainloop()
 
-    def err(self):
+    def err(self, *args, **kwargs):
         global _THEME
 
         self.okay_to_close = True
@@ -436,7 +480,7 @@ class Install(threading.Thread):
 
     def load_commands(self):
         if len(self.downloads) >= 1:
-            self.insert_item('Updating will run the following commands:')
+            self.insert_item('Installing will run the following commands:')
             for coms in self.downloads.values():
                 for com in coms:
                     self.insert_item(f'\t* {com}')
@@ -601,6 +645,7 @@ def _cli_handler():
 @click.option('--Console', help="open debugging console", is_flag=True)
 @click.option('--Title', help="title to be displayed on the UI", is_flag=False, default="Updating App")
 @click.option('--noAdmin', help='do not ask for UAC elevation', is_flag=True)
+@click.option('--UpdateAll', is_flag=True)
 def start(**kwargs):
     if _is_admin() or kwargs['noadmin']:
         try:
