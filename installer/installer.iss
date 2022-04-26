@@ -20,7 +20,9 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-DisableProgramGroupPage=yes
+DisableProgramGroupPage=no
+DisableWelcomePage=no
+DisableDirPage=no
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
@@ -47,10 +49,17 @@ Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "install"; WorkingDir:
 Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "addon -a ADDONS_THEME"; WorkingDir: "{app}"; Tasks: addons_theme; StatusMsg: "Installing Official Themes Addon"; Flags: shellexec hidewizard waituntilterminated
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{app}\.config\*"
-Type: filesandordirs; Name: "{app}\.qa_update\*"
-Type: filesandordirs; Name: "{app}\.src\*"
+Type: filesandordirs; Name: "{app}\.config"
+Type: filesandordirs; Name: "{app}\.qa_update"
+Type: filesandordirs; Name: "{app}\.src"
 Type: filesandordirs; Name: "{app}\*.py"
+Type: filesandordirs; Name: "{app}\.gitignore"
+Type: filesandordirs; Name: "{app}\qa_files"
+Type: filesandordirs; Name: "{app}\qa_functions"
+Type: filesandordirs; Name: "{app}\qa_installer_functions"
+Type: filesandordirs; Name: "{app}\_config.yml"
+Type: filesandordirs; Name: "{app}\compile.bat"
+Type: filesandordirs; Name: "{app}\README.md"
 
 [Messages]
 BeveledLabel=Geetansh Gautam
