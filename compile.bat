@@ -7,4 +7,7 @@ del /S /F /Q .\dist
 del /S /F /Q .\build
 del *.spec
 
+del /S /F /Q .\installer\.qa_update
+Xcopy /S /Y .\.qa_update\* .\installer\.qa_update
+
 pause

@@ -223,7 +223,7 @@ class UpdaterUI(threading.Thread):
 
             for coms in (_COMMANDS['UPDATE_COMMANDS'], _COMMANDS['UPDATE_MANIFEST']):
                 for c_url, dst_file in coms:
-                    success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                    success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
                     if not success:
                         self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                         self.close_button.config(text="RETRY", command=self.load_commands)
@@ -308,7 +308,7 @@ class UpdaterUI(threading.Thread):
                 files = _COMMANDS[command]
                 for c_url, dst_file in files:
                     try:
-                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
 
                         if not success:
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
@@ -545,7 +545,7 @@ class Install(threading.Thread):
                 files = _COMMANDS[command]
                 for c_url, dst_file in files:
                     try:
-                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
                         if not success:
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue
@@ -597,7 +597,7 @@ class Install(threading.Thread):
                 files = _COMMANDS[command]
                 for c_url, dst_file in files:
                     try:
-                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
                         if not success:
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue
@@ -836,7 +836,7 @@ class Addons(threading.Thread):
                 files = _COMMANDS[command]
                 for c_url, dst_file in files:
                     try:
-                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
                         if not success:
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue

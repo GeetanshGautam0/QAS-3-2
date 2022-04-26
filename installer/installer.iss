@@ -36,6 +36,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "addons_theme"; Description: "Install 'Official Themes Addon' package"; GroupDescription: "ADDONS"; Flags: unchecked
+
 [Files]
 Source: "D:\User Files\OneDrive\Documents\2. Electronics\1. Python\QAS 3-2\installer\.config\*"; DestDir: "{app}\.config"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "D:\User Files\OneDrive\Documents\2. Electronics\1. Python\QAS 3-2\installer\.qa_update\*"; DestDir: "{app}\.qa_update"; Flags: ignoreversion recursesubdirs createallsubdirs
