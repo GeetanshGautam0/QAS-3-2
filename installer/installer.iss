@@ -34,11 +34,23 @@ WizardStyle=modern
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[Tasks]
+Name: "addons_theme"; Description: "Install 'Official Themes Addon' package"; GroupDescription: "ADDONS"; Flags: unchecked
 [Files]
 Source: "D:\User Files\OneDrive\Documents\2. Electronics\1. Python\QAS 3-2\installer\.config\*"; DestDir: "{app}\.config"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "D:\User Files\OneDrive\Documents\2. Electronics\1. Python\QAS 3-2\installer\.qa_update\*"; DestDir: "{app}\.qa_update"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Run]
-Filename: "{app}\.qa_update\{#SetupEXEName}"; WorkingDir: "{app}"; StatusMsg: "Installing Modules"; Flags: shellexec hidewizard 
-; TODO: Add checkbox (post___) for addons
+Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "install"; WorkingDir: "{app}"; StatusMsg: "Installing Modules"; Flags: shellexec hidewizard waituntilterminated
+Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "addon -a ADDONS_THEME"; WorkingDir: "{app}"; Tasks: addons_theme; StatusMsg: "Installing Official Themes Addon"; Flags: shellexec hidewizard waituntilterminated
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\.config\*"
+Type: filesandordirs; Name: "{app}\.qa_update\*"
+Type: filesandordirs; Name: "{app}\.src\*"
+Type: filesandordirs; Name: "{app}\*.py"
+
+[Messages]
+BeveledLabel=Geetansh Gautam
+

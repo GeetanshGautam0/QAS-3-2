@@ -91,5 +91,12 @@
     "qa_file_run.py": "qa_file_run.py",
     "qa_main.py": "qa_main.py",
     "qa_prompts.py": "qa_prompts.py"
+  },
+
+  "ADDONS_THEME": {
+    "additional_themes/high_contrast.qaTheme":  ".themes",
+    "additional_themes/retro_theme.qaTheme":  ".themes",
+    "additional_themes/theme_addons.qaTheme": ".themes"
   }
+
 }

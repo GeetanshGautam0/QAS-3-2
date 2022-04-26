@@ -7,7 +7,8 @@ with open('.\\.config\\main_config.json', 'r') as mc_file:
     mc_file.close()
 nv_json_data = json.loads(d)
 
-NV_ROOT = f"{appdirs.user_data_dir(nv_json_data['application']['appdata_app_name'], nv_json_data['application']['app_author'], str(nv_json_data['application']['version']), nv_json_data['application']['appdata_roaming'])}\\.nvf"
+APPDATA = appdirs.user_data_dir(nv_json_data['application']['appdata_app_name'], nv_json_data['application']['app_author'], str(nv_json_data['application']['version']), nv_json_data['application']['appdata_roaming'])
+NV_ROOT = f"{APPDATA}\\.nvf"
 NV_DELIMITER = "=="
 URL_BASE = nv_json_data['application']['root_update_url']
 
@@ -308,8 +309,14 @@ class UpdaterUI(threading.Thread):
                 for c_url, dst_file in files:
                     try:
                         success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+
                         if not success:
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
+                            continue
+
+                        success &= result.status == 200
+                        if not success:
+                            self.insert_item(f'Failed to download file source file: {result.data.decode()}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue
 
                         dst_dir = "\\".join(folder for folder in dst_file.replace('/', '\\').split('\\')[:-1:])
@@ -543,6 +550,11 @@ class Install(threading.Thread):
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue
 
+                        success &= result.status == 200
+                        if not success:
+                            self.insert_item(f'Failed to download file source file: {result.data.decode()}', fg=_THEME['error'], sfg=_THEME['error'])
+                            continue
+
                         dst_dir = "\\".join(folder for folder in dst_file.replace('/', '\\').split('\\')[:-1:])
                         dst_file_name = dst_file.replace('/', '\\').split('\\')[-1]
                         dst_dir = dst_dir.strip('\\')
@@ -590,6 +602,11 @@ class Install(threading.Thread):
                             self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
                             continue
 
+                        success &= result.status == 200
+                        if not success:
+                            self.insert_item(f'Failed to download file source file: {result.data.decode()}', fg=_THEME['error'], sfg=_THEME['error'])
+                            continue
+
                         dst_dir = "\\".join(folder for folder in dst_file.replace('/', '\\').split('\\')[:-1:])
                         dst_file_name = dst_file.replace('/', '\\').split('\\')[-1]
                         dst_dir = dst_dir.strip('\\')
@@ -634,26 +651,265 @@ class Install(threading.Thread):
         self.thread.join(self, 0)
 
 
+class Addons(threading.Thread):
+    def __init__(self, addons):
+        super().__init__()
+        self.thread = threading.Thread
+        self.thread.__init__(self)
+
+        load_commands()
+
+        self.okay_to_close = True
+
+        self.root = tk.Tk()
+        self.downloads = set()
+        self.req_addons = addons
+
+        self.window_size = [700, 450]
+        self.window_pos = [
+            int(self.root.winfo_screenwidth()/2 - self.window_size[0]/2),
+            int(self.root.winfo_screenheight()/2 - self.window_size[1]/2)
+        ]
+
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+
+        self.frame_1 = tk.Frame(self.root)
+        self.activity_box = tk.Listbox(self.frame_1)
+        self.title_label = tk.Label(self.frame_1)
+        self.close_button = ttk.Button(self.frame_1)
+
+        self.error_label = tk.Label(self.root)
+        self.activity_acc = 0
+
+        self.padX = 20
+        self.padY = 10
+
+        self.start()
+        self.root.mainloop()
+
+    def err(self, *args, **kwargs):
+        global _THEME
+
+        self.okay_to_close = True
+        self.close_button.config(state=tk.NORMAL)
+        tr(self.insert_item, f'Failed to update file: {traceback.format_exc()}', _THEME['background'], _THEME['error'], _THEME['error'])
+
+    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']):
+        self.activity_box.insert(tk.END, text)
+        self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
+        self.activity_acc += 1
+        self.activity_box.yview(tk.END)
+        self.root.update()
+
+    def clear_lb(self):
+        self.activity_acc = 0
+        self.activity_box.delete(0, tk.END)
+        self.activity_box.yview(tk.END)
+
+        self.root.update()
+
+    def update_theme(self):
+        global _THEME
+
+        self.root.config(bg=_THEME['background'])
+        self.frame_1.config(bg=_THEME['background'])
+        self.error_label.config(bg=_THEME['background'], fg=_THEME['error'], font=(_THEME['font']['font_face'], _THEME['font']['size_small']), wraplength=self.window_size[0])
+        self.title_label.config(bg=_THEME['background'], fg=_THEME['accent'], font=(_THEME['font']['font_face'], _THEME['font']['size_title']), wraplength=self.window_size[0] - self.padX*2)
+
+        self.style.configure(
+            'TButton',
+            background=_THEME.get('background'),
+            foreground=_THEME.get('accent'),
+            font=(_THEME['font']['font_face'], _THEME['font']['size_main']),
+            focuscolor=_THEME.get('accent'),
+            bordercolor=0
+        )
+
+        self.style.map(
+            'TButton',
+            background=[('active', _THEME.get('accent')), ('disabled', _THEME.get('background')), ('readonly', _THEME.get('gray'))],
+            foreground=[('active', _THEME.get('background')), ('disabled', _THEME.get('gray')), ('readonly', _THEME.get('background'))]
+        )
+
+        self.activity_box.config(
+            bg=_THEME['background'],
+            fg=_THEME['foreground'],
+            font=(_THEME['font']['font_face'], _THEME['font']['size_small']),
+            selectmode=tk.EXTENDED,
+            selectbackground=_THEME['accent'],
+            selectforeground=_THEME['background']
+        )
+
+    def close(self):
+        if not self.okay_to_close:
+            messagebox.showerror('Quizzing Application | Updater', 'Cannot close updater: update in progress.')
+            return
+
+        self.root.quit()
+
+    def run(self):
+        tk.Tk.report_callback_exception = self.err
+
+        self.root.title("Quizzing App | Updater v2")
+        self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.window_pos[0]}+{self.window_pos[1]}")
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
+        if os.path.isfile('.src\\.icons\\.app_ico\\updater.ico'):
+            self.root.iconbitmap('.src\\.icons\\.app_ico\\updater.ico')
+
+        self.error_label.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.BOTTOM)
+        self.frame_1.pack(fill=tk.BOTH, expand=True)
+
+        self.title_label.config(text="Addons Installer", justify=tk.LEFT, anchor=tk.W)
+        self.title_label.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.activity_box.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+
+        self.close_button.config(text="START INSTALLATION", command=self.start_downloads)
+        self.close_button.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.update_theme()
+        self.load_commands()
+
+    def load_commands(self):
+        if len(self.req_addons) >= 1:
+            self.insert_item('Installing will run the following commands:')
+            for com in self.req_addons:
+                if com in _COMMANDS:
+                    self.insert_item(f'\t* {com}')
+                    self.downloads.add(com)
+        else:
+            self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
+            self.close_button.config(text="CLOSE", command=self.close)
+
+        if len(self.downloads) <= 0:
+            self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
+            self.close_button.config(text="CLOSE", command=self.close)
+
+    def start_downloads(self):
+        global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE, APPDATA
+
+        self.clear_lb()
+        self.insert_item('Checking connection.')
+
+        self.root.update()
+
+        success, _ = tr(HTTP.request, 'GET', 'https://www.google.com')
+        if not success:
+            self.insert_item('Connection not established')
+            self.close_button.config(text="RETRY")
+            return
+
+        self.root.update()
+
+        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
+        if not success:
+            self.insert_item('Connection not established (1)')
+            self.close_button.config(text="RETRY")
+            return
+
+        self.root.update()
+
+        self.insert_item('')
+        self.insert_item('Successfully established connection')
+        self.insert_item('Starting downloads')
+
+        self.close_button.config(command=self.close, text="CLOSE")
+
+        self.root.update()
+
+        if len(self.downloads) <= 0:
+            self.insert_item('No download commands provided', _THEME['background'], _THEME['error'], _THEME['error'])
+            self.okay_to_close = True
+            self.close_button.config(state=tk.NORMAL)
+            return
+
+        self.okay_to_close = False
+        self.close_button.config(state=tk.DISABLED)
+
+        self.root.update()
+
+        for command in self.downloads:
+            self.insert_item(f' ')
+            if command in _COMMANDS:
+                self.insert_item(f'Running command \"{command}\".')
+                files = _COMMANDS[command]
+                for c_url, dst_file in files:
+                    try:
+                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}')
+                        if not success:
+                            self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
+                            continue
+
+                        success &= result.status == 200
+                        if not success:
+                            self.insert_item(f'Failed to download file source file: {result.data.decode()}', fg=_THEME['error'], sfg=_THEME['error'])
+                            continue
+
+                        dst_dir = f"{APPDATA}\\{dst_file}"
+                        dst_file_name = c_url.split('/')[-1].strip()
+                        dst_dir = dst_dir.strip('\\')
+
+                        if dst_dir.strip() in ('.', '', '<root>', '.\\', './', '\\.', '/.'):
+                            file = APPDATA
+                        else:
+                            if not os.path.isdir(dst_dir):
+                                os.makedirs(dst_dir)
+                            file = f"{dst_dir}\\{dst_file_name}".replace('/', '\\')
+
+                        with open(file, 'wb') as dst_f:
+                            dst_f.write(result.data)
+                            dst_f.close()
+
+                    except Exception as excep:
+                        sys.stderr.write(f"{traceback.format_exc()}\n")
+
+                        try:
+                            self.insert_item(f'Failed to download \'{dst_file_name}\': {excep}', fg=_THEME['error'], sfg=_THEME['error'])
+                        except NameError:
+                            self.insert_item(f'Failed to download file for command \'{command}\': {excep}', fg=_THEME['error'], sfg=_THEME['error'])
+
+                        continue
+
+                    self.insert_item(f'Successfully downloaded \'{dst_file_name}\'', fg=_THEME['ok'], sfg=_THEME['ok'])
+                    nv_delete_flag(_NV_ROOT, command)
+
+            else:
+                self.insert_item(f"Unknown command \"{command}\"", fg=_THEME['error'], sfg=_THEME['error'])
+
+            self.root.update()
+
+        self.okay_to_close = True
+        self.close_button.config(state=tk.NORMAL)
+        self.insert_item(f' ')
+        self.insert_item(f'Executed all commands', fg=_THEME['ok'], sfg=_THEME['ok'])
+
+        return
+
+    def __del__(self):
+        self.thread.join(self, 0)
+
+
 @click.group()
 def _cli_handler():
     pass
 
 
 @_cli_handler.command()
-@click.option('--ReadFlags', help='find commands in .nvf folder', is_flag=True)
-@click.option('--Update', help="specify command", is_flag=False)
+@click.option('-r', '--ReadFlags', help='find commands in .nvf folder', is_flag=True)
+@click.option('-c', '--Command', help="specify command", is_flag=False, multiple=True)
 @click.option('--Console', help="open debugging console", is_flag=True)
 @click.option('--Title', help="title to be displayed on the UI", is_flag=False, default="Updating App")
 @click.option('--noAdmin', help='do not ask for UAC elevation', is_flag=True)
 @click.option('--UpdateAll', is_flag=True)
-def start(**kwargs):
+def update(**kwargs):
     if _is_admin() or kwargs['noadmin']:
         try:
             commands = []
             if kwargs.get('readflags'):
                 commands = ['ReadFlags']
-            if kwargs.get('update') is not None:
-                commands.append(kwargs['update'])
+            if len(kwargs.get('command')) > 0:
+                commands.extend([*kwargs['command']])
 
             UpdaterUI(commands, **kwargs)
 
@@ -665,6 +921,21 @@ def start(**kwargs):
 
     else:
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, int(kwargs['console']))
+
+
+@_cli_handler.command()
+@click.option('-a', '--Addon', help="addon(s) to install", is_flag=False, multiple=True)
+def addon(*args, **kwargs):
+    if len(kwargs['addon']) <= 0:
+        sys.stderr.write("Expected addon names; use --help for more info")
+        sys.exit(-1)
+
+    Addons(kwargs['addon'])
+
+
+@_cli_handler.command()
+def install():
+    Install()
 
 
 def _is_admin() -> bool:
@@ -747,7 +1018,4 @@ def load_manifest() -> dict:
 
 
 if __name__ == "__main__":
-    if 'start' in sys.argv:
-        _cli_handler()
-    else:
-        Install()
+    _cli_handler()
