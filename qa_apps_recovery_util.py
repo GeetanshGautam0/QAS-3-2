@@ -429,11 +429,37 @@ class _UI(Thread):
         uc_restart_functions = []
         norm_call_functions = []
 
+        def log(String, level=LoggingLevel.DEBUG):
+            global DEBUG_NORM, LOGGER_FUNC, LOGGER_AVAIL, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+            if DEBUG_NORM and level == LoggingLevel.DEBUG:
+                print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
+
+                LOGGER_FUNC(
+                    [qa_functions.LoggingPackage(
+                        level,
+                        f'[TEST] {String}',
+                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+                    )]
+                )
+
+            elif LOGGER_AVAIL and level != LoggingLevel.DEBUG:
+                print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
+
+                LOGGER_FUNC(
+                    [qa_functions.LoggingPackage(
+                        level,
+                        f'[TEST] {String}',
+                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+                    )]
+                )
+
         for test, string in (
             (Diagnostics.app_version, 'Checking for updates'),
             (Diagnostics.default_theme, 'Checking default theme'),
             (Diagnostics.global_check, 'Checking all files')
         ):
+            log(string, LoggingLevel.INFO)
+
             if len(self.activity) > 0:
                 self.insert_into_lb("")
 
@@ -447,18 +473,23 @@ class _UI(Thread):
 
             if passed:
                 self.insert_into_lb('PASSED', fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.OKAY)
+                log('[RESULT] Test PASSED')
+
                 pass_acc += 1
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
                         self.insert_into_lb(f"    {st}")
+                        log(f'[PASS] [MESSAGE]\t\t{st}')
 
             else:
                 self.insert_into_lb('FAILED', fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
                 fail_acc += 1
+                log('[RESULT] Test FAILED')
 
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
                         self.insert_into_lb(f"    Failure: {st}")
+                        log(f'[FAIL] [FAILURE]\t\t{st}', LoggingLevel.ERROR)
 
                 if fix_command in qa_functions.qa_diagnostics._UC_FUNC:
                     if fix_command in qa_functions.qa_diagnostics._REQ_RESTART:
@@ -474,6 +505,7 @@ class _UI(Thread):
                     if isinstance(d, str):
                         self.insert_into_lb(f"    Warning: {d}", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
                         warn_acc += 1
+                        log(f'[{"PASS" if passed else "FAIL"}] [WARNING]\t\t{d}', LoggingLevel.WARNING)
 
         self.insert_into_lb("")
         self.insert_into_lb(f"Ran {pass_acc + fail_acc} checks:")
@@ -481,14 +513,23 @@ class _UI(Thread):
         self.insert_into_lb(f"    > {fail_acc} tests failed", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
         self.insert_into_lb(f"    > {warn_acc} warnings", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
 
+        log(f'[ACC. RESULTS] ({pass_acc} Passed) ({fail_acc} Failed) ({warn_acc} Warnings) ', LoggingLevel.INFO)
+
         if fail_acc > 0:
+            log(f'Found {fail_acc} failures; prompting for permission to fix now', LoggingLevel.INFO)
+
             s_mem = qa_functions.SMem()
             qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Fix Errors?', ('Yes', 'y'), ('No', 'n'), default='<cancel>', message=f'Found {fail_acc} errors; do you want to fix these errors now?')
 
             if s_mem.get() == 'y':
+                log(f'User agreed to fix errors.', LoggingLevel.INFO)
+
                 self.insert_into_lb("")
                 self.insert_into_lb("-"*100)
                 self.insert_into_lb("Running FIX commands")
+
+            else:
+                log('User denied access to fix errors.', LoggingLevel.INFO)
 
             del s_mem
 

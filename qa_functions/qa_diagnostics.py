@@ -118,6 +118,7 @@ class Fix:
 
     def UpdateApp(self, re_str=False, *args, **kwargs):
         if re_str:
+            print('re_str')
             return 'UPDATE_ALL'
 
         update.RunUpdater('--UpdateAll')
