@@ -4,11 +4,11 @@
         "display_name": "Official Addons",
         "avail_themes": {
             "num_themes": 1,
-            "ugen_exp": "Themes.Custom.RetroThemeV2"
+            "ugen_exp": "Themes.Custom.RetroTheme"
         }
     },
-    "Themes.Custom.RetroThemeV2": {
-        "display_name": "Retro Theme V2",
+    "Themes.Custom.RetroTheme": {
+        "display_name": "Retro Theme",
         "background": "#000080",
         "foreground": "#FFFFFF",
         "accent": "#FFFF00",

@@ -68,7 +68,10 @@ class _UI(Thread):
         self.activity_container = tk.LabelFrame(self.root, text="Activity")
         self.activity_box = tk.Listbox(self.activity_container)
         self.activity = []
-        self.activity_gsuid = []
+        self.activity_gsuid = {}
+
+        self.x_sc_bar = ttk.Scrollbar(self.activity_container, orient=tk.HORIZONTAL, style="MyHoriz.TScrollbar")
+        self.y_sc_bar = ttk.Scrollbar(self.activity_container, orient=tk.VERTICAL, style="My.TScrollbar")
 
         self.start()
         self.root.mainloop()
@@ -107,8 +110,11 @@ class _UI(Thread):
         self.run_check_btn.config(text="Run All Checks")
         self.run_check_btn.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
 
+        self.x_sc_bar.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY), side=tk.BOTTOM)
+        self.y_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padY/4, self.padX), pady=(self.padY, 0), side=tk.RIGHT)
+
         self.activity_container.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
-        self.activity_box.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.activity_box.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(self.padY, 0))
 
         TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
@@ -117,7 +123,11 @@ class _UI(Thread):
         self.update_requests[gsuid()] = [self.button_frame, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.bf1, TUC.BG, [TUV.BG]]
 
-        self.label_formatter(self.activity_container)
+        self.label_formatter(self.activity_container, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
+
+        self.activity_box.config(yscrollcommand=self.y_sc_bar.set, xscrollcommand=self.x_sc_bar.set)
+        self.y_sc_bar.config(command=self.activity_box.yview)
+        self.x_sc_bar.config(command=self.activity_box.xview)
 
         self.update_ui()
 
@@ -167,10 +177,16 @@ class _UI(Thread):
             lCommand = [False]
             cargs = []
             for index, arg in enumerate(args):
-                cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                carg = arg
+                if arg in ThemeUpdateVars.__members__.values():
+                    carg = self.theme_update_map[arg]
+                    if isinstance(carg, qa_functions.HexColor):
+                        carg = carg.color
+                elif type(arg) in (list, tuple):
+                    if arg[0] == 'LOAD_ARG':
+                        carg = self.activity_gsuid[arg[1]]
 
-                if isinstance(cargs[index], qa_functions.HexColor):
-                    cargs[index] = cargs[index].color
+                cargs.append(carg)
 
             if command == ThemeUpdateCommands.BG:  # Background
                 if len(cargs) == 1:
@@ -341,7 +357,7 @@ class _UI(Thread):
         self.activity_box.config(
             bg=self.theme.background.color,
             fg=self.theme.foreground.color,
-            font=(self.theme.font_face, self.theme.font_small_size),
+            font=(self.theme.font_face, self.theme.font_main_size),
             selectmode=tk.EXTENDED,
             selectbackground=self.theme.accent.color,
             selectforeground=self.theme.background.color
@@ -403,7 +419,15 @@ class _UI(Thread):
         }
 
     def run_all(self):
+        self.disable_all_inputs()
         self.clear_lb()
+
+        fail_acc = 0
+        pass_acc = 0
+        warn_acc = 0
+        uc_functions = ""
+        uc_restart_functions = []
+        norm_call_functions = []
 
         for test, string in (
             (Diagnostics.app_version, 'Checking for updates'),
@@ -423,34 +447,67 @@ class _UI(Thread):
 
             if passed:
                 self.insert_into_lb('PASSED', fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.OKAY)
+                pass_acc += 1
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
                         self.insert_into_lb(f"    {st}")
 
             else:
                 self.insert_into_lb('FAILED', fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
+                fail_acc += 1
 
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
                         self.insert_into_lb(f"    Failure: {st}")
 
+                if fix_command in qa_functions.qa_diagnostics._UC_FUNC:
+                    if fix_command in qa_functions.qa_diagnostics._REQ_RESTART:
+                        uc_restart_functions.append(fix_command(True))
+                    else:
+                        uc_functions = f"{uc_functions} {fix_command(True)}"
+
+                else:
+                    norm_call_functions.append(fix_command)
+
             if len(wa_data) > 0:
                 for d in wa_data:
                     if isinstance(d, str):
                         self.insert_into_lb(f"    Warning: {d}", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
+                        warn_acc += 1
+
+        self.insert_into_lb("")
+        self.insert_into_lb(f"Ran {pass_acc + fail_acc} checks:")
+        self.insert_into_lb(f"    > {pass_acc} tests passed", fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.OKAY)
+        self.insert_into_lb(f"    > {fail_acc} tests failed", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
+        self.insert_into_lb(f"    > {warn_acc} warnings", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
+
+        if fail_acc > 0:
+            s_mem = qa_functions.SMem()
+            qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Fix Errors?', ('Yes', 'y'), ('No', 'n'), default='<cancel>', message=f'Found {fail_acc} errors; do you want to fix these errors now?')
+
+            if s_mem.get() == 'y':
+                self.insert_into_lb("")
+                self.insert_into_lb("-"*100)
+                self.insert_into_lb("Running FIX commands")
+
+            del s_mem
+
+        del fail_acc, pass_acc
+
+        self.enable_all_inputs()
 
     def insert_into_lb(self, string: str, bg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG, fg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sbg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.ACCENT, sfg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG):
         self.activity_box.insert(tk.END, string)
 
         ngsuid = gsuid()
-        self.activity_gsuid.append(ngsuid)
+        self.activity_gsuid[ngsuid] = len(self.activity)
 
         self.update_requests[ngsuid] = [  # For dynamic theming
             self.activity_box, ThemeUpdateCommands.CUSTOM,
             [
-                lambda a_bg, a_fg, s_bg, s_fg: self.activity_box.itemconfig(
-                    len(self.activity), bg=a_bg, fg=a_fg, selectbackground=s_bg, selectforeground=s_fg
-                ), bg, fg, sbg, sfg
+                lambda ind, a_bg, a_fg, s_bg, s_fg: self.activity_box.itemconfig(
+                    ind, bg=a_bg, fg=a_fg, selectbackground=s_bg, selectforeground=s_fg
+                ), ['LOAD_ARG', ngsuid], bg, fg, sbg, sfg
             ]
         ]
 
@@ -475,7 +532,7 @@ class _UI(Thread):
             if uid in self.update_requests:
                 self.update_requests.pop(uid)
 
-        self.activity_gsuid = []
+        self.activity_gsuid = {}
 
         self.root.update()
 
