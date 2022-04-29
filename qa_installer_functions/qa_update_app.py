@@ -53,8 +53,10 @@ def load_commands() -> dict:
     _COMMANDS = {}
     for command2, val2 in _OC2.items():
         _COMMANDS[command2] = []
-        for url, dst in val2.items():
-            _COMMANDS[command2].append([url, dst])
+
+        if isinstance(val2, dict):
+            for url, dst in val2.items():
+                _COMMANDS[command2].append([url, dst])
 
     return _COMMANDS
 
@@ -115,6 +117,7 @@ class UpdaterUI(threading.Thread):
         self.activity_box.yview(tk.END)
 
         self.root.update()
+        sys.exit(0)
 
     def update_theme(self):
         global _THEME
@@ -188,8 +191,16 @@ class UpdaterUI(threading.Thread):
                 if command == 'ReadFlags':
                     self.insert_item('Looking for commands in NVF folder.')
                     n_coms = nv_yield_all_flags_as_list(_NV_ROOT)
+
+                    if 'UPDATE_ALL' in n_coms:
+                        self.insert_item('Updating all items')
+                        self.kwargs['updateall'] = True
+                        self.load_commands()
+                        nv_delete_flag(_NV_ROOT, 'UPDATE_ALL')
+                        return
+
                     for nc in n_coms:
-                        if nc in _COMMANDS:
+                        if nc in _COMMANDS or nc == "UPDATE_ALL":
                             self.downloads.append(nc)
                         else:
                             self.insert_item(f"   * Invalid command found in NVF: {nc}")
@@ -461,6 +472,7 @@ class Install(threading.Thread):
             return
 
         self.root.quit()
+        sys.exit(0)
 
     def run(self):
         tk.Tk.report_callback_exception = self.err
@@ -747,6 +759,7 @@ class Addons(threading.Thread):
             return
 
         self.root.quit()
+        sys.exit(0)
 
     def run(self):
         tk.Tk.report_callback_exception = self.err
@@ -913,7 +926,17 @@ def update(**kwargs):
 
             UpdaterUI(commands, **kwargs)
 
-        except Exception:
+        except Exception as E:
+            messagebox.showerror("Updater", traceback.format_exc())
+
+            DIR = f"{APPDATA}\\.crash_logs\\.installer".replace("/", '\\')
+
+            if not os.path.isdir(DIR):
+                os.makedirs(DIR)
+            with open(f'{DIR}\\update.log', 'w') as FILE:
+                FILE.write(f"{traceback.format_exc()}")
+                FILE.close()
+
             if kwargs['console']:
                 sys.stderr.write(f"{traceback.format_exc()}\n")
                 while True:
@@ -934,8 +957,26 @@ def addon(*args, **kwargs):
 
 
 @_cli_handler.command()
-def install():
-    Install()
+@click.option('--console', help='show console', is_flag=True)
+def install(**kwargs):
+    global APPDATA
+
+    if _is_admin():
+        try:
+            Install()
+        except Exception as E:
+            messagebox.showerror("Installer", traceback.format_exc())
+
+            DIR = f"{APPDATA}\\.crash_logs\\.installer".replace("/", '\\')
+
+            if not os.path.isdir(DIR):
+                os.makedirs(DIR)
+            with open(f'{DIR}\\install.log', 'w') as FILE:
+                FILE.write(f"{traceback.format_exc()}")
+                FILE.close()
+
+    else:
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, int(kwargs['console']))
 
 
 def _is_admin() -> bool:
@@ -1019,3 +1060,4 @@ def load_manifest() -> dict:
 
 if __name__ == "__main__":
     _cli_handler()
+    sys.exit(0)

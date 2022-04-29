@@ -36,15 +36,15 @@ class Diagnostics:  # ALL: -> (bool, failures, warnings, fix_func)
         if lVer > App.version:
             return False, ("New version available", ), (True, ), Fix.UpdateApp
         else:
-            return True, (), (True, ), RunTest
+            return True, ("Up to date", ), (True, ), RunTest
 
     @staticmethod
     def global_check():
-        alr_cr_ver, _, alr_cd = Diagnostics.app_version()
+        alr_cr_ver, _, alr_cd, _ = Diagnostics.app_version()
         if not isinstance(alr_cd, bool):
-            return True, (), ("Cannot test app version", )
+            return True, (), ("Cannot test app version", ), RunTest
         elif not alr_cd:
-            return True, (), ("Cannot test app version",)
+            return True, (), ("Cannot test app version",), RunTest
 
     @staticmethod
     def default_theme():
@@ -81,7 +81,7 @@ class Diagnostics:  # ALL: -> (bool, failures, warnings, fix_func)
 
         del hash_raw, raw, f_name, f_hash, success, failures, res, res2
 
-        return True, (), warnings, RunTest
+        return True, ("Default theme(s) passed tests", ), warnings, RunTest
 
 
 class Fix:
@@ -116,13 +116,19 @@ class Fix:
                 return '-c ICONS -c DEFAULT_THEMES'
             update.RunUpdater('-c ICONS -c DEFAULT_THEMES')
 
-    def UpdateApp(self):
+    def UpdateApp(self, re_str=False):
+        if re_str:
+            return 'UPDATE_ALL'
+
         update.RunUpdater('--UpdateAll')
 
 
 def RunTest(function: Callable = lambda *a, **k: True, *args, **kwargs):
-    try: return function(*args, **kwargs)
-    except: return None
+    try:
+        return function(*args, **kwargs)
+    except Exception as E:
+        sys.stderr.write(f"{traceback.format_exc()}\n")
+        return None, E
 
 
 def tr(func: Callable, *args, **kwargs):

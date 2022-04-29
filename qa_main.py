@@ -34,8 +34,12 @@ class _Run(Thread):
         sys.exit('AIM_SD')
 
     def tk_err_handler(self, exc, val, tb):
-        messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{traceback.format_exc()}")
-        sys.exit('AIM_TK_CRASH')
+        if self.tokens['weakhandling']:
+            messagebox.showerror('ERROR!', f"The application's UI has encountered a low-level error. More info:\n\n{val}\n\n{traceback.format_exc()}")
+
+        else:
+            messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{traceback.format_exc()}")
+            sys.exit('AIM_TK_CRASH')
 
     def call(self) -> Union[tk.Tk, tk.Toplevel]:
         global _bg_window, _ico_map
@@ -158,6 +162,7 @@ def _CLIHandler():
 @click.option('--ttk_theme', help="TTK theme to use (default = clam)", default='clam')
 @click.option('--debug', help='enable debugging', is_flag=True)
 @click.option('--debug_all', help='enable debugging (ALL LEVELS)', is_flag=True)
+@click.option('--weakHandling', help='weak error handling', is_flag=True)
 def start_app(**kwargs):
     default_cli_handling(**kwargs)
     app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)

@@ -63,7 +63,12 @@ class _UI(Thread):
 
         self.button_frame = tk.Frame(self.root)
         self.bf1 = tk.Frame(self.root)
-        self.run_check_btn = ttk.Button(self.button_frame, command=self.run_all)
+        self.run_check_btn = ttk.Button(self.bf1, command=self.run_all)
+
+        self.activity_container = tk.LabelFrame(self.root, text="Activity")
+        self.activity_box = tk.Listbox(self.activity_container)
+        self.activity = []
+        self.activity_gsuid = []
 
         self.start()
         self.root.mainloop()
@@ -97,14 +102,22 @@ class _UI(Thread):
 
         self.button_frame.pack(fill=tk.X, expand=False)
 
+        self.bf1.pack(fill=tk.BOTH, expand=False)
+
         self.run_check_btn.config(text="Run All Checks")
         self.run_check_btn.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+
+        self.activity_container.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.activity_box.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
 
         TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
         self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.title_box, TUC.BG, [TUV.BG]]
         self.update_requests[gsuid()] = [self.button_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.bf1, TUC.BG, [TUV.BG]]
+
+        self.label_formatter(self.activity_container)
 
         self.update_ui()
 
@@ -325,6 +338,15 @@ class _UI(Thread):
 
         self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
 
+        self.activity_box.config(
+            bg=self.theme.background.color,
+            fg=self.theme.foreground.color,
+            font=(self.theme.font_face, self.theme.font_small_size),
+            selectmode=tk.EXTENDED,
+            selectbackground=self.theme.accent.color,
+            selectforeground=self.theme.background.color
+        )
+
     def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG):
         if padding is None:
             padding = self.padX
@@ -381,7 +403,81 @@ class _UI(Thread):
         }
 
     def run_all(self):
-        self.update_ui()
+        self.clear_lb()
+
+        for test, string in (
+            (Diagnostics.app_version, 'Checking for updates'),
+            (Diagnostics.default_theme, 'Checking default theme'),
+            (Diagnostics.global_check, 'Checking all files')
+        ):
+            if len(self.activity) > 0:
+                self.insert_into_lb("")
+
+            raw_res = RunTest(test)
+            self.insert_into_lb(string)
+            if raw_res is None:
+                self.insert_into_lb("Failed to run test", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
+                continue
+
+            passed, f_s_strs, wa_data, fix_command = raw_res
+
+            if passed:
+                self.insert_into_lb('PASSED', fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.OKAY)
+                if len(f_s_strs) > 0:
+                    for st in f_s_strs:
+                        self.insert_into_lb(f"    {st}")
+
+            else:
+                self.insert_into_lb('FAILED', fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
+
+                if len(f_s_strs) > 0:
+                    for st in f_s_strs:
+                        self.insert_into_lb(f"    Failure: {st}")
+
+            if len(wa_data) > 0:
+                for d in wa_data:
+                    if isinstance(d, str):
+                        self.insert_into_lb(f"    Warning: {d}", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
+
+    def insert_into_lb(self, string: str, bg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG, fg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sbg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.ACCENT, sfg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG):
+        self.activity_box.insert(tk.END, string)
+
+        ngsuid = gsuid()
+        self.activity_gsuid.append(ngsuid)
+
+        self.update_requests[ngsuid] = [  # For dynamic theming
+            self.activity_box, ThemeUpdateCommands.CUSTOM,
+            [
+                lambda a_bg, a_fg, s_bg, s_fg: self.activity_box.itemconfig(
+                    len(self.activity), bg=a_bg, fg=a_fg, selectbackground=s_bg, selectforeground=s_fg
+                ), bg, fg, sbg, sfg
+            ]
+        ]
+
+        self.activity_box.itemconfig(
+            len(self.activity),
+            bg=self.theme_update_map[bg].color if bg in self.theme_update_map else bg,
+            fg=self.theme_update_map[fg].color if fg in self.theme_update_map else fg,
+            selectbackground=self.theme_update_map[sbg].color if sbg in self.theme_update_map else sbg,
+            selectforeground=self.theme_update_map[sfg].color if sfg in self.theme_update_map else sfg,
+        )
+
+        self.activity.append(string.strip())
+        self.activity_box.yview(tk.END)
+
+        self.root.update()
+
+    def clear_lb(self):
+        self.activity = []
+        self.activity_box.delete(0, tk.END)
+
+        for uid in self.activity_gsuid:
+            if uid in self.update_requests:
+                self.update_requests.pop(uid)
+
+        self.activity_gsuid = []
+
+        self.root.update()
 
     def __del__(self):
         self.thread.join(self, 0)
