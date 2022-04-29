@@ -8,12 +8,8 @@ try:
 except:
     from . import *
 
-try:
-    import qa_prompts
-except:
-    from .. import qa_prompts
-
 import traceback, hashlib
+from tkinter import messagebox
 
 
 _ft_map = {
@@ -45,7 +41,7 @@ Error String: {str(E)}
 
 Technical Information: {traceback.format_exc()}"""
 
-        qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(error_info, title="File Generation Error"), qoc=False)
+        messagebox.showerror("File generation error", error_info)
         return None
 
 
@@ -86,6 +82,6 @@ Error String: {str(E)}
 
 Technical Information: {traceback.format_exc()}"""
 
-        qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(error_info, title="Couldn't Load File"), qoc=False)
+        messagebox.showerror("Couldn't load file", error_info)
         return None
 
