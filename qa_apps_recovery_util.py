@@ -493,9 +493,9 @@ class _UI(Thread):
 
                 if fix_command in qa_functions.qa_diagnostics._UC_FUNC:
                     if fix_command in qa_functions.qa_diagnostics._REQ_RESTART:
-                        uc_restart_functions.append(fix_command(True))
+                        uc_restart_functions.append(fix_command(re_str=True))
                     else:
-                        uc_functions = f"{uc_functions} {fix_command(True)}"
+                        uc_functions = f"{uc_functions} {fix_command(re_str=True)}"
 
                 else:
                     norm_call_functions.append(fix_command)
