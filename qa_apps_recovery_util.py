@@ -1,10 +1,9 @@
 from threading import Thread
-import tkinter as tk, sys
+import tkinter as tk, sys, os, qa_functions, qa_prompts, traceback, subprocess
 from tkinter import ttk
 from typing import *
-import qa_functions, qa_prompts
 from qa_functions.qa_diagnostics import RunTest, Diagnostics
-from qa_prompts import configure_scrollbar_style, configure_button_style, configure_entry_style, gsuid
+from qa_prompts import configure_scrollbar_style, gsuid
 from qa_functions.qa_enum import *
 from PIL import ImageTk, Image
 
@@ -432,23 +431,25 @@ class _UI(Thread):
         def log(String, level=LoggingLevel.DEBUG):
             global DEBUG_NORM, LOGGER_FUNC, LOGGER_AVAIL, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
             if DEBUG_NORM and level == LoggingLevel.DEBUG:
-                print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
+                if len(String.strip()) > 0:
+                    print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
 
                 LOGGER_FUNC(
                     [qa_functions.LoggingPackage(
                         level,
-                        f'[TEST] {String}',
+                        f'[TEST] {String}' if len(String.strip()) > 0 else '',
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )]
                 )
 
             elif LOGGER_AVAIL and level != LoggingLevel.DEBUG:
-                print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
+                if len(String.strip()) > 0:
+                    print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
 
                 LOGGER_FUNC(
                     [qa_functions.LoggingPackage(
                         level,
-                        f'[TEST] {String}',
+                        f'[TEST] {String}' if len(String.strip()) > 0 else '',
                         LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                     )]
                 )
@@ -495,7 +496,7 @@ class _UI(Thread):
                     if fix_command in qa_functions.qa_diagnostics._REQ_RESTART:
                         uc_restart_functions.append(fix_command(re_str=True))
                     else:
-                        uc_functions = f"{uc_functions} {fix_command(re_str=True)}"
+                        uc_functions = f"{uc_functions} {fix_command(re_str=True)}".strip()
 
                 else:
                     norm_call_functions.append(fix_command)
@@ -527,6 +528,47 @@ class _UI(Thread):
                 self.insert_into_lb("")
                 self.insert_into_lb("-"*100)
                 self.insert_into_lb("Running FIX commands")
+
+                log(f"UC:\n\t\t\t\"[UPDATE_EXE]\" {uc_functions}", LoggingLevel.INFO)
+
+                if len(uc_functions.strip()) > 0:
+                    self.insert_into_lb(f"Running UC: [UPDATE_EXE] {uc_functions}")
+                    os.system(f'.qa_update\\qa_update_app.exe update {uc_functions} --Title Recovery')
+                    log("Finished executing UC commands (status unknown)", LoggingLevel.INFO)
+
+                else:
+                    self.insert_into_lb("No UC commands needed.")
+
+                if len(norm_call_functions):
+                    for func in norm_call_functions:
+                        log(f"Running function {func}", LoggingLevel.INFO)
+
+                        try:
+                            func()
+                            log("\tSuccessfully ran function.", LoggingLevel.INFO)
+                        except Exception as E:
+                            log(f"\tFailed to run function: \n\t{traceback.format_exc()}")
+                            self.insert_into_lb("    Failed to run function", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
+
+                if len(uc_restart_functions) > 0:
+                    log("Creating UC_RESTART_FUNCTIONS flags", LoggingLevel.INFO)
+                    for func in uc_restart_functions:
+                        log(f"\t\t>CREATED FLAG: {func}", LoggingLevel.INFO)
+                        qa_functions.CreateNVFlag("L_UPDATE", func)
+
+                    log("Prompting user to restart now.", LoggingLevel.INFO)
+                    s_mem = qa_functions.SMem()
+                    qa_prompts.InputPrompts.ButtonPrompt(
+                        s_mem, "App Restart Required", ('Now', '<now>'), ('Later', '<later>'),
+                        message="The application needs to restart to finish the errors; restart NOW or LATER (when the app is closed)?",
+                        default='<none>'
+                    )
+                    log(f'User responded: {s_mem.get().strip()}', LoggingLevel.INFO)
+
+                    if s_mem.get().strip().lower() == "<now>":
+                        log("Restarting app...", LoggingLevel.INFO)
+                        subprocess.Popen(['.qa_update\\qa_update_app.exe', 'update', '--ReadFlags', '--noAdmin', '--Console'])
+                        sys.exit()
 
             else:
                 log('User denied access to fix errors.', LoggingLevel.INFO)

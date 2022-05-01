@@ -104,6 +104,8 @@ class UpdaterUI(threading.Thread):
         self.close_button.config(state=tk.NORMAL)
         tr(self.insert_item, f'Failed to update file: {traceback.format_exc()}', _THEME['background'], _THEME['error'], _THEME['error'])
 
+        messagebox.showerror('QAUv2 | ERROR', f'Failed to update file: {traceback.format_exc()}')
+
     def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']):
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
@@ -117,7 +119,6 @@ class UpdaterUI(threading.Thread):
         self.activity_box.yview(tk.END)
 
         self.root.update()
-        sys.exit(0)
 
     def update_theme(self):
         global _THEME
@@ -157,6 +158,7 @@ class UpdaterUI(threading.Thread):
             return
 
         self.root.quit()
+        sys.exit(0)
 
     def run(self):
         tk.Tk.report_callback_exception = self.err
@@ -263,13 +265,13 @@ class UpdaterUI(threading.Thread):
             for command in self.downloads:
                 self.insert_item(f'\t* {command}')
             self.close_button.config(text="START", command=self.start_downloads)
+
         else:
             self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
             self.close_button.config(text="CLOSE", command=self.close)
 
     def start_downloads(self):
         global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE
-
         self.clear_lb()
         self.insert_item('Checking connection.')
 
@@ -943,7 +945,16 @@ def update(**kwargs):
                     pass
 
     else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, int(kwargs['console']))
+        argv = sys.argv
+        if argv[0] == 'python':
+            argv.pop(0)
+            argv.pop(1)
+        else:
+            argv.pop(0)
+
+        argv = sys.argv
+
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(kwargs['console']))
 
 
 @_cli_handler.command()
@@ -958,10 +969,11 @@ def addon(*args, **kwargs):
 
 @_cli_handler.command()
 @click.option('--console', help='show console', is_flag=True)
+@click.option('--noAdmin', help='do not ask for uac elevation', is_flag=True)
 def install(**kwargs):
     global APPDATA
 
-    if _is_admin():
+    if _is_admin() or kwargs['noadmin']:
         try:
             Install()
         except Exception as E:
@@ -976,7 +988,16 @@ def install(**kwargs):
                 FILE.close()
 
     else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, int(kwargs['console']))
+        argv = sys.argv
+        if argv[0] == 'python':
+            argv.pop(0)
+            argv.pop(1)
+        else:
+            argv.pop(0)
+
+        argv = sys.argv
+
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(kwargs['console']))
 
 
 def _is_admin() -> bool:
@@ -1059,5 +1080,7 @@ def load_manifest() -> dict:
 
 
 if __name__ == "__main__":
-    _cli_handler()
-    sys.exit(0)
+    try:
+        _cli_handler()
+    except Exception:
+        messagebox.showerror('QAUIv2 | ERROR', traceback.format_exc())

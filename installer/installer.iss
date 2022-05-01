@@ -45,7 +45,7 @@ Source: "D:\User Files\OneDrive\Documents\2. Electronics\1. Python\QAS 3-2\insta
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Run]
-Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "install"; WorkingDir: "{app}"; StatusMsg: "Installing Modules"; Flags: shellexec hidewizard waituntilterminated
+Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "install"; WorkingDir: "{app}"; StatusMsg: "Installing Modules (ADMIN REQURIED)"; Flags: shellexec hidewizard waituntilterminated
 Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "addon -a ADDONS_THEME"; WorkingDir: "{app}"; Tasks: addons_theme; StatusMsg: "Installing Official Themes Addon"; Flags: shellexec hidewizard waituntilterminated
 
 [UninstallDelete]

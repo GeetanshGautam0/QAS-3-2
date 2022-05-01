@@ -43,7 +43,10 @@ class _MultiThreadingLogger(threading.Thread):
     def run(self):
         global DEBUGGING_ENABLED
 
-        string = f"[{self.level.name}] <{self.s_name} @ {time.ctime(time.time())}>: {self.data}\n"
+        if self.data.strip() != '':
+            string = f"[{self.level.name}] <{self.s_name} @ {time.ctime(time.time())}>: {self.data}\n"
+        else:
+            string = ""
 
         if DEBUGGING_ENABLED:
             sys.stdout.write(string)
@@ -90,7 +93,10 @@ def normal_logger(logging_package: List[LoggingPackage]) -> None:
             f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{Extensions.Logging.extn_str}"
         )
 
-        string = f"[{package.logging_level.name}] <{package.script_name} @ {time.ctime(time.time())}>: {package.data.strip()}\n"
+        if len(package.data.strip()) > 0:
+            string = f"[{package.logging_level.name}] <{package.script_name} @ {time.ctime(time.time())}>: {package.data.strip()}\n"
+        else:
+            string = ""
 
         if DEBUGGING_ENABLED:
             sys.stdout.write(string)

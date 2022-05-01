@@ -7,6 +7,9 @@ from .qa_err import raise_error
 from .qa_info import App
 
 
+HTTP_HEADERS_NO_CACHE = {'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'}
+
+
 def float_map(value: float, input_min: float, input_max: float, output_min: float, output_max: float, allow_overflow: bool = False) -> float:
     """
     **FLOAT_MAP**
@@ -578,14 +581,14 @@ class SMem:
         self.r3 = random.randint(10, 99)
         self.r4 = random.randint(10, 99)
         self.r5 = int(random.randint(10000, 99999))
-        _addr = "%s%s%s%s" % (self.r4, self.r3, self.r1, self.r2)
-        self.mem = SharedMemoryDict(name=_addr, size=SMem._pro_000_s_mem_addr_0_size())
+        name = "%s%s%s%s" % (self.r4, self.r3, self.r1, self.r2)
+        self.mem = SharedMemoryDict(name=name, size=SMem._pro_000_s_mem_addr_0_size())
 
-    def set(self, data: str):
-        self.mem[str(self.r5)] = data
+    def set(self, data: str, add=0):
+        self.mem[str(self.r5 + add)] = data
 
-    def get(self):
-        return self.mem.get(str(self.r5))
+    def get(self, add=0):
+        return self.mem.get(str(self.r5 + add))
 
     @staticmethod
     def _pro_000_s_mem_addr_0_size():

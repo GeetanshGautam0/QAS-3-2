@@ -14,14 +14,17 @@ except:
 HTTP = urllib3.PoolManager()
 
 
-class Diagnostics:  # ALL: -> (bool, failures, warnings, fix_func)
+class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
     @staticmethod
     def app_version():
+        return False, ("testing", ), ("testing", ), Fix.UpdateApp
+
         global HTTP
         success, res = tr(
             HTTP.request,
             'GET',
-            f'{ConfigurationFile.json_data["application"]["root_update_url"]}/.config/main_config.json'
+            f'{ConfigurationFile.json_data["application"]["root_update_url"]}/.config/main_config.json',
+            headers=HTTP_HEADERS_NO_CACHE
         )
         if not success:
             return True, (), ("Latest version unknown: failed to contact server.", ), RunTest
@@ -116,7 +119,8 @@ class Fix:
                 return '-c ICONS -c DEFAULT_THEMES'
             update.RunUpdater('-c ICONS -c DEFAULT_THEMES')
 
-    def UpdateApp(self, re_str=False, *args, **kwargs):
+    @staticmethod
+    def UpdateApp(re_str=False, *args, **kwargs):
         if re_str:
             print('re_str')
             return 'UPDATE_ALL'
@@ -140,5 +144,5 @@ def tr(func: Callable, *args, **kwargs):
 
 
 _REQ_RESTART = [Fix.UpdateApp, ]
-_UC_FUNC = [*dir(Fix.Reset), Fix.UpdateApp]
+_UC_FUNC = [Fix.Reset.reset_defaults, Fix.Reset.default_theme, Fix.Reset.fix_files_mod, Fix.Reset.fix_update_mod, Fix.Reset.fix_functions_mod, Fix.UpdateApp]
 
