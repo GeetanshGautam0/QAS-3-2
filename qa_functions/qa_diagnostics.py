@@ -17,9 +17,8 @@ HTTP = urllib3.PoolManager()
 class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
     @staticmethod
     def app_version():
-        return False, ("testing", ), ("testing", ), Fix.UpdateApp
-
         global HTTP
+        
         success, res = tr(
             HTTP.request,
             'GET',
