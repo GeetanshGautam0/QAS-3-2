@@ -570,6 +570,9 @@ class _UI(Thread):
                         subprocess.Popen(['.qa_update\\qa_update_app.exe', 'update', '--ReadFlags', '--noAdmin', '--Console'])
                         sys.exit()
 
+                    else:
+                        log('Created NVF ticket for updater.', LoggingLevel.INFO)
+
             else:
                 log('User denied access to fix errors.', LoggingLevel.INFO)
 

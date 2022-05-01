@@ -1,8 +1,5 @@
-import sys, traceback, time, random, click, hashlib, datetime
-
-import qa_files
+import sys, traceback, click, datetime, qa_functions, subprocess
 from qa_functions.qa_std import *
-import qa_functions
 from tkinter import messagebox
 import qa_apps_admin_tools as AdminTools
 import qa_apps_quizzing_form as QuizzingForm
@@ -176,14 +173,24 @@ def check_file(**kwargs):
     return
 
 
-if __name__ == "__main__":
-    print("\n" * 50)
-    print("Loaded modules; running application now.")
+def check_up_tickets():
+    if len(qa_functions.YieldAllNVFlagsAsList('L_UPDATE')) > 0:
+        if messagebox.askyesno('QA Updater', 'Outstanding update tickets exist; do you want to execute the updater now?'):
+            subprocess.Popen(['.\\.qa_update\\.qa_update_app.exe', 'update', '--ReadFlags'])
+            sys.exit(0)
 
+
+if __name__ == "__main__":
     _bg_window: tk.Tk = tk.Tk()
     _bg_window.withdraw()
 
+    check_up_tickets()
+
+    sys.stdout.write("Loaded modules; running application now.\n")
+
     _CLIHandler()
+
+    check_up_tickets()
 
 else:
     sys.exit("cannot run qa_files `qa_main` as module")
