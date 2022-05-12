@@ -26,6 +26,7 @@ class _UI(Thread):
         self.thread.__init__(self)
 
         self.root, self.ic, self.ds, self.kwargs = root, ic, ds, kwargs
+        self.root.withdraw()
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
         ratio = 4/3
@@ -692,6 +693,9 @@ class _UI(Thread):
         self.showcase_canvas.bind("<MouseWheel>", self._on_mousewheel)
 
         self.update_ui()
+
+        self.root.deiconify()
+        self.root.focus_get()
 
     def _on_mousewheel(self, event):
         """
