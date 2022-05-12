@@ -36,6 +36,7 @@ from .qa_svh import check_hash as _ch
 
 from .qa_theme_loader import Load as LoadTheme
 from .qa_theme_loader import Test as TestTheme
+from .qa_theme_loader import TTK as TTKTheme
 
 
 def RaiseError(error_type, error_params: tuple, error_level: ErrorLevels, traceback: Optional[str] = ""):

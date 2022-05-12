@@ -1,4 +1,4 @@
-import sys, traceback, click, datetime, qa_functions, subprocess
+import sys, traceback, click, datetime, qa_functions, subprocess, os
 from qa_functions.qa_std import *
 from tkinter import messagebox
 import qa_apps_admin_tools as AdminTools
@@ -176,7 +176,7 @@ def check_file(**kwargs):
 def check_up_tickets():
     if len(qa_functions.YieldAllNVFlagsAsList('L_UPDATE')) > 0:
         if messagebox.askyesno('QA Updater', 'Outstanding update tickets exist; do you want to execute the updater now?'):
-            subprocess.Popen(['.\\.qa_update\\.qa_update_app.exe', 'update', '--ReadFlags'])
+            subprocess.Popen([os.path.abspath('.qa_update\\.qa_update_app.exe'), 'update', '--ReadFlags'])
             sys.exit(0)
 
 

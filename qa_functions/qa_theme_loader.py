@@ -1,12 +1,10 @@
-import json, hashlib, sys, re
-import traceback
-
+import json, hashlib, sys, re, traceback, qa_files
+from tkinter import ttk
 from .qa_custom import *
 from .qa_enum import *
 from .qa_file_handler import *
 from .qa_std import *
 from .qa_info import *
-import qa_files
 
 
 def _reset_pref():
@@ -495,3 +493,117 @@ class Test:
                 )
 
             return len(failures) == 0
+
+
+class TTK:
+    @staticmethod
+    def configure_scrollbar_style(style: ttk.Style, theme: Theme, accent_color):
+        global TTK_THEME
+
+        style.theme_use(TTK_THEME)
+        style.layout("My.TScrollbar",
+                     [('My.Scrollbar.trough', {'children':
+                         [
+                             ('Vertical.Scrollbar.uparrow', {'side': 'top', 'sticky': ''}),
+                             ('Vertical.Scrollbar.downarrow', {'side': 'bottom', 'sticky': ''}),
+                             ('Vertical.Scrollbar.thumb', {'unit': '1', 'children':
+                                 [('Vertical.Scrollbar.grip', {'sticky': ''})], 'sticky': 'nswe'})],
+                         'sticky': 'ns'})
+                      ])
+        # style.configure("My.TScrollbar", *style.configure("TScrollbar"))
+        style.configure("My.TScrollbar", troughcolor=theme.background.color)
+
+        style.configure(
+            'My.TScrollbar',
+            background=theme.background.color,
+            arrowcolor=accent_color
+        )
+        style.map(
+            "My.TScrollbar",
+            background=[
+                ("active", accent_color), ('disabled', theme.background.color)
+            ],
+            foreground=[
+                ("active", accent_color), ('disabled', theme.background.color)
+            ],
+            arrowcolor=[
+                ('disabled', theme.background.color)
+            ]
+        )
+
+        style.layout("MyHoriz.TScrollbar",
+                     [('MyHoriz.Scrollbar.trough', {'children':
+                         [
+                             ('Horizontal.Scrollbar.leftarrow', {'side': 'left', 'sticky': ''}),
+                             ('Horizontal.Scrollbar.rightarrow', {'side': 'right', 'sticky': ''}),
+                             ('Horizontal.Scrollbar.thumb', {'unit': '1', 'children':
+                                 [('Horizontal.Scrollbar.grip', {'sticky': ''})], 'sticky': 'nswe'})],
+                         'sticky': 'ew'})
+                      ])
+        # style.configure("My.TScrollbar", *style.configure("TScrollbar"))
+        style.configure("MyHoriz.TScrollbar", troughcolor=theme.background.color)
+
+        style.configure(
+            'MyHoriz.TScrollbar',
+            background=theme.background.color,
+            arrowcolor=accent_color
+        )
+        style.map(
+            "MyHoriz.TScrollbar",
+            background=[
+                ("active", accent_color), ('disabled', theme.background.color)
+            ],
+            foreground=[
+                ("active", accent_color), ('disabled', theme.background.color)
+            ],
+            arrowcolor=[
+                ('disabled', theme.background.color)
+            ]
+        )
+
+        return style
+
+    @staticmethod
+    def configure_button_style(style: ttk.Style, theme: Theme, accent=None):
+        if accent is None:
+            accent = theme.accent.color
+
+        style.configure(
+            'TButton',
+            background=theme.background.color,
+            foreground=accent,
+            font=(theme.font_face, theme.font_main_size),
+            focuscolor=accent,
+            bordercolor=0
+        )
+
+        style.map(
+            'TButton',
+            background=[('active', accent), ('disabled', theme.background.color), ('readonly', theme.gray.color)],
+            foreground=[('active', theme.background.color), ('disabled', theme.gray.color), ('readonly', theme.background.color)]
+        )
+
+        return style
+
+    @staticmethod
+    def configure_entry_style(style: ttk.Style, theme: Theme):
+        style.configure(
+            'TEntry',
+            background=theme.background.color,
+            foreground=theme.accent.color,
+            font=(theme.font_face, theme.font_main_size),
+            bordercolor=theme.accent.color,
+            fieldbackground=theme.background.color,
+            selectbackground=theme.accent.color,
+            selectforeground=theme.background.color,
+            insertcolor=theme.accent.color
+        )
+
+        style.map(
+            'TEntry',
+            background=[('disabled', theme.background.color), ('readonly', theme.gray.color)],
+            foreground=[('disabled', theme.gray.color), ('readonly', theme.background.color)],
+            fieldbackground=[('disabled', theme.background.color), ('readonly', theme.gray.color)]
+        )
+
+        return style

@@ -946,13 +946,7 @@ def update(**kwargs):
 
     else:
         argv = sys.argv
-        if argv[0] == 'python':
-            argv.pop(0)
-            argv.pop(1)
-        else:
-            argv.pop(0)
-
-        argv = sys.argv
+        argv.pop(0)
 
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(kwargs['console']))
 
@@ -989,13 +983,7 @@ def install(**kwargs):
 
     else:
         argv = sys.argv
-        if argv[0] == 'python':
-            argv.pop(0)
-            argv.pop(1)
-        else:
-            argv.pop(0)
-
-        argv = sys.argv
+        argv.pop(0)
 
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(kwargs['console']))
 
