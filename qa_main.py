@@ -30,9 +30,9 @@ class _Run(Thread):
         messagebox.showerror('Crash', 'Unexpected shut down of application instance manager [FATAL]')
         sys.exit('AIM_SD')
 
-    def tk_err_handler(self, exc, val, tb):
+    def tk_err_handler(self, _, val, _1):
         if self.tokens['weakhandling']:
-            messagebox.showerror('ERROR!', f"The application's UI has encountered a low-level error. More info:\n\n{val}\n\n{traceback.format_exc()}")
+            messagebox.showerror('Error', f"(WeakHandling) The application's UI has encountered an unhandled error. More info:\n\n{val}\n\n{traceback.format_exc()}")
 
         else:
             messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{traceback.format_exc()}")
@@ -180,17 +180,26 @@ def check_up_tickets():
             sys.exit(0)
 
 
+def check_for_updates():
+    if qa_functions.Diagnostics.app_version():
+        qa_functions.ClearAppNVFlags('L_UPDATE')
+
+        if messagebox.askyesno('QA Updater', 'A new version of the app is available; do you want to update the app now?'):
+            qa_functions.CreateNVFlag('L_UPDATE', 'UPDATE_ALL')
+            subprocess.Popen([os.path.abspath('.qa_update\\.qa_update_app.exe'), 'update', '--ReadFlags'])
+            sys.exit(0)
+
+
 if __name__ == "__main__":
     _bg_window: tk.Tk = tk.Tk()
     _bg_window.withdraw()
 
+    check_for_updates()
     check_up_tickets()
 
     sys.stdout.write("Loaded modules; running application now.\n")
 
     _CLIHandler()
-
-    check_up_tickets()
 
 else:
     sys.exit("cannot run qa_files `qa_main` as module")
