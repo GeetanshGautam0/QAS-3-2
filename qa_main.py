@@ -181,13 +181,15 @@ def check_up_tickets():
 
 
 def check_for_updates():
-    if qa_functions.Diagnostics.app_version():
+    if not qa_functions.Diagnostics.app_version():
         qa_functions.ClearAppNVFlags('L_UPDATE')
 
         if messagebox.askyesno('QA Updater', 'A new version of the app is available; do you want to update the app now?'):
             qa_functions.CreateNVFlag('L_UPDATE', 'UPDATE_ALL')
             subprocess.Popen([os.path.abspath('.qa_update\\.qa_update_app.exe'), 'update', '--ReadFlags'])
             sys.exit(0)
+    else:
+        sys.stdout.write("App configuration implies app is up to date.")
 
 
 if __name__ == "__main__":

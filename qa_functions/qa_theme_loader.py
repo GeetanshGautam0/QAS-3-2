@@ -498,9 +498,6 @@ class Test:
 class TTK:
     @staticmethod
     def configure_scrollbar_style(style: ttk.Style, theme: Theme, accent_color):
-        global TTK_THEME
-
-        style.theme_use(TTK_THEME)
         style.layout("My.TScrollbar",
                      [('My.Scrollbar.trough', {'children':
                          [
