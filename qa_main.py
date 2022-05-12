@@ -1,6 +1,6 @@
-import sys, traceback, click, datetime, qa_functions, subprocess, os
+import sys, traceback, click, datetime, qa_functions, subprocess, os, qa_splash
 from qa_functions.qa_std import *
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import qa_apps_admin_tools as AdminTools
 import qa_apps_quizzing_form as QuizzingForm
 import qa_apps_recovery_util as RecoveryUtils
@@ -9,7 +9,16 @@ from threading import Thread
 from qa_installer_functions.addons_installer import RunAddonsInstaller
 
 
-_bg_window = None
+_bg_window, SPLASH = None, None
+
+BOOT_STEPS = {
+    1: 'Handling CLI',
+    2: "Initializing Instance Manager",
+    3: "Configuring Loggers + Debuggers",
+    4: "Fetching Application Entry Point",
+    5: "Setting Up '_Run' Method",
+    6: "Initializing App"
+}
 
 
 class _Run(Thread):
@@ -74,11 +83,18 @@ class _ApplicationInstanceManager:
         self.shell = _bg_window
 
     def run(self):
-        global _application_map, _bg_window
+        global _application_map, _bg_window, SPLASH, BOOT_STEPS, _title_map
 
         try:
             if self.name not in _application_map:
                 raise InvalidCLIArgument("ApplicationName", f'{self.name}', "")
+                sys.exit(-1)
+
+            if isinstance(SPLASH, qa_splash.Splash):
+                title, img = _title_map[self.name]
+                SPLASH.setTitle(title)
+                SPLASH.setImg(img)
+                qa_splash.update_step(SPLASH, 3, BOOT_STEPS)
 
             if self.tokens['debug'] or self.tokens['debug_all']:
                 for Script in (AdminTools, QuizzingForm, RecoveryUtils, ThemingUtil):
@@ -87,8 +103,20 @@ class _ApplicationInstanceManager:
                     Script.LOGGER_FUNC = qa_functions.NormalLogger
                     Script.LOGGING_FILE_NAME = datetime.datetime.now().strftime('%b %d, %Y %H-%M-%S')
 
+            if isinstance(SPLASH, qa_splash.Splash):
+                qa_splash.update_step(SPLASH, 4, BOOT_STEPS)
+
             func = _application_map[self.name]
+
+            if isinstance(SPLASH, qa_splash.Splash):
+                qa_splash.update_step(SPLASH, 5, BOOT_STEPS)
+
             inst = _Run(func, self.tokens)
+
+            if isinstance(SPLASH, qa_splash.Splash):
+                qa_splash.update_step(SPLASH, len(BOOT_STEPS), BOOT_STEPS)
+                qa_splash.show_completion(SPLASH, BOOT_STEPS)
+
             ui_shell = inst.call()
 
         except Exception as E:
@@ -133,6 +161,15 @@ _application_map = {
     'InstallThemeAddons':                       RunAddonsInstaller,
 }
 
+_title_map = {
+    'AdminTools':                               ('Administrator Tools', qa_functions.Files.AT_png),
+    'QuizzingForm':                             ('Quizzing Tool', qa_functions.Files.QF_png),
+    'ThemingUtil':                              ('Theming Utility', qa_functions.Files.TU_png),
+    'RecoveryUtil':                             ('Recovery Utilities', qa_functions.Files.RU_png),
+
+    'InstallThemeAddons':                       ('Addons Manager', qa_functions.Files.QF_png),
+}
+
 _ico_map = {
     AdminTools:                                 qa_functions.Files.AT_ico,
     ThemingUtil:                                qa_functions.Files.TU_ico,
@@ -161,7 +198,13 @@ def _CLIHandler():
 @click.option('--debug_all', help='enable debugging (ALL LEVELS)', is_flag=True)
 @click.option('--weakHandling', help='weak error handling', is_flag=True)
 def start_app(**kwargs):
+    global BOOT_STEPS; SPLASH
+
     default_cli_handling(**kwargs)
+
+    if isinstance(SPLASH, qa_splash.Splash):
+        qa_splash.update_step(SPLASH, 2, BOOT_STEPS)
+
     app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)
     app.run()
 
@@ -181,15 +224,16 @@ def check_up_tickets():
 
 
 def check_for_updates():
-    if not qa_functions.Diagnostics.app_version():
+    if not qa_functions.Diagnostics.app_version()[0]:
         qa_functions.ClearAppNVFlags('L_UPDATE')
+        sys.stdout.write('App needs to updated.\n')
 
         if messagebox.askyesno('QA Updater', 'A new version of the app is available; do you want to update the app now?'):
             qa_functions.CreateNVFlag('L_UPDATE', 'UPDATE_ALL')
             subprocess.Popen([os.path.abspath('.qa_update\\.qa_update_app.exe'), 'update', '--ReadFlags'])
             sys.exit(0)
     else:
-        sys.stdout.write("App configuration implies app is up to date.")
+        sys.stdout.write("App configuration implies app is up to date.\n")
 
 
 if __name__ == "__main__":
@@ -200,6 +244,10 @@ if __name__ == "__main__":
     check_up_tickets()
 
     sys.stdout.write("Loaded modules; running application now.\n")
+
+    SPLASH: qa_splash.Splash
+    SPLASH = qa_splash.Splash(tk.Toplevel(), 'Quizzing Application', qa_functions.Files.QF_png)
+    qa_splash.update_step(SPLASH, 1, BOOT_STEPS)
 
     _CLIHandler()
 

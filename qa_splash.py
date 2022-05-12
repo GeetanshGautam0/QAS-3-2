@@ -1,5 +1,6 @@
 import tkinter.ttk as ttk, qa_functions, sys, PIL.Image, PIL.ImageTk
 from tkinter import *
+from time import sleep
 from typing import *
 
 
@@ -10,6 +11,7 @@ class Splash(Toplevel):
     def __init__(self, master, title, img_src):
         global theme
         self.theme = theme
+        self.destroyed = False
 
         self.root, self.title, self.img_path = master, title, img_src
         self.frame = Frame(self.root)
@@ -79,6 +81,11 @@ class Splash(Toplevel):
         self.update_loading_lbl()
 
     def showCompletion(self) -> None:
+        if self.destroyed:
+            return
+
+        self.pbar['value'] = 100
+
         self.complete = True
         self.update_loading_lbl()
         self.infoLbl.pack_forget()
@@ -86,6 +93,9 @@ class Splash(Toplevel):
         self.update_ui()
 
     def setImg(self, img) -> None:
+        if self.destroyed:
+            return
+
         self.img_path = img
         self.load_png()
         self.imgLbl.configure(image=self.img)
@@ -93,6 +103,9 @@ class Splash(Toplevel):
         self.imgLbl.update()
 
     def setProgress(self, per: float) -> None:
+        if self.destroyed:
+            return
+
         if per >= 100:
             self.complete = True
             self.showCompletion()
@@ -114,10 +127,14 @@ class Splash(Toplevel):
                 troughcolor=self.theme.background.color
             )
             self.titleLbl.config(fg=self.grad[int((len(self.grad) - 1) * per / 100)])
+            self.infoLbl.config(fg=self.grad[int((len(self.grad) - 1) * per / 100)])
 
         self.root.update()
 
     def setInfo(self, text) -> None:
+        if self.destroyed:
+            return
+
         if self.complete:
             return
 
@@ -125,11 +142,17 @@ class Splash(Toplevel):
         self.root.update()
 
     def setTitle(self, text: str) -> None:
+        if self.destroyed:
+            return
+
         self.title = text.strip()
         self.titleLbl.config(text=self.title)
         self.root.update()
 
     def update_ui(self) -> None:
+        if self.destroyed:
+            return
+
         self.root.config(bg=self.theme.background.color)
         self.frame.config(bg=self.theme.background.color)
         self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, 36), anchor=W, justify=LEFT)
@@ -148,6 +171,9 @@ class Splash(Toplevel):
         self.root.update()
 
     def load_png(self):
+        if self.destroyed:
+            return
+
         i = PIL.Image.open(self.img_path)
         i = i.resize(self.img_size, PIL.Image.ANTIALIAS)
         self.img = PIL.ImageTk.PhotoImage(i)
@@ -166,6 +192,8 @@ def update_step(inst: Splash, ind: int, steps: Union[list, tuple, dict, set], re
 
         inst.setProgress((i / len(steps)) / (resolution / 100))
 
+    sleep(.1)
+
 
 def show_completion(inst: Splash, steps: Union[list, tuple, dict, set], resolution=100):
     ind = len(steps) - 1
@@ -176,6 +204,8 @@ def show_completion(inst: Splash, steps: Union[list, tuple, dict, set], resoluti
             pass  # < 0.01 sec delay
 
         inst.setProgress((i / len(steps)) / (resolution / 100))
+
+    destroy(inst)
 
 
 def hide(inst: Splash):
@@ -199,5 +229,6 @@ def show(inst: Splash = None):
 
 
 def destroy(inst: Splash):
+    inst.root.destroyed = True
     inst.root.after(0, inst.root.destroy)
     return
