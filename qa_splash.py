@@ -1,5 +1,6 @@
 import tkinter.ttk as ttk, qa_functions, sys, PIL.Image, PIL.ImageTk
 from tkinter import *
+from typing import *
 
 
 theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -10,13 +11,15 @@ class Splash(Toplevel):
         global theme
         self.theme = theme
 
-        self.style = ttk.Style()
         self.root, self.title, self.img_path = master, title, img_src
         self.frame = Frame(self.root)
-        self.img_size = (50, 50)
+        self.img_size = (60, 60)
         self.img = None
 
-        self.geo = "600x225+{}+{}".format(
+        self.style = ttk.Style()
+        self.style.theme_use('default')
+
+        self.geo = "600x250+{}+{}".format(
             int(self.root.winfo_screenwidth() / 2 - 300),
             int(self.root.winfo_screenheight() / 2 - 125)
         )
@@ -30,18 +33,21 @@ class Splash(Toplevel):
         self.ac_start = self.theme.foreground.color
         self.ac_end = self.theme.accent.color
         self.loadGrad = True
-        self.grad = ["#000000"]
+        self.grad = [self.theme.foreground.color]
         self.complete = False
 
         self.run()
         self.root.update()
 
     def update_loading_lbl(self):
-        c = self.loading_label.cget('text').count('.')
-        c = (c+1) if c < 3 else 0
-        self.loading_label.config(text=f'Loading{"."*c}\nGeetansh Gautam\nPress\"ALT + F4\" to exit')
-        self.root.update()
-        self.root.after(500, self.update_loading_lbl)
+        if self.complete:
+            self.loading_label.config(text=f'Done Loading\nGeetansh Gautam\nPress\"ALT + F4\" to exit')
+        else:
+            c = self.loading_label.cget('text').count('.')
+            c = (c+1) if c < 3 else 0
+            self.loading_label.config(text=f'Loading{"."*c}\nGeetansh Gautam\nPress\"ALT + F4\" to exit')
+            self.root.update()
+            self.root.after(500, self.update_loading_lbl)
 
     def run(self):
         self.root.overrideredirect(True)
@@ -50,7 +56,7 @@ class Splash(Toplevel):
         self.root.geometry(self.geo)
 
         self.frame.pack(fill=BOTH, expand=True)
-        self.frame.config(bg=self.theme.background.color)
+        self.frame.config(bg=self.theme.background.color, bd='0')
 
         self.load_png()
         self.imgLbl.configure(
@@ -61,36 +67,21 @@ class Splash(Toplevel):
         )
         self.imgLbl.image = self.img
 
-        self.infoLbl.pack(fill=X, expand=False, padx=5, side=BOTTOM, pady=(5, 0))
         self.loading_label.pack(fill=X, expand=False, padx=5, side=BOTTOM)
+        self.infoLbl.pack(fill=X, expand=False, padx=5, side=BOTTOM)
         self.pbar.pack(fill=X, expand=False, side=BOTTOM)
 
         self.titleLbl.pack(fill=BOTH, expand=True, padx=5, side=RIGHT)
         self.imgLbl.pack(fill=BOTH, expand=False, padx=(5, 0), side=LEFT)
 
         self.update_ui()
+        self.setProgress(0)
         self.update_loading_lbl()
 
-    def completeColor(self) -> None:
+    def showCompletion(self) -> None:
         self.complete = True
-
-        self.style.configure(
-            "Horizontal.TProgressbar",
-            foreground=self.theme.accent.color,
-            background=self.theme.accent.color,
-            troughcolor=self.theme.background.color
-        )
-        self.titleLbl.config(
-            fg=self.theme.accent.color,
-            bg=self.theme.background.color
-        )
-        self.frame.config(
-            bg=self.theme.background.color
-        )
-        self.infoLbl.config(
-            bg=self.theme.background.color,
-            fg=self.theme.foreground.color
-        )
+        self.update_loading_lbl()
+        self.infoLbl.pack_forget()
 
         self.update_ui()
 
@@ -102,10 +93,17 @@ class Splash(Toplevel):
         self.imgLbl.update()
 
     def setProgress(self, per: float) -> None:
+        if per >= 100:
+            self.complete = True
+            self.showCompletion()
+            return
+
         if self.loadGrad:
             self.grad = qa_functions.ColorFunctions.fade(self.ac_start, self.ac_end)
+            print("Colour Gradient Values:", self.grad)
             self.loadGrad = False
 
+        self.pbar.configure(style="Horizontal.TProgressbar")
         self.pbar['value'] = per
 
         if not self.complete:
@@ -117,15 +115,16 @@ class Splash(Toplevel):
             )
             self.titleLbl.config(fg=self.grad[int((len(self.grad) - 1) * per / 100)])
 
-        self.pbar.update()
+        self.root.update()
 
     def setInfo(self, text) -> None:
-        self.information = text.strip()
-        self.infoLbl.config(text=self.information)
+        if self.complete:
+            return
+
+        self.infoLbl.config(text=text)
         self.root.update()
 
     def setTitle(self, text: str) -> None:
-        # self.title = text.replace(' ', '\n')
         self.title = text.strip()
         self.titleLbl.config(text=self.title)
         self.root.update()
@@ -133,7 +132,7 @@ class Splash(Toplevel):
     def update_ui(self) -> None:
         self.root.config(bg=self.theme.background.color)
         self.frame.config(bg=self.theme.background.color)
-        self.titleLbl.config(bg=self.theme.background.color, fg=self.theme.accent.color, font=(self.theme.font_face, 36), anchor=W, justify=LEFT)
+        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, 36), anchor=W, justify=LEFT)
         self.infoLbl.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=W, justify=LEFT)
         self.loading_label.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=W, justify=LEFT)
 
@@ -146,8 +145,6 @@ class Splash(Toplevel):
             thickness=2
         )
 
-        self.pbar.configure(style="Horizontal.TProgressbar")
-
         self.root.update()
 
     def load_png(self):
@@ -156,29 +153,51 @@ class Splash(Toplevel):
         self.img = PIL.ImageTk.PhotoImage(i)
 
 
-def Pass(): pass
+def update_step(inst: Splash, ind: int, steps: Union[list, tuple, dict, set], resolution=100):
+
+    inst.setInfo(steps[ind])
+
+    ind -= 1  # 0 >> Max
+    prev = ind - 1 if ind > 0 else ind
+
+    for i in range(prev * resolution, ind * resolution):
+        for j in range(20):
+            pass  # < 0.01 sec delay
+
+        inst.setProgress((i / len(steps)) / (resolution / 100))
 
 
-def hide(__inst: Splash):
-    __inst.root.overrideredirect(False)
-    __inst.root.wm_attributes("-topmost", 0)
-    __inst.root.iconify()
-    __inst.root.withdraw()
-    __inst.root.update()
+def show_completion(inst: Splash, steps: Union[list, tuple, dict, set], resolution=100):
+    ind = len(steps) - 1
+
+    inst.showCompletion()
+    for i in range(ind * resolution, len(steps) * resolution):
+        for j in range(20):
+            pass  # < 0.01 sec delay
+
+        inst.setProgress((i / len(steps)) / (resolution / 100))
+
+
+def hide(inst: Splash):
+    inst.root.overrideredirect(False)
+    inst.root.wm_attributes("-topmost", 0)
+    inst.root.iconify()
+    inst.root.withdraw()
+    inst.root.update()
     return
 
 
-def show(__inst: Splash = None):
-    if __inst is None:
-        __inst = Splash(Toplevel(), 'Quizzing Application', qa_functions.Files.QF_ico)
+def show(inst: Splash = None):
+    if inst is None:
+        inst = Splash(Toplevel(), 'Quizzing Application', qa_functions.Files.QF_ico)
 
-    __inst.root.overrideredirect(True)
-    __inst.root.deiconify()
-    __inst.root.wm_attributes("-topmost", 1)
-    __inst.root.update()
-    return __inst
+    inst.root.overrideredirect(True)
+    inst.root.deiconify()
+    inst.root.wm_attributes("-topmost", 1)
+    inst.root.update()
+    return inst
 
 
-def destroy(__inst: Splash):
-    __inst.root.after(0, __inst.root.destroy)
+def destroy(inst: Splash):
+    inst.root.after(0, inst.root.destroy)
     return

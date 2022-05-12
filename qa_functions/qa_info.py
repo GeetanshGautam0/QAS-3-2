@@ -81,11 +81,16 @@ class Files:
 
     # Icons
     icoRoot = ".\\.src\\.icons\\.app_ico"
+    pngRoot = ".\\.src\\.icons\\.app_ico\\.png"
     TU_ico = f"{icoRoot}\\themer.ico"
     AT_ico = f"{icoRoot}\\admin_tools.ico"
     QF_ico = f"{icoRoot}\\quizzing_tool.ico"
     RU_ico = f"{icoRoot}\\ftsra.ico"
 
+    TU_png = f"{pngRoot}\\themer.png"
+    AT_png = f"{pngRoot}\\admin_tools.png"
+    QF_png = f"{pngRoot}\\quizzing_tool.png"
+    RU_png = f"{pngRoot}\\ftsra.png"
 
 class Encryption:
     default_key: bytes = b"oyJeLcbVk6_w9tbKJArWCZLSBjS8ZfK9M-cAygf6SRQ="

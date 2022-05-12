@@ -1,5 +1,5 @@
 import re
-from .qa_std import check_hex_contrast
+from .qa_std import check_hex_contrast, clamp
 from .qa_custom import HexColor
 
 
@@ -59,7 +59,3 @@ class Functions:
             if check_hex_contrast(g, color)[0]:
                 return g
         return f
-
-
-def clamp(minimum: int, actual: int, maximum: int) -> int:
-    return minimum if (actual < minimum) else (maximum if (actual > maximum) else actual)

@@ -593,3 +593,7 @@ class SMem:
     @staticmethod
     def _pro_000_s_mem_addr_0_size():
         return 2048
+
+
+def clamp(minimum: int, actual: int, maximum: int) -> int:
+    return minimum if (actual < minimum) else (maximum if (actual > maximum) else actual)
