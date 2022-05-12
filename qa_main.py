@@ -12,12 +12,13 @@ from qa_installer_functions.addons_installer import RunAddonsInstaller
 _bg_window, SPLASH = None, None
 
 BOOT_STEPS = {
-    1: 'Handling CLI',
-    2: "Initializing Instance Manager",
-    3: "Configuring Loggers + Debuggers",
-    4: "Fetching Application Entry Point",
-    5: "Setting Up '_Run' Method",
-    6: "Initializing App"
+    1: 'Checking for Updates',
+    2: 'Handling CLI',
+    3: "Initializing Instance Manager",
+    4: "Configuring Loggers + Debuggers",
+    5: "Fetching Application Entry Point",
+    6: "Setting Up '_Run' Method",
+    7: "Initializing App",
 }
 
 
@@ -53,12 +54,10 @@ class _Run(Thread):
         if self._run_acc >= 1:
             return self.shell
 
-        self.base_root = tk.Tk()
-        self.base_root.withdraw()
-        self.base_root.title('Quizzing Application - AIM || Running')
         if self.func in _ico_map:
-            self.base_root.iconbitmap(_ico_map[self.func])
-        self.base_root.protocol("WM_DELETE_WINDOW", self.close)
+            _bg_window.iconbitmap(_ico_map[self.func])
+
+        _bg_window.protocol("WM_DELETE_WINDOW", self.close)
         tk.Tk.report_callback_exception = self.tk_err_handler
 
         _ui_shell = self.func(self, _bg_window, **self.tokens)
@@ -70,7 +69,7 @@ class _Run(Thread):
         return _ui_shell
 
     def __del__(self):
-        if self.base_root is not None:
+        if isinstance(_bg_window, tk.Tk):
             self.base_root.quit()
 
 
@@ -94,7 +93,7 @@ class _ApplicationInstanceManager:
                 title, img = _title_map[self.name]
                 SPLASH.setTitle(title)
                 SPLASH.setImg(img)
-                qa_splash.update_step(SPLASH, 3, BOOT_STEPS)
+                qa_splash.update_step(SPLASH, 4, BOOT_STEPS)
 
             if self.tokens['debug'] or self.tokens['debug_all']:
                 for Script in (AdminTools, QuizzingForm, RecoveryUtils, ThemingUtil):
@@ -104,12 +103,12 @@ class _ApplicationInstanceManager:
                     Script.LOGGING_FILE_NAME = datetime.datetime.now().strftime('%b %d, %Y %H-%M-%S')
 
             if isinstance(SPLASH, qa_splash.Splash):
-                qa_splash.update_step(SPLASH, 4, BOOT_STEPS)
+                qa_splash.update_step(SPLASH, 5, BOOT_STEPS)
 
             func = _application_map[self.name]
 
             if isinstance(SPLASH, qa_splash.Splash):
-                qa_splash.update_step(SPLASH, 5, BOOT_STEPS)
+                qa_splash.update_step(SPLASH, 6, BOOT_STEPS)
 
             inst = _Run(func, self.tokens)
 
@@ -203,7 +202,7 @@ def start_app(**kwargs):
     default_cli_handling(**kwargs)
 
     if isinstance(SPLASH, qa_splash.Splash):
-        qa_splash.update_step(SPLASH, 2, BOOT_STEPS)
+        qa_splash.update_step(SPLASH, 3, BOOT_STEPS)
 
     app = _ApplicationInstanceManager(kwargs.get('app_name'), kwargs)
     app.run()
@@ -240,14 +239,16 @@ if __name__ == "__main__":
     _bg_window: tk.Tk = tk.Tk()
     _bg_window.withdraw()
 
-    check_for_updates()
-    check_up_tickets()
-
     sys.stdout.write("Loaded modules; running application now.\n")
 
     SPLASH: qa_splash.Splash
     SPLASH = qa_splash.Splash(tk.Toplevel(), 'Quizzing Application', qa_functions.Files.QF_png)
     qa_splash.update_step(SPLASH, 1, BOOT_STEPS)
+
+    check_for_updates()
+    check_up_tickets()
+
+    qa_splash.update_step(SPLASH, 2, BOOT_STEPS)
 
     _CLIHandler()
 

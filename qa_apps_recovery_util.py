@@ -583,7 +583,7 @@ class _UI(Thread):
         del fail_acc, pass_acc
 
         self.insert_into_lb('')
-        self.insert_into_lb('Finished all tests', fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.BG)
+        self.insert_into_lb('Finished all tests', fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.OKAY)
 
         self.enable_all_inputs()
 

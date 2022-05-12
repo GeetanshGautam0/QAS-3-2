@@ -11,14 +11,17 @@ except:
     from ..qa_installer_functions import update
 
 
-HTTP = urllib3.PoolManager()
+HTTP = urllib3.PoolManager(
+    timeout=urllib3.Timeout(connect=1.0, read=1.5),
+    retries=False
+)
 
 
 class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
     @staticmethod
     def app_version():
         global HTTP
-        
+
         success, res = tr(
             HTTP.request,
             'GET',

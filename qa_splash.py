@@ -192,8 +192,6 @@ def update_step(inst: Splash, ind: int, steps: Union[list, tuple, dict, set], re
 
         inst.setProgress((i / len(steps)) / (resolution / 100))
 
-    sleep(.1)
-
 
 def show_completion(inst: Splash, steps: Union[list, tuple, dict, set], resolution=100):
     ind = len(steps) - 1
@@ -205,6 +203,7 @@ def show_completion(inst: Splash, steps: Union[list, tuple, dict, set], resoluti
 
         inst.setProgress((i / len(steps)) / (resolution / 100))
 
+    sleep(.1)
     destroy(inst)
 
 
