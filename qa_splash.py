@@ -1,4 +1,4 @@
-import tkinter.ttk as ttk, qa_functions, sys, PIL.Image, PIL.ImageTk
+import tkinter.ttk as ttk, qa_functions, sys, PIL.Image, PIL.ImageTk, math
 from tkinter import *
 from time import sleep
 from typing import *
@@ -155,7 +155,7 @@ class Splash(Toplevel):
 
         self.root.config(bg=self.theme.background.color)
         self.frame.config(bg=self.theme.background.color)
-        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, 36), anchor=W, justify=LEFT)
+        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, math.floor(self.theme.font_title_size * 1.1)), anchor=W, justify=LEFT)
         self.infoLbl.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=W, justify=LEFT)
         self.loading_label.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=W, justify=LEFT)
 
