@@ -36,23 +36,33 @@ class _Run(Thread):
 
         self._run_acc = 0
 
-    def close(self):
+    def close(self, *_0, **_1):
         global SPLASH
-        if isinstance(SPLASH, qa_splash.Splash):
-            qa_splash.hide(SPLASH)
+        try:
+            if isinstance(SPLASH, qa_splash.Splash):
+                qa_splash.hide(SPLASH)
+
+        except:
+            pass
 
         messagebox.showerror('Crash', 'Unexpected shut down of application instance manager [FATAL]')
         sys.exit('AIM_SD')
 
     def tk_err_handler(self, _, val, _1):
         global SPLASH
-        if isinstance(SPLASH, qa_splash.Splash):
-            qa_splash.hide(SPLASH)
+        try:
+            if isinstance(SPLASH, qa_splash.Splash):
+                qa_splash.hide(SPLASH)
+        except:
+            pass
 
         if self.tokens['weakhandling']:
             messagebox.showerror('Error', f"(WeakHandling) The application's UI has encountered an unhandled error. More info:\n\n{val}\n\n{traceback.format_exc()}")
-            if isinstance(SPLASH, qa_splash.Splash):
-                qa_splash.show(SPLASH)
+            try:
+                if isinstance(SPLASH, qa_splash.Splash):
+                    qa_splash.show(SPLASH)
+            except:
+                pass
 
         else:
             messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{traceback.format_exc()}")

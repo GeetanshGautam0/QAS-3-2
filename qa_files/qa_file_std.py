@@ -1,40 +1,32 @@
-try:
-    from qa_functions import *
-except:
-    from ..qa_functions import *
-
-try:
-    from qa_files import *
-except:
-    from . import *
-
-import traceback, hashlib
+import qa_functions, traceback, hashlib
+from typing import *
+from .qa_files_ltbl import *
 from tkinter import messagebox
 
 
 _ft_map = {
-    qa_enum.FileType.QA_FILE: [qa_file_extn, qa_file_enck],
-    qa_enum.FileType.QA_ENC: [qa_enc_extn, qa_enc_enck],
-    qa_enum.FileType.QA_EXPORT: [qa_export_extn, qa_export_enck],
-    qa_enum.FileType.QA_QUIZ: [qa_quiz_extn, qa_quiz_enck]
+    qa_functions.qa_enum.FileType.QA_FILE: [qa_file_extn, qa_file_enck],
+    qa_functions.qa_enum.FileType.QA_ENC: [qa_enc_extn, qa_enc_enck],
+    qa_functions.qa_enum.FileType.QA_EXPORT: [qa_export_extn, qa_export_enck],
+    qa_functions.qa_enum.FileType.QA_QUIZ: [qa_quiz_extn, qa_quiz_enck]
 }
 
 
-def generate_file(file_type: qa_enum.FileType, raw_data: Union[bytes, str]) -> Union[type(None), tuple]:
+def generate_file(file_type: qa_functions.qa_enum.FileType, raw_data: Union[bytes, str]) -> Union[type(None), tuple]:
     global _ft_map
 
     try:
         if file_type not in _ft_map:
-            return data_type_converter(raw_data, bytes, ConverterFunctionArgs()).strip()
+            return qa_functions.data_type_converter(raw_data, bytes, qa_functions.ConverterFunctionArgs()).strip()
 
         EXTN, KEY = _ft_map[file_type]
-        new_data = qa_file_handler._Crypt.encrypt(raw_data, KEY, ConverterFunctionArgs())
-        d_hash = data_type_converter(hashlib.sha3_512(new_data).hexdigest(), bytes, ConverterFunctionArgs())
+        new_data = qa_functions.qa_file_handler._Crypt.encrypt(raw_data, KEY, qa_functions.ConverterFunctionArgs())
+        d_hash = qa_functions.data_type_converter(hashlib.sha3_512(new_data).hexdigest(), bytes, qa_functions.ConverterFunctionArgs())
 
         return d_hash+new_data+d_hash, EXTN
 
     except Exception as E:
-        E_hash = hashlib.md5(data_type_converter(str(E), bytes, ConverterFunctionArgs())).hexdigest()
+        E_hash = hashlib.md5(qa_functions.data_type_converter(str(E), bytes, qa_functions.ConverterFunctionArgs())).hexdigest()
         error_info = f"""Failed to generate required file data;
 Exception Code: {E_hash}
 Error String: {str(E)}
@@ -45,13 +37,13 @@ Technical Information: {traceback.format_exc()}"""
         return None
 
 
-def load_file(file_type: qa_enum.FileType, raw_data: bytes) -> Union[type(None), Tuple[bytes, str]]:
+def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Union[type(None), Tuple[bytes, str]]:
     global _ft_map
 
     try:
         assert isinstance(raw_data, bytes), 'Expected type \'bytes\' for raw_data input'
         if file_type not in _ft_map:
-            return raw_data, data_type_converter(raw_data, str, ConverterFunctionArgs())
+            return raw_data, qa_functions.data_type_converter(raw_data, str, qa_functions.ConverterFunctionArgs())
 
         raw_data = raw_data.strip()
 
@@ -64,18 +56,18 @@ def load_file(file_type: qa_enum.FileType, raw_data: bytes) -> Union[type(None),
         assert h_hash == f_hash, "Hash mismatch between file header and footer; possibly corrupted data."
 
         enc_d = raw_data.strip(h_hash)
-        uenc_d = qa_file_handler._Crypt.decrypt(enc_d, KEY, ConverterFunctionArgs())
+        uenc_d = qa_functions.qa_file_handler._Crypt.decrypt(enc_d, KEY, qa_functions.ConverterFunctionArgs())
         del enc_d, h_hash, f_hash, KEY, _, raw_data, file_type
 
         try:
-            string = data_type_converter(uenc_d, str, ConverterFunctionArgs())
+            string = qa_functions.data_type_converter(uenc_d, str, qa_functions.ConverterFunctionArgs())
         except:
             string = ''
 
         return uenc_d, string
 
     except Exception as E:
-        E_hash = hashlib.md5(data_type_converter(str(E), bytes, ConverterFunctionArgs())).hexdigest()
+        E_hash = hashlib.md5(qa_functions.data_type_converter(str(E), bytes, qa_functions.ConverterFunctionArgs())).hexdigest()
         error_info = f"""Failed to load (verify) file data;
 Exception Code: {E_hash}
 Error String: {str(E)}
