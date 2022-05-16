@@ -49,7 +49,7 @@ class _UI(Thread):
         wd_w = 700
         wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
         self.window_size = [wd_w, int(ratio * wd_w)]
-        self.window_size[0] = 850
+        self.window_size[0] = 900 if 900 <= self.screen_dim[0] else self.screen_dim[0]
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
             int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -127,6 +127,12 @@ class _UI(Thread):
 
         self.general_info_label = tk.Label(self.root, text="")
 
+        self.edit_title = tk.Label(self.db_frame)
+        self.edit_btn_panel = tk.Frame(self.db_frame)
+
+        self.edit_configuration_btn = ttk.Button(self.edit_btn_panel, text='Configuration', command=lambda: self.root.focus_get().event_generate('<<EditConfiguration>>'))
+        self.edit_questions_btn = ttk.Button(self.edit_btn_panel, text='Questions', command=lambda: self.root.focus_get().event_generate('<<EditQuestions>>'))
+
         self.start()
         self.root.mainloop()
 
@@ -190,6 +196,16 @@ class _UI(Thread):
         self.select_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
         self.select_open.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=(0, self.padY), side=tk.LEFT)
         self.select_new.pack(fill=tk.BOTH, expand=True, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
+
+    def configure_edit_frame(self):
+        self.edit_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+        self.edit_btn_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.edit_configuration_btn.pack(fill=tk.X, expand=True, padx=(self.padX, 0), ipady=self.padY/2, side=tk.LEFT)
+        self.edit_questions_btn.pack(fill=tk.X, expand=True, padx=(0, self.padX), ipady=self.padY/2, side=tk.RIGHT)
+
+        self.label_formatter(self.edit_title, size=ThemeUpdateVars.FONT_SIZE_SMALL)
+        self.update_requests[gsuid()] = [self.edit_btn_panel, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
     def close(self, *_0, **_1):
         sys.stdout.write("at - _UI.close")
@@ -259,10 +275,13 @@ class _UI(Thread):
         self.root.bind('<3>', self.context_menu_show)
         self.root.bind('<F5>', self.update_ui)
         self.root.bind('<Control-r>', self.update_ui)
+        self.root.bind('<<EditConfiguration>>', self.edit_configuration)
+        self.root.bind('<<EditQuestions>>', self.edit_questions)
         # self.root.bind('<Configure>', self._onConfig)
 
         self.configure_sel_frame()
         self.configure_create_frame()
+        self.configure_edit_frame()
 
         self.ask_db_frame()
         self.update_ui()
@@ -420,6 +439,16 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
+    def edit_configuration(self, *_0, **_1):
+        log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
+        self.edit_configuration_btn.config(style='Active.TButton')
+        self.edit_questions_btn.config(style='TButton')
+
+    def edit_questions(self, *_0, **_1):
+        log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
+        self.edit_questions_btn.config(style='Active.TButton')
+        self.edit_configuration_btn.config(style='TButton')
+
     def new_main(self, *_0, **_1):
         global MAX
 
@@ -475,9 +504,8 @@ class _UI(Thread):
             self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
             return
 
-        file = qa_functions.File(f'{file}.{qa_files.qa_file_extn}')
-
-        db_starter = json.dumps({
+        file = qa_functions.File(f'{file}.{qa_files.qa_file_extn}' if file.split('.')[-1] != qa_files.qa_file_extn else file)
+        db_starter_dict = {
             'DB': {
                 'name': self.create_inp1_var.get(),
                 'psw': [self.data[self.CREATE_PAGE]['psw_enb'], self.create_inp2_var.get()]
@@ -486,10 +514,11 @@ class _UI(Thread):
 
             },
             'QUESTIONS': []
-        }, indent=4)
+        }
+        db_starter = json.dumps(db_starter_dict, indent=4)
 
         try:
-            data = qa_files.generate_file(FileType.QA_FILE, db_starter)
+            data, _ = qa_files.generate_file(FileType.QA_FILE, db_starter)
             qa_functions.SaveFile.secure(file, data, qa_functions.SaveFunctionArgs(append=False, encrypt=False, save_data_type=bytes))
         except Exception as E:
             log(LoggingLevel.ERROR, f'DB_CREATION: [save proc]: {traceback.format_exc()}')
@@ -499,6 +528,11 @@ Error: {E}
 Error Code: {hashlib.md5(f"{E}".encode()).hexdigest()}
 
 Technical Information: {traceback.format_exc()}"""))
+
+            self.proc_exit(self.CREATE_PAGE)
+            return
+
+        self.open(db_starter_dict)
 
     def new_entry(self, *_0, **_1):
         global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
@@ -533,7 +567,8 @@ Technical Information: {traceback.format_exc()}"""))
         self.disable_all_inputs()
 
         try:
-            self.ask_db_frame()
+            self.proc_exit(self.SELECT_PAGE)
+            raise Exception
         except:
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Failed to close database file.'))
 
@@ -561,8 +596,8 @@ Technical Information: {traceback.format_exc()}"""))
                 if file_name.split('.')[-1] != 'aspx':
                     file = qa_functions.File(file_name)
                     raw = qa_functions.OpenFile.load_file(file, qa_functions.OpenFunctionArgs())
-                    read = qa_files.load_file(qa_functions.FileType.QA_FILE, raw)
-                    print(read)
+                    read, _ = qa_files.load_file(qa_functions.FileType.QA_FILE, raw)
+                    self.open(json.loads(read))
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Failed to open database file.'))
@@ -575,6 +610,16 @@ Technical Information: {traceback.format_exc()}"""))
                     f'<DB_OPEN> {tb}',
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
+
+            self.proc_exit(self.SELECT_PAGE)
+            return
+
+    def open(self, data: dict):
+        self.enable_all_inputs()
+        self.edit_db_frame()
+        assert type(data) is dict
+
+        self.edit_title.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
 
     # --------------------
     # DEFAULT UI FUNCTIONS
@@ -598,7 +643,7 @@ Technical Information: {traceback.format_exc()}"""))
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+            sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
 
         def log_norm(com: str, el):
             if LOGGER_AVAIL:
@@ -608,7 +653,7 @@ Technical Information: {traceback.format_exc()}"""))
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stdout.write(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>\n")
+            sys.stdout.write(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>\n")
 
         for elID, (element, command, args) in self.update_requests.items():
             lCommand = [False]
@@ -887,8 +932,28 @@ Technical Information: {traceback.format_exc()}"""))
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
 
+        del cb_fg
+
         self.ttk_style = qa_functions.TTKTheme.configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme)
+
+        self.ttk_style.configure(
+            'Active.TButton',
+            background=self.theme.accent.color,
+            foreground=self.theme.background.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.background.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Active.TButton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
 
     def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG):
         if padding is None:
