@@ -1,4 +1,4 @@
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, PIL, hashlib, random, json
+import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, PIL, hashlib, random, json, copy
 from threading import Thread
 from typing import *
 from tkinter import ttk, filedialog
@@ -79,6 +79,7 @@ class _UI(Thread):
         self.img_size = (75, 75)
         self.img = None
         self.checkmark = None
+        self.checkmark_accent = None
         self.checkmark_src = ".src\\.icons\\.progress\\checkmark.svg"
         self.checkmark_tmp = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup".replace('/', '\\') + self.checkmark_src.split("\\")[-1]
         self.load_png()
@@ -408,6 +409,8 @@ class _UI(Thread):
         self.root.bind('<<EditConfiguration>>', self.edit_configuration)
         self.root.bind('<<EditQuestions>>', self.edit_questions)
         # self.root.bind('<Configure>', self._onConfig)
+        self.root.bind('<<EDIT_DB_PSW_CLICK>>', self.db_psw_toggle)
+        self.root.bind('<<EDIT_DB_PSW_RESET>>', self.db_psw_change)
 
         self.configure_sel_frame()
         self.configure_create_frame()
@@ -422,6 +425,71 @@ class _UI(Thread):
     # ---------------------
     # Custom Event Handlers
     # ---------------------
+
+    def db_psw_toggle(self, *args, **kwargs):
+        cond = self.data[self.EDIT_PAGE]['db']['DB']['psw'][0]
+
+        if not kwargs.get('nrst'):
+            if not cond:
+                if self.db_psw_change()[1]:
+                    self.show_info(Message(Levels.ERROR, "Couldn't set password."))
+                    return
+
+            cond = not cond
+            self.data[self.EDIT_PAGE]['db']['DB']['psw'][0] = cond
+
+        self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
+        if cond:
+            self.edit_db_psw_button.config(compound=tk.LEFT, image=self.checkmark_accent, style='Active.TButton')
+        else:
+            self.data[self.EDIT_PAGE]['db']['DB']['psw'][1] = ''
+            self.edit_db_psw_button.config(style='TButton', image='')
+
+    def db_psw_change(self, *args, **kwargs):
+        self.disable_all_inputs()
+        self.busy = True
+
+        s_mem = qa_functions.SMem()
+        sep = '<!%%QAP_INT_SE!@DB_PSW_CHANGE!?%2112312>'
+        qa_prompts.InputPrompts.DEntryPrompt(s_mem, sep, ['Enter a new admin password', 'Re-enter password'])
+
+        res = s_mem.get()
+        f = True
+        f1 = True
+
+        if isinstance(res, str):
+            res = res.strip()
+            if res != '':
+                a = res.split(sep)
+                if len(a) == 2:
+                    a, b = a
+                    f = False
+
+                    if a == b:
+                        f1 = False
+                        del b
+                        s_mem.set('')
+                        qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Reset Password?', ('Yes', 'y'), ("No", 'n'), default='n', message=f'Are you sure you want to reset your password to "{a}"')
+                        if s_mem.get() == 'y':
+                            hashed = hashlib.sha3_512(a.encode()).hexdigest()
+                            self.data[self.EDIT_PAGE]['db']['DB']['psw'] = [True, hashed]
+                            self.show_info(Message(Levels.OKAY, 'Successfully reset administrator password'))
+
+                    else:
+                        qa_prompts.MessagePrompts.show_error(
+                            qa_prompts.InfoPacket('Failed to reset password (passwords don\'t match.)')
+                        )
+
+        if f:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket('Failed to reset password (unknown error.)')
+            )
+
+        self.enable_all_inputs()
+        self.busy = False
+
+        del s_mem
+        return f, f1
 
     def inp2_edit(self, *args, **kwargs):
         global MAX
@@ -562,6 +630,10 @@ class _UI(Thread):
         self.page_index = exit_to_page if exit_to_page is not None else self.prev_page
         self.busy, self.dsb = False, False
 
+        self._clear_info()
+
+        self.data = {}
+
         if self.page_index == self.EDIT_PAGE:
             self.edit_db_frame()
         elif self.page_index == self.CREATE_PAGE:
@@ -606,13 +678,27 @@ class _UI(Thread):
         self.disable_all_inputs()
 
         try:
+            if self.page_index == self.EDIT_PAGE:
+                if self.data[self.EDIT_PAGE]['db'] != self.data[self.EDIT_PAGE]['db_saved']:
+                    s_mem = qa_functions.SMem()
+                    qa_prompts.InputPrompts.ButtonPrompt(
+                        s_mem, 'Save Changes?', ("Yes", "y"), ("No", 'n'), default='y',
+                        message="Changes have been detected in the current database; do yo want to save these changes?"
+                    )
+
+                    res = s_mem.get()
+                    del s_mem
+                    if isinstance(res, str):
+                        if res == 'y':
+                            self.save_db()
+
             self.proc_exit(self.SELECT_PAGE)
-            raise Exception
-        except:
-            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Failed to close database file.'))
+
+        except Exception as E:
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(f'Failed to close database file: {E}'))
 
             tb = traceback.format_exc()
-            sys.stderr.write(f'<NEW>: {tb}\n')
+            sys.stderr.write(f'<CLOSE>: {tb}\n')
             if LOGGER_AVAIL:
                 LOGGER_FUNC([qa_functions.LoggingPackage(
                     LoggingLevel.ERROR,
@@ -636,7 +722,7 @@ class _UI(Thread):
                     file = qa_functions.File(file_name)
                     raw = qa_functions.OpenFile.load_file(file, qa_functions.OpenFunctionArgs())
                     read, _ = qa_files.load_file(qa_functions.FileType.QA_FILE, raw)
-                    self.open(json.loads(read))
+                    self.open(file_name, json.loads(read), False)
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Failed to open database file.'))
@@ -665,11 +751,7 @@ class _UI(Thread):
         self.edit_configuration_btn.config(style='Active.TButton')
         self.edit_questions_btn.config(style='TButton')
 
-        cond = self.data[self.EDIT_PAGE]['db']['DB']['psw'][0]
-
-        self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
-        if cond:
-            self.edit_db_psw_button.config(compound=tk.LEFT, image=self.checkmark)
+        self.db_psw_toggle(nrst=True)
 
         self.edit_configuration_master_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -683,6 +765,103 @@ class _UI(Thread):
     # --------------
     # Main Functions
     # --------------
+
+    def compile_changes(self):
+        if self.data[self.EDIT_PAGE]['db_saved'] == self.data[self.EDIT_PAGE]['db']:
+            return False, []
+
+        def rec(og: any, new: any, root="") -> Tuple[List[str], List[str]]:
+            c, f = [], []
+
+            # assert , "[CRITICAL] Failed to compile changes: {DDT}"
+            if type(og) is not type(new):
+                f.append("[CRITICAL] Failed to compile changes: {DDT}")
+            tp = type(og)
+
+            if tp in [list, dict, tuple, set]:
+                # assert len(one) == len(two), "[CRITICAL] Failed to compile changes: {LEN}"
+                if len(og) != len(new):
+                    f.append("[CRITICAL] Failed to compile changes: {LEN}")
+
+                if tp is dict:
+                    for (k1, _), (k2, _1) in zip(og.items(), new.items()):
+                        if k1 != k2:
+                            f.append('[CRITICAL] Failed to compile changes: {KoKt}')
+                            continue
+
+                        print(k1, k2, og, new, _, _1, sep="\n\t")
+
+                        a, b = rec(og[k1], new[k1], k1)
+                        c.extend(a)
+                        f.extend(b)
+                        del a, b
+
+                else:
+                    for i, (a, b) in enumerate(zip(og, new)):
+                        if a != b:
+                            c.append([(root, i), a, b])
+
+            else:
+                if og != new:
+                    c.append([root, og, new])
+
+            del tp
+            return c, f
+
+        changes = rec(self.data[self.EDIT_PAGE]['db_saved'], self.data[self.EDIT_PAGE]['db'])
+        return True, changes
+
+    def save_db(self):
+        changed, [changes, failures] = self.compile_changes()
+        if not changed:
+            return
+
+        if len(failures) > 0:
+            Str = "Failed to compile changes made due to the following error(s):\n\t* " + \
+                    "\n\t* ".join(f for f in failures)
+            log(LoggingLevel.ERROR, f"<SAVE_DB>: {str}")
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(Str))
+            return
+
+        c = []
+        n_map = {
+            'psw': {
+                0: ['Password Protection', True],
+                1: ['Password', False]
+            }
+        }
+        for n, og, new in changes:
+            if isinstance(og, bool):
+                og = f"{'En' if og else 'Dis'}abled"
+
+            if isinstance(new, bool):
+                new = f"{'En' if new else 'Dis'}abled"
+
+            if isinstance(n, tuple):
+                n, ind = n
+                name = n_map[n][ind]
+            else:
+                name = n_map[n]
+
+            name, show = name
+            if show:
+                c.append(f"{name}: {og} \u2192 {new}")
+            else:
+                c.append(f"Changed {name.lower()}")
+
+        s_mem = qa_functions.SMem()
+        qa_prompts.InputPrompts.ButtonPrompt(
+            s_mem, 'Review Changes', ('Yes, save changes', 'y'), ('No', 'n'), default='n',
+            message='Changes:\n\t* ' + '\n\t* '.join(c)
+        )
+
+        if s_mem.get().strip() == 'y':
+            new = json.dumps(self.data[self.EDIT_PAGE]['db'])
+            file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
+            new, _ = qa_files.generate_file(FileType.QA_FILE, new)
+            qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
+            self.data[self.EDIT_PAGE]['db_saved'] = self.data[self.EDIT_PAGE]['db']
+            log(LoggingLevel.INFO, 'Successfully saved new database data.')
 
     def new_main(self, *_0, **_1):
         global MAX
@@ -738,12 +917,18 @@ class _UI(Thread):
             self.proc_exit(self.CREATE_PAGE)
             self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
             return
+        if not os.path.isdir('\\'.join(file.replace('/', '\\').split('\\')[:-2:])):
+            self.proc_exit(self.CREATE_PAGE)
+            self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
+            return
+
+        psw_ld = self.create_inp2_var.get().strip() if self.data[self.CREATE_PAGE]['psw_enb'] else ''
 
         file = qa_functions.File(f'{file}.{qa_files.qa_file_extn}' if file.split('.')[-1] != qa_files.qa_file_extn else file)
         db_starter_dict = {
             'DB': {
                 'name': self.create_inp1_var.get(),
-                'psw': [self.data[self.CREATE_PAGE]['psw_enb'], hashlib.sha3_512(self.create_inp2_var.get().encode()).hexdigest()]
+                'psw': [self.data[self.CREATE_PAGE]['psw_enb'], hashlib.sha3_512(psw_ld.encode()).hexdigest() if len(psw_ld) > 0 else '']
             },
             'CONFIGURATION': {
 
@@ -767,11 +952,13 @@ Technical Information: {traceback.format_exc()}"""))
             self.proc_exit(self.CREATE_PAGE)
             return
 
-        self.open(db_starter_dict, True)
+        self.open(file.file_path, db_starter_dict, True)
 
-    def open(self, data: dict, _bypass_psw: bool = False):
-        self.enable_all_inputs()
+    def open(self, path: str, data: dict, _bypass_psw: bool = False):
+        assert os.path.isfile(path)
         assert type(data) is dict
+
+        self.enable_all_inputs()
 
         try:
             if not _bypass_psw and data['DB']['psw'][0]:
@@ -798,7 +985,8 @@ Technical Information: {traceback.format_exc()}"""))
                     )
 
                     if s_mem.get() == 'rt':
-                        self.open(data, False)
+                        self.open(path, data, False)
+                        return
 
                     del s_mem
 
@@ -808,14 +996,12 @@ Technical Information: {traceback.format_exc()}"""))
                 del s_mem
 
             self.busy = False
-            self.enable_all_inputs()
-
-            self.edit_db_frame()
+            self.edit_db_frame()  # Pack components
 
             self.edit_title.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
-            self.data[self.EDIT_PAGE] = {
-                'db': data
-            }
+            self.data[self.EDIT_PAGE] = {'db_path': path}
+            self.data[self.EDIT_PAGE]['db'] = copy.deepcopy(data)
+            self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(data)
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(
@@ -1232,17 +1418,24 @@ Technical Information: {traceback.format_exc()}"""
 
         self.checkmark = get_svg(self.checkmark_tmp, self.theme.background.color, (self.theme.font_main_size, self.theme.font_main_size))
 
+        new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, self.theme.background.color)
+        qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
+
+        self.checkmark_accent = get_svg(self.checkmark_tmp, self.theme.accent.color, (self.theme.font_main_size, self.theme.font_main_size))
+
     def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button]]):
         self.dsb = True
 
-        for btn in (self.select_open, self.select_new):
+        for btn in (self.select_open, self.select_new, self.edit_questions_btn, self.edit_configuration_btn,
+                    self.edit_db_psw_reset_btn, self.edit_db_psw_button):
             if btn not in exclude:
                 btn.config(state=tk.DISABLED)
 
     def enable_all_inputs(self):
         self.dsb = False
 
-        for btn in (self.select_open, self.select_new):
+        for btn in (self.select_open, self.select_new, self.edit_questions_btn, self.edit_configuration_btn,
+                    self.edit_db_psw_reset_btn, self.edit_db_psw_button):
             btn.config(state=tk.NORMAL)
 
         self.update_ui()

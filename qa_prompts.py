@@ -1944,7 +1944,7 @@ class InputPrompts:
             self.thread.join(self, 0)
 
     class DEntryPrompt(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, ans_sep: str, labels_text: list):
+        def __init__(self, s_mem: qa_functions.SMem, ans_sep: str, labels_text: List[str]):
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
