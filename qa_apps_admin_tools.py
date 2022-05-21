@@ -87,7 +87,7 @@ class _UI(Thread):
 
         self.ttk_style = ttk.Style()
         self.ttk_style.theme_use(self.ttk_theme)
-        self.ttk_style = self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+        self.ttk_style = self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
 
         self.page_index = self.SELECT_PAGE
         self.prev_page = self.page_index
@@ -133,8 +133,27 @@ class _UI(Thread):
         self.edit_configuration_btn = ttk.Button(self.edit_btn_panel, text='Configuration', command=lambda: self.root.focus_get().event_generate('<<EditConfiguration>>'))
         self.edit_questions_btn = ttk.Button(self.edit_btn_panel, text='Questions', command=lambda: self.root.focus_get().event_generate('<<EditQuestions>>'))
 
+        self.edit_configuration_master_frame = tk.Frame(self.db_frame)
+        self.edit_configuration_canvas = tk.Canvas(self.edit_configuration_master_frame)
+        self.edit_configuration_vsb = ttk.Scrollbar(self.edit_configuration_master_frame, style='MyAdmin.TScrollbar')
+        self.edit_configuration_frame = tk.Frame(self.edit_configuration_canvas)
+
+        self.edit_password_container = tk.LabelFrame(self.edit_configuration_frame)
+        self.edit_db_psw_container = tk.LabelFrame(self.edit_password_container)
+        self.edit_qz_psw_container = tk.LabelFrame(self.edit_password_container)
+
+        self.edit_db_psw_var = tk.StringVar()
+        self.edit_db_psw_lbl = tk.Label(self.edit_db_psw_container)
+        self.edit_db_psw_button = ttk.Button(self.edit_db_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_DB_PSW_CLICK>>'))
+        self.edit_db_psw_reset_btn = ttk.Button(self.edit_db_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_DB_PSW_RESET>>'))
+        self.edit_db_psw_entry = ttk.Entry(self.edit_db_psw_container, textvariable=self.edit_db_psw_var)
+
         self.start()
         self.root.mainloop()
+
+    # -------------------
+    # Frame Configurators
+    # -------------------
 
     def configure_create_frame(self):
         self.create_title.config(justify=tk.LEFT, anchor=tk.W)
@@ -198,14 +217,131 @@ class _UI(Thread):
         self.select_new.pack(fill=tk.BOTH, expand=True, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
 
     def configure_edit_frame(self):
+        # Layout
         self.edit_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
         self.edit_btn_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
         self.edit_configuration_btn.pack(fill=tk.X, expand=True, padx=(self.padX, 0), ipady=self.padY/2, side=tk.LEFT)
         self.edit_questions_btn.pack(fill=tk.X, expand=True, padx=(0, self.padX), ipady=self.padY/2, side=tk.RIGHT)
 
-        self.label_formatter(self.edit_title, size=ThemeUpdateVars.FONT_SIZE_SMALL)
-        self.update_requests[gsuid()] = [self.edit_btn_panel, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.edit_configuration_vsb.pack(fill=tk.Y, expand=False, padx=(0, self.padX), pady=self.padY, side=tk.RIGHT)
+        self.edit_configuration_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=self.padY)
+
+        self.edit_password_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_db_psw_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=(self.padY, 0))
+        self.edit_qz_psw_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_password_container.config(text="Password Management")
+        self.edit_db_psw_container.config(text="Administrator Password")
+        self.edit_qz_psw_container.config(text="Quiz Password")
+
+        self.edit_db_psw_lbl.config(text="This password allows for the restriction of users who can edit this database.")
+        self.edit_db_psw_lbl.pack(fill=tk.X, expand=False, pady=self.padY, side=tk.TOP)
+
+        self.edit_db_psw_button.pack(fill=tk.X, expand=True, pady=self.padY, side=tk.LEFT)
+        self.edit_db_psw_reset_btn.pack(fill=tk.X, expand=True, pady=self.padY, side=tk.RIGHT)
+
+        self.edit_db_psw_button.config(text="")
+        self.edit_db_psw_reset_btn.config(text="Reset Password")
+
+        # Logical Setup
+        self.edit_db_psw_var.set('')
+
+        # Scrollbar setup
+        self.edit_configuration_vsb.configure(command=self.edit_configuration_canvas.yview)
+        self.edit_configuration_canvas.configure(yscrollcommand=self.edit_configuration_vsb.set)
+
+        self.edit_configuration_canvas.create_window(
+            (0, 0),
+            window=self.edit_configuration_frame,
+            anchor="nw",
+            tags="self.edit_configuration_frame"
+        )
+
+        self.edit_configuration_frame.update()
+        self.edit_configuration_frame.bind("<Configure>", self.onFrameConfig)
+        self.edit_configuration_canvas.bind("<MouseWheel>", self._on_mousewheel)
+
+        # Theme Requests
+        COM = ThemeUpdateCommands
+        VAR = ThemeUpdateVars
+
+        self.label_formatter(self.edit_title, size=VAR.FONT_SIZE_SMALL)
+        self.update_requests[gsuid()] = [self.edit_btn_panel, COM.BG, [VAR.BG]]
+        self.update_requests[gsuid()] = [self.edit_configuration_master_frame, COM.BG, [VAR.BG]]
+        self.update_requests[gsuid()] = [self.edit_configuration_frame, COM.BG, [VAR.BG]]
+        self.update_requests[gsuid()] = [self.edit_configuration_canvas, COM.BG, [VAR.BG]]
+        self.update_requests[gsuid()] = [
+            None, COM.CUSTOM,
+            [lambda *args: self.edit_configuration_canvas.config(bd=0, highlightthickness=0)]
+        ]
+        self.update_requests[gsuid()] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_password_container.config(
+                    bg=args[0], fg=args[1], font=args[2:3], highlightthickness=args[4],
+                    highlightbackground=args[5]
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
+        self.update_requests[gsuid()] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_db_psw_container.config(
+                    bg=args[0], fg=args[1], font=args[2:3], highlightthickness=args[4],
+                    highlightbackground=args[5], bd='0'
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
+        self.update_requests[gsuid()] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_qz_psw_container.config(
+                    bg=args[0], fg=args[1], font=args[2:3], highlightthickness=args[4],
+                    highlightbackground=args[5], bd='0'
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
+        self.update_requests[gsuid()] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_db_psw_lbl.config(
+                    bg=args[0], fg=args[1], font=args[2:3]
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+
+    # -----------------
+    # LL Event Handlers
+    # -----------------
+
+    def _on_mousewheel(self, event):
+        """
+        Straight out of stackoverflow
+        Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
+        Change: added "int" around the first arg
+        """
+        self.edit_configuration_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def onFrameConfig(self, event):
+        self.edit_configuration_canvas.configure(scrollregion=self.edit_configuration_canvas.bbox("all"))
+
+    # ------------
+    # GEO Handlers
+    # ------------
+
+    def geo_large(self):
+        self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
+
+    def geo_small(self):
+        self.root.geometry(f"{self.window_size_2[0]}x{self.window_size_2[1]}+{self.screen_pos_2[0]}+{self.screen_pos_2[1]}")
+
+    # -----
+    # SETUP
+    # -----
 
     def close(self, *_0, **_1):
         sys.stdout.write("at - _UI.close")
@@ -213,12 +349,6 @@ class _UI(Thread):
         self.ic.shell_ready = False
 
         self.root.quit()
-
-    def geo_large(self):
-        self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-
-    def geo_small(self):
-        self.root.geometry(f"{self.window_size_2[0]}x{self.window_size_2[1]}+{self.screen_pos_2[0]}+{self.screen_pos_2[1]}")
 
     def run(self):
         global DEBUG_NORM, APP_TITLE
@@ -288,6 +418,10 @@ class _UI(Thread):
 
         self.root.deiconify()
         self.root.focus_get()
+
+    # ---------------------
+    # Custom Event Handlers
+    # ---------------------
 
     def inp2_edit(self, *args, **kwargs):
         global MAX
@@ -439,101 +573,6 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
-    def edit_configuration(self, *_0, **_1):
-        log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
-        self.edit_configuration_btn.config(style='Active.TButton')
-        self.edit_questions_btn.config(style='TButton')
-
-    def edit_questions(self, *_0, **_1):
-        log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
-        self.edit_questions_btn.config(style='Active.TButton')
-        self.edit_configuration_btn.config(style='TButton')
-
-    def new_main(self, *_0, **_1):
-        global MAX
-
-        log(LoggingLevel.DEBUG, 'Entered new_main proc')
-
-        log(LoggingLevel.INFO, "DB_CREATION: <nm> proc")
-        l = len(self.create_inp1_var.get())
-        p = 0 < l <= MAX
-        log(LoggingLevel.INFO, f"DB_CREATION: <nm>; res: {l} ({'pass' if p else 'fail'})")
-        if not p:
-            qa_prompts.MessagePrompts.show_error(
-                qa_prompts.InfoPacket(f"Database name's length must be between 1 and {MAX} characters.")
-            )
-            return
-
-        if self.data[self.CREATE_PAGE]['psw_enb']:
-            log(LoggingLevel.INFO, "DB_CREATION: <pr> proc")
-            psw = self.create_inp2_var.get()
-
-            if not isinstance(psw, str):  # Shouldn't be needed, but just in case.
-                log(LoggingLevel.ERROR, "DB_CREATION: p!=str [prompt*]")
-                qa_prompts.MessagePrompts.show_error(
-                    qa_prompts.InfoPacket("Please enter a password, or deselect the password option.")
-                )
-                return
-
-            log(LoggingLevel.INFO, f"DB_CREATION: <pr:len> {len(psw)}")
-            hashed_psw = hashlib.sha3_512(psw.encode()).hexdigest()
-            log(LoggingLevel.INFO, f"DB_CREATION: <pr:hash> {hashed_psw}")
-
-            if len(psw.strip()) == 0:
-                log(LoggingLevel.ERROR, "DB_CREATION: p::strip!>0 [prompt*]")
-                qa_prompts.MessagePrompts.show_error(
-                    qa_prompts.InfoPacket("Please enter a password, or deselect the password option.")
-                )
-                return
-
-            if psw != psw.replace(' ', '').replace('\n', '').replace('\t', ''):
-                log(LoggingLevel.ERROR, "DB_CREATION: p::n_space!=<p> [prompt*]")
-                qa_prompts.MessagePrompts.show_error(
-                    qa_prompts.InfoPacket("Password may not contain spaces.")
-                )
-                return
-
-            log(LoggingLevel.INFO, "DB_CREATION: Password okay; hash stored in screen temp data.")
-            self.data[self.CREATE_PAGE]['psw'] = hashed_psw
-
-        log(LoggingLevel.INFO, "DB_CREATION: <sa> proc [prompt*_tk:filedialog]")
-
-        file = filedialog.asksaveasfilename(filetypes=[('QA File', qa_files.qa_file_extn)])
-        if file is None:
-            self.proc_exit(self.CREATE_PAGE)
-            self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
-            return
-
-        file = qa_functions.File(f'{file}.{qa_files.qa_file_extn}' if file.split('.')[-1] != qa_files.qa_file_extn else file)
-        db_starter_dict = {
-            'DB': {
-                'name': self.create_inp1_var.get(),
-                'psw': [self.data[self.CREATE_PAGE]['psw_enb'], self.create_inp2_var.get()]
-            },
-            'CONFIGURATION': {
-
-            },
-            'QUESTIONS': []
-        }
-        db_starter = json.dumps(db_starter_dict, indent=4)
-
-        try:
-            data, _ = qa_files.generate_file(FileType.QA_FILE, db_starter)
-            qa_functions.SaveFile.secure(file, data, qa_functions.SaveFunctionArgs(append=False, encrypt=False, save_data_type=bytes))
-        except Exception as E:
-            log(LoggingLevel.ERROR, f'DB_CREATION: [save proc]: {traceback.format_exc()}')
-            qa_prompts.MessagePrompts.show_error(
-                qa_prompts.InfoPacket(f"""An error occurred whilst creating the new database;
-Error: {E}
-Error Code: {hashlib.md5(f"{E}".encode()).hexdigest()}
-
-Technical Information: {traceback.format_exc()}"""))
-
-            self.proc_exit(self.CREATE_PAGE)
-            return
-
-        self.open(db_starter_dict)
-
     def new_entry(self, *_0, **_1):
         global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
 
@@ -614,12 +653,180 @@ Technical Information: {traceback.format_exc()}"""))
             self.proc_exit(self.SELECT_PAGE)
             return
 
-    def open(self, data: dict):
+        self.busy = False
         self.enable_all_inputs()
-        self.edit_db_frame()
+
+    # -----------
+    # PAGE CHANGE
+    # -----------
+
+    def edit_configuration(self, *_0, **_1):
+        log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
+        self.edit_configuration_btn.config(style='Active.TButton')
+        self.edit_questions_btn.config(style='TButton')
+
+        cond = self.data[self.EDIT_PAGE]['db']['DB']['psw'][0]
+
+        self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
+        if cond:
+            self.edit_db_psw_button.config(compound=tk.LEFT, image=self.checkmark)
+
+        self.edit_configuration_master_frame.pack(fill=tk.BOTH, expand=True)
+
+    def edit_questions(self, *_0, **_1):
+        log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
+        self.edit_questions_btn.config(style='Active.TButton')
+        self.edit_configuration_btn.config(style='TButton')
+
+        self.edit_configuration_master_frame.pack_forget()
+
+    # --------------
+    # Main Functions
+    # --------------
+
+    def new_main(self, *_0, **_1):
+        global MAX
+
+        log(LoggingLevel.DEBUG, 'Entered new_main proc')
+
+        log(LoggingLevel.INFO, "DB_CREATION: <nm> proc")
+        l = len(self.create_inp1_var.get())
+        p = 0 < l <= MAX
+        log(LoggingLevel.INFO, f"DB_CREATION: <nm>; res: {l} ({'pass' if p else 'fail'})")
+        if not p:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(f"Database name's length must be between 1 and {MAX} characters.")
+            )
+            return
+
+        if self.data[self.CREATE_PAGE]['psw_enb']:
+            log(LoggingLevel.INFO, "DB_CREATION: <pr> proc")
+            psw = self.create_inp2_var.get()
+
+            if not isinstance(psw, str):  # Shouldn't be needed, but just in case.
+                log(LoggingLevel.ERROR, "DB_CREATION: p!=str [prompt*]")
+                qa_prompts.MessagePrompts.show_error(
+                    qa_prompts.InfoPacket("Please enter a password, or deselect the password option.")
+                )
+                return
+
+            log(LoggingLevel.INFO, f"DB_CREATION: <pr:len> {len(psw)}")
+            hashed_psw = hashlib.sha3_512(psw.encode()).hexdigest()
+            log(LoggingLevel.INFO, f"DB_CREATION: <pr:hash> {hashed_psw}")
+
+            if len(psw.strip()) == 0:
+                log(LoggingLevel.ERROR, "DB_CREATION: p::strip!>0 [prompt*]")
+                qa_prompts.MessagePrompts.show_error(
+                    qa_prompts.InfoPacket("Please enter a password, or deselect the password option.")
+                )
+                return
+
+            if psw != psw.replace(' ', '').replace('\n', '').replace('\t', ''):
+                log(LoggingLevel.ERROR, "DB_CREATION: p::n_space!=<p> [prompt*]")
+                qa_prompts.MessagePrompts.show_error(
+                    qa_prompts.InfoPacket("Password may not contain spaces.")
+                )
+                return
+
+            log(LoggingLevel.INFO, "DB_CREATION: Password okay; hash stored in screen temp data.")
+            self.data[self.CREATE_PAGE]['psw'] = hashed_psw
+
+        log(LoggingLevel.INFO, "DB_CREATION: <sa> proc [prompt*_tk:filedialog]")
+
+        file = filedialog.asksaveasfilename(filetypes=[('QA File', qa_files.qa_file_extn)])
+        if file is None:
+            self.proc_exit(self.CREATE_PAGE)
+            self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
+            return
+
+        file = qa_functions.File(f'{file}.{qa_files.qa_file_extn}' if file.split('.')[-1] != qa_files.qa_file_extn else file)
+        db_starter_dict = {
+            'DB': {
+                'name': self.create_inp1_var.get(),
+                'psw': [self.data[self.CREATE_PAGE]['psw_enb'], hashlib.sha3_512(self.create_inp2_var.get().encode()).hexdigest()]
+            },
+            'CONFIGURATION': {
+
+            },
+            'QUESTIONS': []
+        }
+        db_starter = json.dumps(db_starter_dict, indent=4)
+
+        try:
+            data, _ = qa_files.generate_file(FileType.QA_FILE, db_starter)
+            qa_functions.SaveFile.secure(file, data, qa_functions.SaveFunctionArgs(append=False, encrypt=False, save_data_type=bytes))
+        except Exception as E:
+            log(LoggingLevel.ERROR, f'DB_CREATION: [save proc]: {traceback.format_exc()}')
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(f"""An error occurred whilst creating the new database;
+Error: {E}
+Error Code: {hashlib.md5(f"{E}".encode()).hexdigest()}
+
+Technical Information: {traceback.format_exc()}"""))
+
+            self.proc_exit(self.CREATE_PAGE)
+            return
+
+        self.open(db_starter_dict, True)
+
+    def open(self, data: dict, _bypass_psw: bool = False):
+        self.enable_all_inputs()
         assert type(data) is dict
 
-        self.edit_title.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
+        try:
+            if not _bypass_psw and data['DB']['psw'][0]:
+                s_mem = qa_functions.SMem()
+                qa_prompts.InputPrompts.SEntryPrompt(s_mem, f'Enter database password for \'{data["DB"]["name"]}\'', '')
+
+                if s_mem.get() is None:
+                    del s_mem
+
+                    self.proc_exit(self.SELECT_PAGE)
+                    return
+
+                if s_mem.get().strip() == '':
+                    del s_mem
+
+                    self.proc_exit(self.SELECT_PAGE)
+                    return
+
+                if hashlib.sha3_512(s_mem.get().encode()).hexdigest() != data['DB']['psw'][1]:
+                    s_mem.set('')
+                    qa_prompts.InputPrompts.ButtonPrompt(
+                        s_mem, 'Security', ('Retry', 'rt'), ('Exit', 'ex'), default='?',
+                        message="Couldn't open database: Invalid password. Do you want to retry?"
+                    )
+
+                    if s_mem.get() == 'rt':
+                        self.open(data, False)
+
+                    del s_mem
+
+                    self.proc_exit(self.SELECT_PAGE)
+                    return
+
+                del s_mem
+
+            self.busy = False
+            self.enable_all_inputs()
+
+            self.edit_db_frame()
+
+            self.edit_title.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
+            self.data[self.EDIT_PAGE] = {
+                'db': data
+            }
+
+        except Exception as E:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(
+                    f"""An error occurred whilst opening the database;
+Error: {E}
+Error Code: {hashlib.md5(f"{E}".encode()).hexdigest()}
+
+Technical Information: {traceback.format_exc()}"""
+                )
+            )
 
     # --------------------
     # DEFAULT UI FUNCTIONS
@@ -934,7 +1141,7 @@ Technical Information: {traceback.format_exc()}"""))
 
         del cb_fg
 
-        self.ttk_style = qa_functions.TTKTheme.configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+        self.ttk_style = qa_functions.TTKTheme.configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme)
 
         self.ttk_style.configure(

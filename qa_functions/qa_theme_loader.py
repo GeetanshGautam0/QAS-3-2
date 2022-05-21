@@ -497,9 +497,9 @@ class Test:
 
 class TTK:
     @staticmethod
-    def configure_scrollbar_style(style: ttk.Style, theme: Theme, accent_color):
-        style.layout("My.TScrollbar",
-                     [('My.Scrollbar.trough', {'children':
+    def configure_scrollbar_style(style: ttk.Style, theme: Theme, accent_color, name_suffix=''):
+        style.layout(f'My{name_suffix}.TScrollbar',
+                     [(f'My{name_suffix}.TScrollbar.trough', {'children':
                          [
                              ('Vertical.Scrollbar.uparrow', {'side': 'top', 'sticky': ''}),
                              ('Vertical.Scrollbar.downarrow', {'side': 'bottom', 'sticky': ''}),
@@ -507,16 +507,17 @@ class TTK:
                                  [('Vertical.Scrollbar.grip', {'sticky': ''})], 'sticky': 'nswe'})],
                          'sticky': 'ns'})
                       ])
-        # style.configure("My.TScrollbar", *style.configure("TScrollbar"))
-        style.configure("My.TScrollbar", troughcolor=theme.background.color)
+
+        # style.configure(f'My{name_suffix}.TScrollbar', *style.configure("TScrollbar"))
+        style.configure(f'My{name_suffix}.TScrollbar', troughcolor=theme.background.color)
 
         style.configure(
-            'My.TScrollbar',
+            f'My{name_suffix}.TScrollbar',
             background=theme.background.color,
             arrowcolor=accent_color
         )
         style.map(
-            "My.TScrollbar",
+            f'My{name_suffix}.TScrollbar',
             background=[
                 ("active", accent_color), ('disabled', theme.background.color)
             ],
@@ -528,8 +529,8 @@ class TTK:
             ]
         )
 
-        style.layout("MyHoriz.TScrollbar",
-                     [('MyHoriz.Scrollbar.trough', {'children':
+        style.layout(f'MyHoriz{name_suffix}.TScrollbar',
+                     [(f'MyHoriz{name_suffix}.TScrollbar.trough', {'children':
                          [
                              ('Horizontal.Scrollbar.leftarrow', {'side': 'left', 'sticky': ''}),
                              ('Horizontal.Scrollbar.rightarrow', {'side': 'right', 'sticky': ''}),
@@ -537,16 +538,17 @@ class TTK:
                                  [('Horizontal.Scrollbar.grip', {'sticky': ''})], 'sticky': 'nswe'})],
                          'sticky': 'ew'})
                       ])
-        # style.configure("My.TScrollbar", *style.configure("TScrollbar"))
-        style.configure("MyHoriz.TScrollbar", troughcolor=theme.background.color)
+
+        # style.configure(f'MyHoriz{name_suffix}.TScrollbar', *style.configure("TScrollbar"))
+        style.configure(f'MyHoriz{name_suffix}.TScrollbar', troughcolor=theme.background.color)
 
         style.configure(
-            'MyHoriz.TScrollbar',
+            f'MyHoriz{name_suffix}.TScrollbar',
             background=theme.background.color,
             arrowcolor=accent_color
         )
         style.map(
-            "MyHoriz.TScrollbar",
+            f'MyHoriz{name_suffix}.TScrollbar',
             background=[
                 ("active", accent_color), ('disabled', theme.background.color)
             ],

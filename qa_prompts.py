@@ -92,7 +92,7 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
 
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
@@ -100,7 +100,7 @@ class MessagePrompts:
             self.data_label = tk.Label(self.root)
             self.data_frame = tk.Frame(self.root)
             self.data_txt = tk.Text(self.data_frame, wrap=tk.WORD)
-            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='My.TScrollbar')
+            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='MyPrompts.TScrollbar')
             self.close_button = tk.Button(self.root, command=self.close)
 
             self.start()
@@ -247,7 +247,7 @@ class MessagePrompts:
                 del lCommand, cargs
 
             self.update_svg()
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
 
         def svg_set_path(self):
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
@@ -411,7 +411,7 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.warning.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.warning.color, 'Prompts')
 
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
@@ -419,7 +419,7 @@ class MessagePrompts:
             self.data_label = tk.Label(self.root)
             self.data_frame = tk.Frame(self.root)
             self.data_txt = tk.Text(self.data_frame, wrap=tk.WORD)
-            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='My.TScrollbar')
+            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='MyPrompts.TScrollbar')
             self.close_button = tk.Button(self.root, command=self.close)
 
             self.start()
@@ -566,7 +566,7 @@ class MessagePrompts:
                 del lCommand, cargs
 
             self.update_svg()
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.warning.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.warning.color, 'Prompts')
 
         def svg_set_path(self):
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
@@ -731,7 +731,7 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.error.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.error.color, 'Prompts')
 
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
@@ -739,7 +739,7 @@ class MessagePrompts:
             self.data_label = tk.Label(self.root)
             self.data_frame = tk.Frame(self.root)
             self.data_txt = tk.Text(self.data_frame, wrap=tk.WORD)
-            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='My.TScrollbar')
+            self.data_sc_bar = ttk.Scrollbar(self.data_frame, style='MyPrompts.TScrollbar')
             self.close_button = tk.Button(self.root, command=self.close)
 
             self.start()
@@ -885,7 +885,7 @@ class MessagePrompts:
                 del lCommand, cargs
 
             self.update_svg()
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.error.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.error.color, 'Prompts')
 
         def svg_set_path(self):
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
@@ -1043,7 +1043,7 @@ class InputPrompts:
             self.title_img = None
             self.title_img_size = (50, 50)
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1243,7 +1243,7 @@ class InputPrompts:
                 del lCommand, cargs
 
             self.update_svg()
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme, self.theme.accent.color if not self.success else self.theme.okay.color)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1645,7 +1645,7 @@ class InputPrompts:
             self.load_theme()
             self.update_requests = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1813,7 +1813,7 @@ class InputPrompts:
 
                 del lCommand, cargs
 
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1972,7 +1972,7 @@ class InputPrompts:
             self.load_theme()
             self.update_requests = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -2136,7 +2136,7 @@ class InputPrompts:
 
                 del lCommand, cargs
 
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -2305,7 +2305,7 @@ class InputPrompts:
             self.load_theme()
             self.update_requests = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -2467,7 +2467,7 @@ class InputPrompts:
 
                 del lCommand, cargs
 
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -2583,7 +2583,7 @@ class InputPrompts:
                 self.error_label.config(text=f"Please fill out all of the information ({self.err_acc})")
                 self.select_button.config(state=tk.NORMAL)
                 self.close_button.config(state=tk.NORMAL)
-                self.entry1.config(state=tk.DISABLED)
+                self.entry1.config(state=tk.NORMAL)
                 return
 
             self.error_label.config(text="")
@@ -2629,7 +2629,7 @@ class InputPrompts:
             self.load_theme()
             self.update_requests = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -2790,7 +2790,7 @@ class InputPrompts:
 
                 del lCommand, cargs
 
-            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 

@@ -59,7 +59,7 @@ class _UI(Thread):
 
         self.ttk_style = ttk.Style()
         self.ttk_style.theme_use(self.ttk_theme)
-        self.ttk_style = self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+        self.ttk_style = self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'TU')
 
         self.title_box = tk.Frame(self.root)
         self.title_label = tk.Label(self.title_box)
@@ -86,8 +86,8 @@ class _UI(Thread):
         self.showcase_root_frame = tk.LabelFrame(self.root)
         self.showcase_canvas = tk.Canvas(self.showcase_root_frame)
         self.showcase_frame = tk.Frame(self.showcase_canvas)
-        self.showcase_vsb = ttk.Scrollbar(self.showcase_root_frame, style='My.TScrollbar')
-        self.showcase_xsb = ttk.Scrollbar(self.showcase_root_frame, style='MyHoriz.TScrollbar', orient=tk.HORIZONTAL)
+        self.showcase_vsb = ttk.Scrollbar(self.showcase_root_frame, style='MyTU.TScrollbar')
+        self.showcase_xsb = ttk.Scrollbar(self.showcase_root_frame, style='MyHorizTU.TScrollbar', orient=tk.HORIZONTAL)
 
         self.showcase_f1 = tk.Frame(self.showcase_frame)
         self.showcase_f2 = tk.Frame(self.showcase_frame)
@@ -347,7 +347,7 @@ class _UI(Thread):
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
 
-        self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color)
+        self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'TU')
 
         HC = qa_functions.HexColor
         bw = int(0.025*self.window_size[0])
