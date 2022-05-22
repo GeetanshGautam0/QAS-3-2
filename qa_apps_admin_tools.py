@@ -875,8 +875,6 @@ class _UI(Thread):
                             f.append('[CRITICAL] Failed to compile changes: {KoKt}')
                             continue
 
-                        print(k1, k2, og, new, _, _1, sep="\n\t")
-
                         a, b = rec(og[k1], new[k1], k1)
                         c.extend(a)
                         f.extend(b)
