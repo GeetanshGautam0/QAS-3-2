@@ -143,11 +143,13 @@ class _UI(Thread):
         self.edit_db_psw_container = tk.LabelFrame(self.edit_password_container)
         self.edit_qz_psw_container = tk.LabelFrame(self.edit_password_container)
 
-        self.edit_db_psw_var = tk.StringVar()
         self.edit_db_psw_lbl = tk.Label(self.edit_db_psw_container)
         self.edit_db_psw_button = ttk.Button(self.edit_db_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_DB_PSW_CLICK>>'))
         self.edit_db_psw_reset_btn = ttk.Button(self.edit_db_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_DB_PSW_RESET>>'))
-        self.edit_db_psw_entry = ttk.Entry(self.edit_db_psw_container, textvariable=self.edit_db_psw_var)
+
+        self.edit_qz_psw_lbl = tk.Label(self.edit_qz_psw_container)
+        self.edit_qz_psw_button = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_CLICK>>'))
+        self.edit_qz_psw_reset_btn = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_RESET>>'))
 
         self.start()
         self.root.mainloop()
@@ -244,8 +246,14 @@ class _UI(Thread):
         self.edit_db_psw_button.config(text="")
         self.edit_db_psw_reset_btn.config(text="Reset Password")
 
-        # Logical Setup
-        self.edit_db_psw_var.set('')
+        self.edit_qz_psw_lbl.config(text="This password allows for the restriction of users who can access the quiz.")
+        self.edit_qz_psw_lbl.pack(fill=tk.X, expand=False, pady=self.padY, side=tk.TOP)
+
+        self.edit_qz_psw_button.pack(fill=tk.X, expand=True, pady=self.padY, side=tk.LEFT)
+        self.edit_qz_psw_reset_btn.pack(fill=tk.X, expand=True, pady=self.padY, side=tk.RIGHT)
+
+        self.edit_qz_psw_button.config(text="")
+        self.edit_qz_psw_reset_btn.config(text="Reset Password")
 
         # Scrollbar setup
         self.edit_configuration_vsb.configure(command=self.edit_configuration_canvas.yview)
@@ -309,6 +317,15 @@ class _UI(Thread):
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_db_psw_lbl.config(
+                    bg=args[0], fg=args[1], font=args[2:3]
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests[gsuid()] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_qz_psw_lbl.config(
                     bg=args[0], fg=args[1], font=args[2:3]
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
@@ -411,6 +428,8 @@ class _UI(Thread):
         # self.root.bind('<Configure>', self._onConfig)
         self.root.bind('<<EDIT_DB_PSW_CLICK>>', self.db_psw_toggle)
         self.root.bind('<<EDIT_DB_PSW_RESET>>', self.db_psw_change)
+        self.root.bind('<<EDIT_QZ_PSW_CLICK>>', self.qz_psw_toggle)
+        self.root.bind('<<EDIT_QZ_PSW_RESET>>', self.qz_psw_change)
 
         self.configure_sel_frame()
         self.configure_create_frame()
@@ -469,7 +488,7 @@ class _UI(Thread):
                         f1 = False
                         del b
                         s_mem.set('')
-                        qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Reset Password?', ('Yes', 'y'), ("No", 'n'), default='n', message=f'Are you sure you want to reset your password to "{a}"')
+                        qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Reset Admin Password?', ('Yes', 'y'), ("No", 'n'), default='n', message=f'Are you sure you want to reset your password to "{a}"')
                         if s_mem.get() == 'y':
                             hashed = hashlib.sha3_512(a.encode()).hexdigest()
                             self.data[self.EDIT_PAGE]['db']['DB']['psw'] = [True, hashed]
@@ -483,6 +502,71 @@ class _UI(Thread):
         if f:
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket('Failed to reset password (unknown error.)')
+            )
+
+        self.enable_all_inputs()
+        self.busy = False
+
+        del s_mem
+        return f, f1
+
+    def qz_psw_toggle(self, *args, **kwargs):
+        cond = self.data[self.EDIT_PAGE]['db']['DB']['q_psw'][0]
+
+        if not kwargs.get('nrst'):
+            if not cond:
+                if self.qz_psw_change()[1]:
+                    self.show_info(Message(Levels.ERROR, "Couldn't set password."))
+                    return
+
+            cond = not cond
+            self.data[self.EDIT_PAGE]['db']['DB']['q_psw'][0] = cond
+
+        self.edit_qz_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
+        if cond:
+            self.edit_qz_psw_button.config(compound=tk.LEFT, image=self.checkmark_accent, style='Active.TButton')
+        else:
+            self.data[self.EDIT_PAGE]['db']['DB']['q_psw'][1] = ''
+            self.edit_qz_psw_button.config(style='TButton', image='')
+
+    def qz_psw_change(self, *args, **kwargs):
+        self.disable_all_inputs()
+        self.busy = True
+
+        s_mem = qa_functions.SMem()
+        sep = '<!%%QAP_INT_SE!@DB_PSW_CHANGE!?%2112312>'
+        qa_prompts.InputPrompts.DEntryPrompt(s_mem, sep, ['Enter a new quiz password', 'Re-enter password'])
+
+        res = s_mem.get()
+        f = True
+        f1 = True
+
+        if isinstance(res, str):
+            res = res.strip()
+            if res != '':
+                a = res.split(sep)
+                if len(a) == 2:
+                    a, b = a
+                    f = False
+
+                    if a == b:
+                        f1 = False
+                        del b
+                        s_mem.set('')
+                        qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Reset Quiz Password?', ('Yes', 'y'), ("No", 'n'), default='n', message=f'Are you sure you want to reset your password to "{a}"')
+                        if s_mem.get() == 'y':
+                            hashed = hashlib.sha3_512(a.encode()).hexdigest()
+                            self.data[self.EDIT_PAGE]['db']['DB']['q_psw'] = [True, hashed]
+                            self.show_info(Message(Levels.OKAY, 'Successfully reset quiz password'))
+
+                    else:
+                        qa_prompts.MessagePrompts.show_error(
+                            qa_prompts.InfoPacket('Failed to reset quiz access password (passwords don\'t match.)')
+                        )
+
+        if f:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket('Failed to reset quiz access password (unknown error.)')
             )
 
         self.enable_all_inputs()
@@ -752,6 +836,7 @@ class _UI(Thread):
         self.edit_questions_btn.config(style='TButton')
 
         self.db_psw_toggle(nrst=True)
+        self.qz_psw_toggle(nrst=True)
 
         self.edit_configuration_master_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -775,13 +860,14 @@ class _UI(Thread):
 
             # assert , "[CRITICAL] Failed to compile changes: {DDT}"
             if type(og) is not type(new):
-                f.append("[CRITICAL] Failed to compile changes: {DDT}")
+                c.append([root, og, new])
+                return c, []
+
             tp = type(og)
 
             if tp in [list, dict, tuple, set]:
-                # assert len(one) == len(two), "[CRITICAL] Failed to compile changes: {LEN}"
                 if len(og) != len(new):
-                    f.append("[CRITICAL] Failed to compile changes: {LEN}")
+                    c.append([root, '<ls/dct>', '<data_added>'])
 
                 if tp is dict:
                     for (k1, _), (k2, _1) in zip(og.items(), new.items()):
@@ -826,24 +912,29 @@ class _UI(Thread):
         c = []
         n_map = {
             'psw': {
-                0: ['Password Protection', True],
-                1: ['Password', False]
-            }
+                0: ['Database Password Protection', True, True],
+                1: ['Admin password', False, True]
+            },
+            'q_psw': {
+                0: ['Quiz Password Protection', True, True],
+                1: ['Quiz password', False, True]
+            },
+            'DB': ['Database root configuration', False, False]
         }
         for n, og, new in changes:
-            if isinstance(og, bool):
-                og = f"{'En' if og else 'Dis'}abled"
-
-            if isinstance(new, bool):
-                new = f"{'En' if new else 'Dis'}abled"
-
             if isinstance(n, tuple):
                 n, ind = n
-                name = n_map[n][ind]
+                name, show, v_trans = n_map[n][ind]
             else:
-                name = n_map[n]
+                name, show, v_trans = n_map[n]
 
-            name, show = name
+            if v_trans:
+                if isinstance(og, bool):
+                    og = f"{'En' if og else 'Dis'}abled"
+
+                if isinstance(new, bool):
+                    new = f"{'En' if new else 'Dis'}abled"
+
             if show:
                 c.append(f"{name}: {og} \u2192 {new}")
             else:
@@ -928,7 +1019,8 @@ class _UI(Thread):
         db_starter_dict = {
             'DB': {
                 'name': self.create_inp1_var.get(),
-                'psw': [self.data[self.CREATE_PAGE]['psw_enb'], hashlib.sha3_512(psw_ld.encode()).hexdigest() if len(psw_ld) > 0 else '']
+                'psw': [self.data[self.CREATE_PAGE]['psw_enb'], hashlib.sha3_512(psw_ld.encode()).hexdigest() if len(psw_ld) > 0 else ''],
+                'q_psw': [False, '']
             },
             'CONFIGURATION': {
 
@@ -954,6 +1046,84 @@ Technical Information: {traceback.format_exc()}"""))
 
         self.open(file.file_path, db_starter_dict, True)
 
+    @staticmethod
+    def _clean_db(db: dict) -> dict:
+        assert isinstance(db, dict)
+        name_f, name_d = qa_functions.data_at_dict_path('DB/name', db)
+        assert name_f
+
+        log(LoggingLevel.INFO, 'Checking database integrity')
+
+        def rs_name():
+            log(LoggingLevel.ERROR, 'Name data corrupted')
+
+            s_mem = qa_functions.SMem()
+            s_mem.set('')
+
+            while True:
+                qa_prompts.InputPrompts.SEntryPrompt(s_mem, 'The database\'s name data was corrupted; please enter a new name below:', default='')
+                res = s_mem.get().strip()
+                if len(res) > 0:
+                    break
+
+            log(LoggingLevel.ERROR, f'Name reset to \"{res}\"')
+
+            db['DB']['name'] = res
+            del res, s_mem
+
+        if not isinstance(name_d, str):
+            rs_name()
+        elif len(name_d.strip()) <= 0:
+            rs_name()
+
+        _, psw_d = qa_functions.data_at_dict_path('DB/psw', db)
+        b = isinstance(psw_d, list)
+        if b:
+            b &= len(psw_d) == 2
+            if b:
+                b &= isinstance(psw_d[0], bool)
+                b &= isinstance(psw_d[1], str)
+
+                if b:
+                    b &= not (len(psw_d[1]) != 128 and psw_d[0])  # NAND logic gate
+
+                    # NAND:
+                    # <!128> and <!enb>: True
+                    # <128> and <!enb>: False
+                    # <!128> and <enb>: False
+                    # <128> and <enb>: True
+
+        if not b:
+            log(LoggingLevel.ERROR, 'DB_PSW corruption; reset.')
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Administrator password corrupted; protection disabled.'))
+            db['DB']['psw'] = [False, '']
+
+        del psw_d
+
+        _, q_psw_d = qa_functions.data_at_dict_path('DB/q_psw', db)
+        b = isinstance(q_psw_d, list)
+        if b:
+            b &= len(q_psw_d) == 2
+            if b:
+                b &= isinstance(q_psw_d[0], bool)
+                b &= isinstance(q_psw_d[1], str)
+
+                if b:
+                    b &= not (len(q_psw_d[1]) != 128 and q_psw_d[0])  # NAND logic gate
+
+                    # NAND:
+                    # <!128> and <!enb>: True
+                    # <128> and <!enb>: False
+                    # <!128> and <enb>: False
+                    # <128> and <enb>: True
+
+        if not b:
+            log(LoggingLevel.ERROR, 'QZ_PSW corruption; reset.')
+            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Quiz password corrupted; protection disabled.'))
+            db['DB']['q_psw'] = [False, '']
+
+        return db
+
     def open(self, path: str, data: dict, _bypass_psw: bool = False):
         assert os.path.isfile(path)
         assert type(data) is dict
@@ -961,6 +1131,9 @@ Technical Information: {traceback.format_exc()}"""))
         self.enable_all_inputs()
 
         try:
+            O_data = copy.deepcopy(data)
+            n_data = self._clean_db(data)
+
             if not _bypass_psw and data['DB']['psw'][0]:
                 s_mem = qa_functions.SMem()
                 qa_prompts.InputPrompts.SEntryPrompt(s_mem, f'Enter database password for \'{data["DB"]["name"]}\'', '')
@@ -1000,8 +1173,8 @@ Technical Information: {traceback.format_exc()}"""))
 
             self.edit_title.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
             self.data[self.EDIT_PAGE] = {'db_path': path}
-            self.data[self.EDIT_PAGE]['db'] = copy.deepcopy(data)
-            self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(data)
+            self.data[self.EDIT_PAGE]['db'] = n_data
+            self.data[self.EDIT_PAGE]['db_saved'] = O_data
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(
