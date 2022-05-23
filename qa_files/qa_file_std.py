@@ -55,7 +55,10 @@ def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Unio
 
         assert h_hash == f_hash, "Hash mismatch between file header and footer; possibly corrupted data."
 
-        enc_d = raw_data.strip(h_hash)
+        # enc_d = raw_data.strip(h_hash)    <didn't work in some cases?>
+        enc_d = raw_data.replace(h_hash, b'', 1)
+        enc_d = enc_d[::-1].replace(f_hash[::-1], b'', 1)[::-1]
+
         uenc_d = qa_functions.qa_file_handler._Crypt.decrypt(enc_d, KEY, qa_functions.ConverterFunctionArgs())
         del enc_d, h_hash, f_hash, KEY, _, raw_data, file_type
 

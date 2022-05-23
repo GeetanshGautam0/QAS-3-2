@@ -3,6 +3,7 @@ from threading import Thread
 from typing import *
 from tkinter import ttk, filedialog
 from qa_functions.qa_enum import *
+from qa_functions.qa_std import *
 from qa_prompts import gsuid, configure_scrollbar_style
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
@@ -48,11 +49,8 @@ class _UI(Thread):
         self.root.withdraw()
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
-        ratio = 4 / 3
-        wd_w = 1000
-        wd_h = 900
-        wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-        wd_h = wd_h if wd_h <= self.screen_dim[1] else self.screen_dim[1]
+        wd_w = 1000 if 1000 <= self.screen_dim[0] else self.screen_dim[0]
+        wd_h = 900 if 900 <= self.screen_dim[1] else self.screen_dim[1]
         self.window_size = [wd_w, wd_h]
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
@@ -81,11 +79,25 @@ class _UI(Thread):
 
         self.img_path = qa_functions.Files.AT_png
         self.img_size = (75, 75)
-        self.img = None
-        self.checkmark = None
-        self.checkmark_accent = None
+        self.svgs = {
+            'arrow_left': {'accent': '', 'normal': ''},
+            'arrow_right': {'accent': '', 'normal': ''},
+            'settings_cog': {'accent': '', 'normal': ''},
+            'question': {'accent': '', 'normal': ''},
+            'checkmark': {'accent': '', 'normal': ''},
+            'arrow_left_large': {'accent': '', 'normal': ''},
+            'arrow_right_large': {'accent': '', 'normal': ''},
+            'settings_cog_large': {'accent': '', 'normal': ''},
+            'question_large': {'accent': '', 'normal': ''},
+            'checkmark_large': {'accent': '', 'normal': ''},
+            'admt': ''
+        }
         self.checkmark_src = ".src\\.icons\\.progress\\checkmark.svg"
-        self.checkmark_tmp = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup".replace('/', '\\') + self.checkmark_src.split("\\")[-1]
+        self.cog_src = '.src\\.icons\\.misc\\settings.svg'
+        self.arrow_left_src = '.src\\.icons\\.misc\\left_arrow.svg'
+        self.question_src = '.src\\.icons\\.misc\\question.svg'
+        self.arrow_right_src = '.src\\.icons\\.misc\\right_arrow.svg'
+        self.svg_tmp = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup".replace('/', '\\')
         self.load_png()
 
         self.ttk_theme = self.kwargs['ttk_theme']
@@ -116,6 +128,7 @@ class _UI(Thread):
         self.select_lbl = tk.Label(self.select_frame, text="Select a database to edit")
         self.select_open = ttk.Button(self.select_frame, text="Open Existing DB", command=lambda: self.root.focus_get().event_generate('<<OpenDB>>'))
         self.select_new = ttk.Button(self.select_frame, text="Create New DB", command=lambda: self.root.focus_get().event_generate('<<NewDB>>'))
+        self.select_scores = ttk.Button(self.select_frame, text="Score Manager")
 
         self.create_title = tk.Label(self.create_frame, text="Create New Database")
         self.create_inp1_cont = tk.LabelFrame(self.create_frame, text="Database Name")
@@ -233,13 +246,14 @@ class _UI(Thread):
 
     def configure_sel_frame(self):
         self.select_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
-        self.select_open.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=(0, self.padY), side=tk.LEFT)
-        self.select_new.pack(fill=tk.BOTH, expand=True, padx=(0, self.padX), pady=(0, self.padY), side=tk.RIGHT)
+        self.select_open.pack(fill=tk.X, expand=True, padx=self.padX, pady=(self.padY, 0), ipady=self.padY)
+        self.select_new.pack(fill=tk.X, expand=True, padx=self.padX, ipady=self.padY)
+        self.select_scores.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.BOTTOM, ipady=self.padY)
 
     def configure_edit_frame(self):
         # Layout
         self.edit_pic.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY*2)
-        self.edit_pic.config(text='', image=self.img)
+        self.edit_pic.config(text='', image=self.svgs['admt'])
 
         self.edit_db_name.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
         self.edit_btn_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
@@ -283,6 +297,9 @@ class _UI(Thread):
         self.edit_qz_psw_reset_btn.config(text="Reset Password")
 
         self.edit_configuration_save.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY, ipady=self.padY/2)
+
+        self.edit_configuration_btn.config(compound=tk.LEFT, image=self.svgs['settings_cog_large']['normal'], style='LG.TButton')
+        self.edit_questions_btn.config(compound=tk.LEFT, image=self.svgs['question_large']['normal'], style='LG.TButton')
 
         # Scrollbar setup
         self.edit_configuration_vsb.configure(command=self.edit_configuration_canvas.yview)
@@ -428,7 +445,7 @@ class _UI(Thread):
         self.title_box.pack(fill=tk.X, expand=False, pady=50)
         self.title_label.config(text="Administrator Tools", anchor=tk.W)
         self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
-        self.title_icon.config(image=self.img)
+        self.title_icon.config(image=self.svgs['admt'])
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX / 8), pady=self.padY, side=tk.LEFT)
 
@@ -492,8 +509,6 @@ class _UI(Thread):
         if self.EDIT_PAGE not in self.data:
             return
 
-        print(self.checkmark_accent)
-
         cond = self.data[self.EDIT_PAGE]['db']['DB']['psw'][0]
 
         if not kwargs.get('nrst'):
@@ -507,8 +522,8 @@ class _UI(Thread):
 
         if cond:
             try:
-                self.edit_db_psw_button.image = self.checkmark_accent
-                self.edit_db_psw_button.config(compound=tk.LEFT, image=self.checkmark_accent, style='Active.TButton')
+                self.edit_db_psw_button.image = self.svgs['checkmark']['accent']
+                self.edit_db_psw_button.config(compound=tk.LEFT, image=self.svgs['checkmark']['accent'], style='Active.TButton')
             except Exception as E:
                 self.edit_db_psw_button.config(style='Active.TButton')
                 log(LoggingLevel.ERROR, f"Failed to add image to <edit_db_psw_button> : {E.__class__.__name__}({E})")
@@ -585,7 +600,7 @@ class _UI(Thread):
 
         self.edit_qz_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
         if cond:
-            self.edit_qz_psw_button.config(compound=tk.LEFT, image=self.checkmark_accent, style='Active.TButton')
+            self.edit_qz_psw_button.config(compound=tk.LEFT, image=self.svgs['checkmark']['accent'], style='Active.TButton')
         else:
             self.data[self.EDIT_PAGE]['db']['DB']['q_psw'][1] = ''
             self.edit_qz_psw_button.config(style='TButton', image='')
@@ -766,7 +781,7 @@ class _UI(Thread):
             self.data[self.CREATE_PAGE]['psw'] = ''
             self.create_inp2.pack(fill=tk.X, expand=True)
             self.create_inp2_var.set("")
-            self.create_add_psw_sel.config(text="Add a password", image=self.checkmark, compound=tk.LEFT)
+            self.create_add_psw_sel.config(text="Add a password", image=self.svgs['checkmark']['normal'], compound=tk.LEFT)
         else:
             self.psw_sel_click(True)
 
@@ -896,8 +911,8 @@ class _UI(Thread):
 
     def edit_configuration(self, *_0, **_1):
         log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
-        self.edit_configuration_btn.config(style='Active.TButton')
-        self.edit_questions_btn.config(style='TButton')
+        self.edit_configuration_btn.config(style='ActiveLG.TButton', image=self.svgs['settings_cog_large']['accent'])
+        self.edit_questions_btn.config(style='LG.TButton', image=self.svgs['question_large']['normal'])
 
         self.db_psw_toggle(nrst=True)
         self.qz_psw_toggle(nrst=True)
@@ -908,8 +923,8 @@ class _UI(Thread):
 
     def edit_questions(self, *_0, **_1):
         log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
-        self.edit_questions_btn.config(style='Active.TButton')
-        self.edit_configuration_btn.config(style='TButton')
+        self.edit_questions_btn.config(style='ActiveLG.TButton', image=self.svgs['question_large']['accent'])
+        self.edit_configuration_btn.config(style='LG.TButton', image=self.svgs['settings_cog_large']['normal'])
 
         self.edit_configuration_master_frame.pack_forget()
 
@@ -1016,13 +1031,17 @@ class _UI(Thread):
             message='Changes:\n\t* ' + '\n\t* '.join(c)
         )
 
+        if s_mem.get() is None:
+            return
+
         if s_mem.get().strip() == 'y':
             new = json.dumps(self.data[self.EDIT_PAGE]['db'])
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
             new, _ = qa_files.generate_file(FileType.QA_FILE, new)
             qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
             self.data[self.EDIT_PAGE]['db_saved'] = self.data[self.EDIT_PAGE]['db']
-            log(LoggingLevel.SUCCESS, 'Successfully saved new database data.')
+            log(LoggingLevel.SUCCESS, 'Successfully saved new data to database.')
+            self.show_info(Message(Levels.OKAY, 'Successfully saved new data'))
 
     def new_main(self, *_0, **_1):
         global MAX
@@ -1133,6 +1152,8 @@ Technical Information: {traceback.format_exc()}"""))
             while True:
                 qa_prompts.InputPrompts.SEntryPrompt(s_mem, 'The database\'s name data was corrupted; please enter a new name below:', default='')
                 res = s_mem.get().strip()
+                if res is None:
+                    continue
                 if len(res) > 0:
                     break
 
@@ -1263,7 +1284,6 @@ Technical Information: {traceback.format_exc()}"""
 
     def update_ui(self, *_9, **_1):
         self.load_theme()
-        # self.load_png()
 
         def tr(com) -> Tuple[bool, str]:
             try:
@@ -1280,7 +1300,7 @@ Technical Information: {traceback.format_exc()}"""
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stderr.write(f'\x1b[31;1m\x1b[1m\x1b[4m[ERROR] {"[SAVED] " if LOGGER_AVAIL else ""}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\x1b[0m\n')
+            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BG_WHITE}{ANSI.BOLD}{ANSI.UNDERLINE}[ERROR] {"[SAVED] " if LOGGER_AVAIL else ""}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>{ANSI.RESET}\n')
 
         def log_norm(com: str, el):
             if LOGGER_AVAIL:
@@ -1392,6 +1412,143 @@ Technical Information: {traceback.format_exc()}"""
 
             del lCommand, cargs
 
+        # TTK
+        self.ttk_style.configure(
+            'TMenubutton',
+            background=self.theme.background.color,
+            foreground=self.theme.accent.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            arrowcolor=self.theme.accent.color,
+            borderwidth=0
+        )
+
+        self.ttk_style.map(
+            'TMenubutton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)],
+            arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
+        )
+
+        self.ttk_style.configure(
+            'TButton',
+            background=self.theme.background.color,
+            foreground=self.theme.accent.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.accent.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'TButton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        self.ttk_style.configure(
+            'LG.TButton',
+            background=self.theme.background.color,
+            foreground=self.theme.accent.color,
+            font=(self.theme.font_face, self.theme.font_large_size),
+            focuscolor=self.theme.accent.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'LG.TButton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        self.ttk_style.configure(
+            'Err.TButton',
+            background=self.theme.background.color,
+            foreground=self.theme.error.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.error.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Err.TButton',
+            background=[('active', self.theme.error.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        cb_fg = qa_functions.qa_colors.Functions.calculate_more_contrast(qa_functions.HexColor("#000000"), qa_functions.HexColor("#ffffff"), self.theme.background).color
+
+        self.ttk_style.configure(
+            'Contrast.TButton',
+            background=self.theme.background.color,
+            foreground=cb_fg,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.error.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Contrast.TButton',
+            background=[('active', cb_fg), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        del cb_fg
+
+        self.ttk_style = qa_functions.TTKTheme.configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme)
+
+        self.ttk_style.configure(
+            'Active.TButton',
+            background=self.theme.accent.color,
+            foreground=self.theme.background.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.background.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Active.TButton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        self.ttk_style.configure(
+            'ActiveLG.TButton',
+            background=self.theme.accent.color,
+            foreground=self.theme.background.color,
+            font=(self.theme.font_face, self.theme.font_large_size),
+            focuscolor=self.theme.background.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'ActiveLG.TButton',
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+        )
+
+        self.ttk_style.configure(
+            'TSeparator',
+            background=self.theme.gray.color
+        )
+
         elID = "<lUP::unknown>"
 
         for element, commands in self.late_update_requests.items():
@@ -1496,111 +1653,6 @@ Technical Information: {traceback.format_exc()}"""
 
                 del lCommand, cargs
 
-        # TTK
-        self.ttk_style.configure(
-            'TMenubutton',
-            background=self.theme.background.color,
-            foreground=self.theme.accent.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            arrowcolor=self.theme.accent.color,
-            borderwidth=0
-        )
-
-        self.ttk_style.map(
-            'TMenubutton',
-            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)],
-            arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
-        )
-
-        self.ttk_style.configure(
-            'TButton',
-            background=self.theme.background.color,
-            foreground=self.theme.accent.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            focuscolor=self.theme.accent.color,
-            bordercolor=self.theme.border_color.color,
-            borderwidth=self.theme.border_size,
-            highlightcolor=self.theme.border_color.color,
-            highlightthickness=self.theme.border_size
-        )
-
-        self.ttk_style.map(
-            'TButton',
-            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
-        )
-
-        self.ttk_style.configure(
-            'Err.TButton',
-            background=self.theme.background.color,
-            foreground=self.theme.error.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            focuscolor=self.theme.error.color,
-            bordercolor=self.theme.border_color.color,
-            borderwidth=self.theme.border_size,
-            highlightcolor=self.theme.border_color.color,
-            highlightthickness=self.theme.border_size
-        )
-
-        self.ttk_style.map(
-            'Err.TButton',
-            background=[('active', self.theme.error.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
-        )
-
-        cb_fg = qa_functions.qa_colors.Functions.calculate_more_contrast(qa_functions.HexColor("#000000"), qa_functions.HexColor("#ffffff"), self.theme.background).color
-
-        self.ttk_style.configure(
-            'Contrast.TButton',
-            background=self.theme.background.color,
-            foreground=cb_fg,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            focuscolor=self.theme.error.color,
-            bordercolor=self.theme.border_color.color,
-            borderwidth=self.theme.border_size,
-            highlightcolor=self.theme.border_color.color,
-            highlightthickness=self.theme.border_size
-        )
-
-        self.ttk_style.map(
-            'Contrast.TButton',
-            background=[('active', cb_fg), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
-        )
-
-        del cb_fg
-
-        self.ttk_style = qa_functions.TTKTheme.configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
-        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme)
-
-        self.ttk_style.configure(
-            'Active.TButton',
-            background=self.theme.accent.color,
-            foreground=self.theme.background.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            focuscolor=self.theme.background.color,
-            bordercolor=self.theme.border_color.color,
-            borderwidth=self.theme.border_size,
-            highlightcolor=self.theme.border_color.color,
-            highlightthickness=self.theme.border_size
-        )
-
-        self.ttk_style.map(
-            'Active.TButton',
-            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
-        )
-
-        self.ttk_style.configure(
-            'TSeparator',
-            background=self.theme.gray.color
-        )
-
-        # Update images if theme changes
-        self.title_icon.config(image=self.img, bg=self.theme.background.color)
-        self.edit_pic.config(image=self.img, bg=self.theme.background.color)
-
     def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid=None):
         if padding is None:
             padding = self.padX
@@ -1686,37 +1738,58 @@ Technical Information: {traceback.format_exc()}"""
     def load_png(self):
         i = Image.open(self.img_path)
         i = i.resize(self.img_size, Image.ANTIALIAS)
-        self.img = ImageTk.PhotoImage(i)
+        self.svgs['admt'] = ImageTk.PhotoImage(i)
 
-        File = qa_functions.File(self.checkmark_src)
-        raw_data = qa_functions.OpenFile.read_file(File, qa_functions.OpenFunctionArgs(str, False), b'', qa_functions.ConverterFunctionArgs())
-        new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, self.theme.accent.color)
-        File = qa_functions.File(self.checkmark_tmp)
-        qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
-
-        self.checkmark = get_svg(self.checkmark_tmp, self.theme.background.color, (self.theme.font_main_size, self.theme.font_main_size), 'c_mark')
-
-        new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, self.theme.background.color)
-        qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
-
-        self.checkmark_accent = get_svg(self.checkmark_tmp, self.theme.accent.color, (self.theme.font_main_size, self.theme.font_main_size), 'c_mark_accent')
+        for src, name, background, foreground, size, (a, b) in [
+            [self.checkmark_src, 'c_mark', self.theme.background, self.theme.accent, self.theme.font_main_size, ('checkmark', 'normal')],
+            [self.checkmark_src, 'c_mark_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('checkmark', 'accent')],
+            [self.cog_src, 'cog', self.theme.background, self.theme.accent, self.theme.font_main_size, ('settings_cog', 'normal')],
+            [self.cog_src, 'cog_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('settings_cog', 'accent')],
+            [self.arrow_right_src, 'arrow_right', self.theme.background, self.theme.accent, self.theme.font_main_size, ('arrow_right', 'normal')],
+            [self.arrow_right_src, 'arrow_right_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_right', 'accent')],
+            [self.arrow_left_src, 'arrow_left', self.theme.background, self.theme.accent, self.theme.font_main_size, ('arrow_left', 'normal')],
+            [self.arrow_left_src, 'arrow_left_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_left', 'accent')],
+            [self.question_src, 'question', self.theme.background, self.theme.accent, self.theme.font_main_size, ('question', 'normal')],
+            [self.question_src, 'question_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('question', 'accent')],
+            
+            [self.checkmark_src, 'c_mark_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('checkmark_large', 'normal')],
+            [self.checkmark_src, 'c_mark_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('checkmark_large', 'accent')],
+            [self.cog_src, 'cog_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('settings_cog_large', 'normal')],
+            [self.cog_src, 'cog_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('settings_cog_large', 'accent')],
+            [self.arrow_right_src, 'arrow_right_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_right_large', 'normal')],
+            [self.arrow_right_src, 'arrow_right_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_right_large', 'accent')],
+            [self.arrow_left_src, 'arrow_left_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_left_large', 'normal')],
+            [self.arrow_left_src, 'arrow_left_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_left_large', 'accent')],
+            [self.question_src, 'question_accent', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')],
+            [self.question_src, 'question_accent_accent', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')],
+        ]:
+            File = qa_functions.File(src)
+            tmp = f"{self.svg_tmp}\\{File.file_name}"
+            raw_data = qa_functions.OpenFile.read_file(File, qa_functions.OpenFunctionArgs(str, False), b'', qa_functions.ConverterFunctionArgs())
+            new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, foreground.color)
+            File = qa_functions.File(tmp)
+            qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
+            self.svgs[a][b] = get_svg(tmp, background.color, (size, size), name)
 
     def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button]]):
         self.dsb = True
 
-        for btn in (self.select_open, self.select_new, self.edit_questions_btn, self.edit_configuration_btn,
+        for btn in (self.select_open, self.select_new, self.select_scores,
+                    self.edit_questions_btn, self.edit_configuration_btn,
                     self.edit_db_psw_reset_btn, self.edit_db_psw_button,
                     self.edit_qz_psw_reset_btn, self.edit_qz_psw_button):
             if btn not in exclude:
                 btn.config(state=tk.DISABLED)
 
-    def enable_all_inputs(self):
+    def enable_all_inputs(self, *exclude):
         self.dsb = False
 
-        for btn in (self.select_open, self.select_new, self.edit_questions_btn, self.edit_configuration_btn,
+        for btn in (self.select_open, self.select_new, self.select_scores,
+                    self.edit_questions_btn, self.edit_configuration_btn,
                     self.edit_db_psw_reset_btn, self.edit_db_psw_button,
                     self.edit_qz_psw_reset_btn, self.edit_qz_psw_button):
-            btn.config(state=tk.NORMAL)
+            if btn not in exclude:
+                btn.config(state=tk.NORMAL)
 
         self.update_ui()
 
@@ -1758,11 +1831,11 @@ def log(level: LoggingLevel, data: str):
         )])
     else:
         if level == LoggingLevel.ERROR:
-            sys.stderr.write(f'\x1b[31;1m\x1b[1m\x1b[4m[{level.name.upper()}] {data}\x1b[0m\n')
+            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BG_WHITE}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         elif level == LoggingLevel.SUCCESS:
-            sys.stdout.write(f'\x1b[32;1m\x1b[1m\x1b[4m[{level.name.upper()}] {data}\x1b[0m\n')
+            sys.stdout.write(f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         elif level == LoggingLevel.WARNING:
-            sys.stdout.write(f'\x1b[33;1m[{level.name.upper()}] {data}\x1b[0m\n')
+            sys.stdout.write(f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         else:
             sys.stdout.write(f'[{level.name.upper()}] {data}\n')
 
