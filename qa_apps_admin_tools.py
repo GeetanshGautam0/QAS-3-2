@@ -1,4 +1,4 @@
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, PIL, hashlib, random, json, copy
+import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, PIL, hashlib, random, json, copy, subprocess
 from threading import Thread
 from typing import *
 from tkinter import ttk, filedialog
@@ -10,6 +10,8 @@ from PIL import Image, ImageTk
 from io import BytesIO
 from dataclasses import dataclass
 from enum import Enum
+from ctypes import windll
+
 
 script_name = "APP_AT"
 APP_TITLE = "Quizzing Application | Admin Tools"
@@ -19,6 +21,7 @@ LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = script_name
 DEBUG_NORM = False
 MAX = 50
+_Fs = True
 
 
 class Levels(Enum):
@@ -46,10 +49,11 @@ class _UI(Thread):
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
         ratio = 4 / 3
-        wd_w = 700
+        wd_w = 1000
+        wd_h = 900
         wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-        self.window_size = [wd_w, int(ratio * wd_w)]
-        self.window_size[0] = 900 if 900 <= self.screen_dim[0] else self.screen_dim[0]
+        wd_h = wd_h if wd_h <= self.screen_dim[1] else self.screen_dim[1]
+        self.window_size = [wd_w, wd_h]
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
             int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -128,16 +132,25 @@ class _UI(Thread):
 
         self.general_info_label = tk.Label(self.root, text="")
 
-        self.edit_title = tk.Label(self.db_frame)
-        self.edit_btn_panel = tk.Frame(self.db_frame)
+        # Main elements (Edit page)
+        self.edit_sidebar = tk.Frame(self.db_frame)
+        self.edit_pic = tk.Label(self.edit_sidebar)
+        self.edit_db_name = tk.Label(self.edit_sidebar)
+        self.edit_btn_panel = tk.Frame(self.edit_sidebar)
+        self.edit_sep = ttk.Separator(self.db_frame)
 
+        # Menu Buttons (Edit page)
         self.edit_configuration_btn = ttk.Button(self.edit_btn_panel, text='Configuration', command=lambda: self.root.focus_get().event_generate('<<EditConfiguration>>'))
         self.edit_questions_btn = ttk.Button(self.edit_btn_panel, text='Questions', command=lambda: self.root.focus_get().event_generate('<<EditQuestions>>'))
 
+        # Configuration page:: Main Elements (Edit page)
         self.edit_configuration_master_frame = tk.Frame(self.db_frame)
         self.edit_configuration_canvas = tk.Canvas(self.edit_configuration_master_frame)
         self.edit_configuration_vsb = ttk.Scrollbar(self.edit_configuration_master_frame, style='MyAdmin.TScrollbar')
         self.edit_configuration_frame = tk.Frame(self.edit_configuration_canvas)
+
+        # Configuration page:: Elements (Edit page)
+        self.edit_configuration_title = tk.Label(self.edit_configuration_frame)
 
         self.edit_password_container = tk.LabelFrame(self.edit_configuration_frame)
         self.edit_db_psw_container = tk.LabelFrame(self.edit_password_container)
@@ -150,6 +163,10 @@ class _UI(Thread):
         self.edit_qz_psw_lbl = tk.Label(self.edit_qz_psw_container)
         self.edit_qz_psw_button = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_CLICK>>'))
         self.edit_qz_psw_reset_btn = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_RESET>>'))
+
+        self.edit_configuration_save = ttk.Button(self.edit_configuration_frame, text="Save Changes", command=self.save_db)
+
+        self.edit_quiz_configuration_container = tk.LabelFrame(self.edit_configuration_frame, text="Quiz Configuration")
 
         self.start()
         self.root.mainloop()
@@ -172,12 +189,12 @@ class _UI(Thread):
         self.create_cancel.pack(fill=tk.BOTH, expand=True, side=tk.LEFT, ipady=self.padY/2)
         self.create_create.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT, ipady=self.padY/2)
 
-        self.update_requests[gsuid()] = [
+        self.update_requests['create_inp10'] = [
             self.create_inp1,
             ThemeUpdateCommands.FONT,
             [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['create_inp1_cont0'] = [
             self.create_inp1_cont,
             ThemeUpdateCommands.CUSTOM,
             [
@@ -186,12 +203,12 @@ class _UI(Thread):
                 ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
             ]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['create_inp20'] = [
             self.create_inp2,
             ThemeUpdateCommands.FONT,
             [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['create_inp2_cont0'] = [
             None,
             ThemeUpdateCommands.CUSTOM,
             [
@@ -200,7 +217,7 @@ class _UI(Thread):
                 ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
             ]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['create_config_frame0'] = [
             None,
             ThemeUpdateCommands.CUSTOM,
             [
@@ -209,7 +226,7 @@ class _UI(Thread):
                 ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
             ]
         ]
-        self.update_requests[gsuid()] = [self.create_btn_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['create_btn_frame0'] = [self.create_btn_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
         self.create_inp2_var.trace("w", self.inp2_edit)
         self.create_inp1_var.trace("w", self.inp1_edit)
@@ -221,23 +238,33 @@ class _UI(Thread):
 
     def configure_edit_frame(self):
         # Layout
-        self.edit_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+        self.edit_pic.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY*2)
+        self.edit_pic.config(text='', image=self.img)
+
+        self.edit_db_name.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
         self.edit_btn_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
-        self.edit_configuration_btn.pack(fill=tk.X, expand=True, padx=(self.padX, 0), ipady=self.padY/2, side=tk.LEFT)
-        self.edit_questions_btn.pack(fill=tk.X, expand=True, padx=(0, self.padX), ipady=self.padY/2, side=tk.RIGHT)
+        self.edit_configuration_btn.pack(fill=tk.X, expand=True, ipady=self.padY/2)
+        self.edit_questions_btn.pack(fill=tk.X, expand=True, ipady=self.padY/2)
 
+        self.edit_sidebar.pack(fill=tk.Y, expand=False, side=tk.LEFT)
+        self.edit_sep.pack(fill=tk.Y, expand=False, side=tk.LEFT, pady=(self.padY, 0))
+
+        # Configuration Frame
         self.edit_configuration_vsb.pack(fill=tk.Y, expand=False, padx=(0, self.padX), pady=self.padY, side=tk.RIGHT)
         self.edit_configuration_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=self.padY)
+
+        self.edit_configuration_title.config(text="Configuration Manager")
+        self.edit_configuration_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY*2, side=tk.TOP)
 
         self.edit_password_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
         self.edit_db_psw_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=(self.padY, 0))
         self.edit_qz_psw_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
-        self.edit_password_container.config(text="Password Management")
+        self.edit_password_container.config(text="Security")
         self.edit_db_psw_container.config(text="Administrator Password")
         self.edit_qz_psw_container.config(text="Quiz Password")
 
-        self.edit_db_psw_lbl.config(text="This password allows for the restriction of users who can edit this database.")
+        self.edit_db_psw_lbl.config(text="This password allows for the restriction of users who can edit this database.", anchor=tk.W, justify=tk.LEFT)
         self.edit_db_psw_lbl.pack(fill=tk.X, expand=False, pady=self.padY, side=tk.TOP)
 
         self.edit_db_psw_button.pack(fill=tk.X, expand=True, pady=self.padY, side=tk.LEFT)
@@ -246,7 +273,7 @@ class _UI(Thread):
         self.edit_db_psw_button.config(text="")
         self.edit_db_psw_reset_btn.config(text="Reset Password")
 
-        self.edit_qz_psw_lbl.config(text="This password allows for the restriction of users who can access the quiz.")
+        self.edit_qz_psw_lbl.config(text="This password allows for the restriction of users who can access the quiz.", anchor=tk.W, justify=tk.LEFT)
         self.edit_qz_psw_lbl.pack(fill=tk.X, expand=False, pady=self.padY, side=tk.TOP)
 
         self.edit_qz_psw_button.pack(fill=tk.X, expand=True, pady=self.padY, side=tk.LEFT)
@@ -254,6 +281,8 @@ class _UI(Thread):
 
         self.edit_qz_psw_button.config(text="")
         self.edit_qz_psw_reset_btn.config(text="Reset Password")
+
+        self.edit_configuration_save.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY, ipady=self.padY/2)
 
         # Scrollbar setup
         self.edit_configuration_vsb.configure(command=self.edit_configuration_canvas.yview)
@@ -274,63 +303,78 @@ class _UI(Thread):
         COM = ThemeUpdateCommands
         VAR = ThemeUpdateVars
 
-        self.label_formatter(self.edit_title, size=VAR.FONT_SIZE_SMALL)
-        self.update_requests[gsuid()] = [self.edit_btn_panel, COM.BG, [VAR.BG]]
-        self.update_requests[gsuid()] = [self.edit_configuration_master_frame, COM.BG, [VAR.BG]]
-        self.update_requests[gsuid()] = [self.edit_configuration_frame, COM.BG, [VAR.BG]]
-        self.update_requests[gsuid()] = [self.edit_configuration_canvas, COM.BG, [VAR.BG]]
-        self.update_requests[gsuid()] = [
+        self.label_formatter(self.edit_db_name, size=VAR.FONT_SIZE_SMALL, uid='edit_db_name')
+        self.update_requests['edit_btn_panel0'] = [self.edit_btn_panel, COM.BG, [VAR.BG]]
+        self.update_requests['edit_sidebar0'] = [self.edit_sidebar, COM.BG, [VAR.BG]]
+        self.update_requests['edit_configuration_master_frame0'] = [self.edit_configuration_master_frame, COM.BG, [VAR.BG]]
+        self.update_requests['edit_configuration_frame0'] = [self.edit_configuration_frame, COM.BG, [VAR.BG]]
+        self.update_requests['edit_configuration_canvas0'] = [self.edit_configuration_canvas, COM.BG, [VAR.BG]]
+        self.update_requests['edit_configuration_canvas1'] = [
             None, COM.CUSTOM,
             [lambda *args: self.edit_configuration_canvas.config(bd=0, highlightthickness=0)]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['edit_password_container0'] = [
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_password_container.config(
-                    bg=args[0], fg=args[1], font=args[2:3], highlightthickness=args[4],
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
                     highlightbackground=args[5]
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
             ]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['edit_db_psw_container0'] = [
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_db_psw_container.config(
-                    bg=args[0], fg=args[1], font=args[2:3], highlightthickness=args[4],
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
                     highlightbackground=args[5], bd='0'
                 ),
                 VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
             ]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['edit_qz_psw_container0'] = [
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_qz_psw_container.config(
-                    bg=args[0], fg=args[1], font=args[2:3], highlightthickness=args[4],
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
                     highlightbackground=args[5], bd='0'
                 ),
                 VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
             ]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['edit_db_psw_lbl0'] = [
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_db_psw_lbl.config(
-                    bg=args[0], fg=args[1], font=args[2:3]
+                    bg=args[0], fg=args[1], font=(args[2], args[3]) #, font=args[2:3]
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
             ]
         ]
-        self.update_requests[gsuid()] = [
+        self.update_requests['edit_qz_psw_lbl0'] = [
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_qz_psw_lbl.config(
-                    bg=args[0], fg=args[1], font=args[2:3]
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
             ]
         ]
+        self.update_requests['edit_pic0'] = [self.edit_pic, COM.BG, [VAR.BG]]
+        self.update_requests['edit_configuration_title0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_configuration_title.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_TITLE
+            ]
+        ]
+        self.update_requests['UpRule[d]::<db_psw_toggle>0'] = [None, COM.CUSTOM, [lambda: self.db_psw_toggle(nrst=True)]]
+        self.update_requests['UpRule[d]::<qz_psw_toggle>0'] = [None, COM.CUSTOM, [lambda: self.qz_psw_toggle(nrst=True)]]
+
+        del COM, VAR
 
     # -----------------
     # LL Event Handlers
@@ -379,7 +423,7 @@ class _UI(Thread):
 
         self.geo_small()
 
-        self.general_info_label.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.BOTTOM)
+        self.general_info_label.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.BOTTOM, pady=(0, self.padY))
 
         self.title_box.pack(fill=tk.X, expand=False, pady=50)
         self.title_label.config(text="Administrator Tools", anchor=tk.W)
@@ -388,13 +432,13 @@ class _UI(Thread):
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX / 8), pady=self.padY, side=tk.LEFT)
 
-        self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT)
-        self.label_formatter(self.title_icon)
+        self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, uid='title_label')
+        self.label_formatter(self.title_icon, uid='title_icon')
 
         TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
-        self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
-        self.update_requests[gsuid()] = [self.title_box, TUC.BG, [TUV.BG]]
+        self.update_requests['root0'] = [self.root, TUC.BG, [TUV.BG]]
+        self.update_requests['title_box0'] = [self.title_box, TUC.BG, [TUV.BG]]
 
         self.menu.add_cascade(menu=self.menu_file, label='Database')
         self.menu_file.add_command(label='Create New Database', command=lambda: self.root.focus_get().event_generate('<<NewDB>>'))
@@ -408,12 +452,12 @@ class _UI(Thread):
         self.menu_file.add_separator()
         self.menu_file.add_command(label='Exit', command=lambda: self.root.focus_get().event_generate('<<ExitCall>>'))
 
-        self.update_requests[gsuid()] = [self.select_frame, TUC.BG, [TUV.BG]]
-        self.update_requests[gsuid()] = [self.db_frame, TUC.BG, [TUV.BG]]
-        self.update_requests[gsuid()] = [self.create_frame, TUC.BG, [TUV.BG]]
-        self.label_formatter(self.select_lbl, size=TUV.FONT_SIZE_SMALL)
-        self.label_formatter(self.create_title, size=TUV.FONT_SIZE_TITLE, fg=TUV.ACCENT)
-        self.label_formatter(self.general_info_label, size=TUV.FONT_SIZE_SMALL)
+        self.update_requests['select_frame0'] = [self.select_frame, TUC.BG, [TUV.BG]]
+        self.update_requests['db_frame0'] = [self.db_frame, TUC.BG, [TUV.BG]]
+        self.update_requests['create_frame0'] = [self.create_frame, TUC.BG, [TUV.BG]]
+        self.label_formatter(self.select_lbl, size=TUV.FONT_SIZE_SMALL, uid='select_lbl')
+        self.label_formatter(self.create_title, size=TUV.FONT_SIZE_TITLE, fg=TUV.ACCENT, uid='create_title')
+        self.label_formatter(self.general_info_label, size=TUV.FONT_SIZE_SMALL, uid='general_info_label')
 
         self.root.bind('<<ExitCall>>', self.close)
         self.root.bind('<<NewDB>>', self.new_entry)
@@ -425,7 +469,6 @@ class _UI(Thread):
         self.root.bind('<Control-r>', self.update_ui)
         self.root.bind('<<EditConfiguration>>', self.edit_configuration)
         self.root.bind('<<EditQuestions>>', self.edit_questions)
-        # self.root.bind('<Configure>', self._onConfig)
         self.root.bind('<<EDIT_DB_PSW_CLICK>>', self.db_psw_toggle)
         self.root.bind('<<EDIT_DB_PSW_RESET>>', self.db_psw_change)
         self.root.bind('<<EDIT_QZ_PSW_CLICK>>', self.qz_psw_toggle)
@@ -446,6 +489,11 @@ class _UI(Thread):
     # ---------------------
 
     def db_psw_toggle(self, *args, **kwargs):
+        if self.EDIT_PAGE not in self.data:
+            return
+
+        print(self.checkmark_accent)
+
         cond = self.data[self.EDIT_PAGE]['db']['DB']['psw'][0]
 
         if not kwargs.get('nrst'):
@@ -457,14 +505,24 @@ class _UI(Thread):
             cond = not cond
             self.data[self.EDIT_PAGE]['db']['DB']['psw'][0] = cond
 
-        self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
         if cond:
-            self.edit_db_psw_button.config(compound=tk.LEFT, image=self.checkmark_accent, style='Active.TButton')
+            try:
+                self.edit_db_psw_button.image = self.checkmark_accent
+                self.edit_db_psw_button.config(compound=tk.LEFT, image=self.checkmark_accent, style='Active.TButton')
+            except Exception as E:
+                self.edit_db_psw_button.config(style='Active.TButton')
+                log(LoggingLevel.ERROR, f"Failed to add image to <edit_db_psw_button> : {E.__class__.__name__}({E})")
         else:
             self.data[self.EDIT_PAGE]['db']['DB']['psw'][1] = ''
+            self.edit_db_psw_button.image = ''
             self.edit_db_psw_button.config(style='TButton', image='')
 
+        self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
+
     def db_psw_change(self, *args, **kwargs):
+        if self.EDIT_PAGE not in self.data:
+            return
+
         self.disable_all_inputs()
         self.busy = True
 
@@ -511,6 +569,9 @@ class _UI(Thread):
         return f, f1
 
     def qz_psw_toggle(self, *args, **kwargs):
+        if self.EDIT_PAGE not in self.data:
+            return
+
         cond = self.data[self.EDIT_PAGE]['db']['DB']['q_psw'][0]
 
         if not kwargs.get('nrst'):
@@ -530,6 +591,9 @@ class _UI(Thread):
             self.edit_qz_psw_button.config(style='TButton', image='')
 
     def qz_psw_change(self, *args, **kwargs):
+        if self.EDIT_PAGE not in self.data:
+            return
+
         self.disable_all_inputs()
         self.busy = True
 
@@ -666,7 +730,7 @@ class _UI(Thread):
 
         self.select_frame.pack_forget()
         self.create_frame.pack_forget()
-        self.title_box.pack(fill=tk.X, expand=False, pady=50)
+        self.title_box.pack_forget()
         self.db_frame.pack(fill=tk.BOTH, expand=True)
         self.menu_file.entryconfig('Close Database', state=tk.NORMAL)
         self.context_menu.entryconfig('Close Database', state=tk.NORMAL)
@@ -840,6 +904,8 @@ class _UI(Thread):
 
         self.edit_configuration_master_frame.pack(fill=tk.BOTH, expand=True)
 
+        self.update_ui()
+
     def edit_questions(self, *_0, **_1):
         log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
         self.edit_questions_btn.config(style='Active.TButton')
@@ -847,13 +913,24 @@ class _UI(Thread):
 
         self.edit_configuration_master_frame.pack_forget()
 
+        self.update_ui()
+
     # --------------
     # Main Functions
     # --------------
 
     def compile_changes(self):
+        print(1)
+
+        if not qa_functions.data_at_dict_path(f'{self.EDIT_PAGE}/db_saved', self.data)[0]:
+            return False, ([], [])
+
+        print(2)
+
         if self.data[self.EDIT_PAGE]['db_saved'] == self.data[self.EDIT_PAGE]['db']:
-            return False, []
+            return False, ([], [])
+
+        print(3)
 
         def rec(og: any, new: any, root="") -> Tuple[List[str], List[str]]:
             c, f = [], []
@@ -893,11 +970,14 @@ class _UI(Thread):
             return c, f
 
         changes = rec(self.data[self.EDIT_PAGE]['db_saved'], self.data[self.EDIT_PAGE]['db'])
+
+        print(4, changes)
         return True, changes
 
     def save_db(self):
         changed, [changes, failures] = self.compile_changes()
         if not changed:
+            self.show_info(Message(Levels.ERROR, 'No changes found.'))
             return
 
         if len(failures) > 0:
@@ -950,7 +1030,7 @@ class _UI(Thread):
             new, _ = qa_files.generate_file(FileType.QA_FILE, new)
             qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
             self.data[self.EDIT_PAGE]['db_saved'] = self.data[self.EDIT_PAGE]['db']
-            log(LoggingLevel.INFO, 'Successfully saved new database data.')
+            log(LoggingLevel.SUCCESS, 'Successfully saved new database data.')
 
     def new_main(self, *_0, **_1):
         global MAX
@@ -1169,7 +1249,7 @@ Technical Information: {traceback.format_exc()}"""))
             self.busy = False
             self.edit_db_frame()  # Pack components
 
-            self.edit_title.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
+            self.edit_db_name.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
             self.data[self.EDIT_PAGE] = {'db_path': path}
             self.data[self.EDIT_PAGE]['db'] = n_data
             self.data[self.EDIT_PAGE]['db_saved'] = O_data
@@ -1191,13 +1271,14 @@ Technical Information: {traceback.format_exc()}"""
 
     def update_ui(self, *_9, **_1):
         self.load_theme()
+        # self.load_png()
 
         def tr(com) -> Tuple[bool, str]:
             try:
                 com()
                 return True, '<no errors>'
             except Exception as E:
-                return False, str(E)
+                return False, f"{E.__class__.__name__}({E})"
 
         def log_error(com: str, el, reason: str, ind: int):
             if LOGGER_AVAIL:
@@ -1207,7 +1288,7 @@ Technical Information: {traceback.format_exc()}"""
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+            sys.stderr.write(f'\x1b[31;1m\x1b[1m\x1b[4m[ERROR] {"[SAVED] " if LOGGER_AVAIL else ""}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\x1b[0m\n')
 
         def log_norm(com: str, el):
             if LOGGER_AVAIL:
@@ -1519,39 +1600,73 @@ Technical Information: {traceback.format_exc()}"""
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
 
-    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG):
+        self.ttk_style.configure(
+            'TSeparator',
+            background=self.theme.gray.color
+        )
+
+        # Update images if theme changes
+        self.title_icon.config(image=self.img, bg=self.theme.background.color)
+        self.edit_pic.config(image=self.img, bg=self.theme.background.color)
+
+    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid=None):
         if padding is None:
             padding = self.padX
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [bg if not accent else ThemeUpdateVars.ACCENT]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [fg if not accent else ThemeUpdateVars.BG]]
+        if uid is None:
+            uid = gsuid()
+        else:
+            uid = f'{uid}<BTN>'
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [abg if not accent else ThemeUpdateVars.BG]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [afg if not accent else ThemeUpdateVars.ACCENT]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+        while uid in self.update_requests:
+            uid = f"{uid}[{random.randint(1000, 9999)}]"
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+        self.update_requests[uid] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda tbc, tbs, *args: button.config(
+                    bg=args[0], fg=args[1], activebackground=args[2], activeforeground=args[3],
+                    font=(args[4], args[5]),
+                    wraplength=args[6],
+                    highlightbackground=tbc,
+                    bd=tbs,
+                    highlightcolor=tbc,
+                    highlightthickness=tbs,
+                    borderwidth=tbs,
+                    relief=tk.RIDGE
+                ),
+                ThemeUpdateVars.BORDER_COLOR,
+                ThemeUpdateVars.BORDER_SIZE,
+                (bg if not accent else ThemeUpdateVars.ACCENT),
+                (fg if not accent else ThemeUpdateVars.BG),
+                (abg if not accent else ThemeUpdateVars.BG),
+                (afg if not accent else ThemeUpdateVars.ACCENT),
+                font, size,
+                self.window_size[0] - 2 * padding
+            ]
+        ]
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.CUSTOM, [lambda tbc, tbs: button.configure(
-            highlightbackground=tbc,
-            bd=tbs,
-            highlightcolor=tbc,
-            highlightthickness=tbs,
-            borderwidth=tbs,
-            relief=tk.RIDGE
-        ), ThemeUpdateVars.BORDER_COLOR, ThemeUpdateVars.BORDER_SIZE]]
-
-    def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+    def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
         if padding is None:
             padding = self.padX
 
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+        if uid is None:
+            uid = gsuid()
+        else:
+            uid = f'{uid}<LBL>'
 
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+        while uid in self.update_requests:
+            uid = f"{uid}[{random.randint(1000, 9999)}]"
+
+        self.update_requests[uid] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=self.window_size[0] - 2 * args[4]),
+                bg, fg, font, size, padding
+            ]
+        ]
 
     def load_theme(self):
         self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -1587,18 +1702,19 @@ Technical Information: {traceback.format_exc()}"""
         File = qa_functions.File(self.checkmark_tmp)
         qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
 
-        self.checkmark = get_svg(self.checkmark_tmp, self.theme.background.color, (self.theme.font_main_size, self.theme.font_main_size))
+        self.checkmark = get_svg(self.checkmark_tmp, self.theme.background.color, (self.theme.font_main_size, self.theme.font_main_size), 'c_mark')
 
         new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, self.theme.background.color)
         qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
 
-        self.checkmark_accent = get_svg(self.checkmark_tmp, self.theme.accent.color, (self.theme.font_main_size, self.theme.font_main_size))
+        self.checkmark_accent = get_svg(self.checkmark_tmp, self.theme.accent.color, (self.theme.font_main_size, self.theme.font_main_size), 'c_mark_accent')
 
     def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button]]):
         self.dsb = True
 
         for btn in (self.select_open, self.select_new, self.edit_questions_btn, self.edit_configuration_btn,
-                    self.edit_db_psw_reset_btn, self.edit_db_psw_button):
+                    self.edit_db_psw_reset_btn, self.edit_db_psw_button,
+                    self.edit_qz_psw_reset_btn, self.edit_qz_psw_button):
             if btn not in exclude:
                 btn.config(state=tk.DISABLED)
 
@@ -1606,7 +1722,8 @@ Technical Information: {traceback.format_exc()}"""
         self.dsb = False
 
         for btn in (self.select_open, self.select_new, self.edit_questions_btn, self.edit_configuration_btn,
-                    self.edit_db_psw_reset_btn, self.edit_db_psw_button):
+                    self.edit_db_psw_reset_btn, self.edit_db_psw_button,
+                    self.edit_qz_psw_reset_btn, self.edit_qz_psw_button):
             btn.config(state=tk.NORMAL)
 
         self.update_ui()
@@ -1615,7 +1732,7 @@ Technical Information: {traceback.format_exc()}"""
         self.thread.join(self, 0)
 
 
-def get_svg(svg_file, background, size=None):
+def get_svg(svg_file, background, size=None, name=None):
     if isinstance(background, str):
         background = int(background.replace("#", '0x'), 0)
 
@@ -1626,7 +1743,7 @@ def get_svg(svg_file, background, size=None):
     if size is not None:
         img = img.resize(size, PIL.Image.ANTIALIAS)
 
-    p_img = ImageTk.PhotoImage(img)
+    p_img = ImageTk.PhotoImage(img, name=name)
 
     return p_img
 
@@ -1649,13 +1766,28 @@ def log(level: LoggingLevel, data: str):
         )])
     else:
         if level == LoggingLevel.ERROR:
-            sys.stderr.write(f'[{level.name.upper()}] {data}\n')
+            sys.stderr.write(f'\x1b[31;1m\x1b[1m\x1b[4m[{level.name.upper()}] {data}\x1b[0m\n')
+        elif level == LoggingLevel.SUCCESS:
+            sys.stdout.write(f'\x1b[32;1m\x1b[1m\x1b[4m[{level.name.upper()}] {data}\x1b[0m\n')
+        elif level == LoggingLevel.WARNING:
+            sys.stdout.write(f'\x1b[33;1m[{level.name.upper()}] {data}\x1b[0m\n')
         else:
             sys.stdout.write(f'[{level.name.upper()}] {data}\n')
 
 
 def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+    subprocess.call('', shell=True)
+    if os.name == 'nt':  # Only if we are running on Windows
+        k = windll.kernel32
+        k.SetConsoleMode(k.GetStdHandle(-11), 7)
+
+        log(LoggingLevel.ERROR, 'Logging test string')
+        log(LoggingLevel.SUCCESS, 'Logging test string')
+        log(LoggingLevel.INFO, 'Logging test string')
+        log(LoggingLevel.WARNING, 'Logging test string')
+        log(LoggingLevel.DEBUG, 'Logging test string')
+
     ui_root = tk.Toplevel()
-    cls = _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
+    _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
 
     return ui_root

@@ -6,6 +6,7 @@ class LoggingLevel(Enum):
     DEBUG = 1
     WARNING = 2
     ERROR = 3
+    SUCCESS = 4
 
 
 class ScriptLevelID(Enum):

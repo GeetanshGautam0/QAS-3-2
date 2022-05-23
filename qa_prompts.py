@@ -2914,7 +2914,7 @@ class InputPrompts:
 
         def __del__(self):
             self.thread.join(self, 0)
-    
+
 
 def get_svg(svg_file, background, size=None):
     if isinstance(background, str):
