@@ -95,11 +95,24 @@ def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, any]:
     found = True
     data = {**dictionary}
 
+    def tr(com, *args):
+        try:
+            return True, com(*args)
+        except:
+            return False, None
+
     for index, token in enumerate(path_tokens):
         if token == "root" and index == 0:
             continue
 
         found = token in data
+        if not found:
+            for t in (int, float, bool):
+                f1, t1 = tr(t, token)
+                if f1 and t1 in data:
+                    found = True
+                    token = t1
+
         data = data[token] if found else None
 
         if index != len(path_tokens) - 1:

@@ -831,7 +831,7 @@ class _UI(Thread):
                     s_mem = qa_functions.SMem()
                     qa_prompts.InputPrompts.ButtonPrompt(
                         s_mem, 'Save Changes?', ("Yes", "y"), ("No", 'n'), default='y',
-                        message="Changes have been detected in the current database; do yo want to save these changes?"
+                        message="Changes have been detected in the current database; do you want to save these changes?"
                     )
 
                     res = s_mem.get()
@@ -920,17 +920,11 @@ class _UI(Thread):
     # --------------
 
     def compile_changes(self):
-        print(1)
-
         if not qa_functions.data_at_dict_path(f'{self.EDIT_PAGE}/db_saved', self.data)[0]:
             return False, ([], [])
 
-        print(2)
-
         if self.data[self.EDIT_PAGE]['db_saved'] == self.data[self.EDIT_PAGE]['db']:
             return False, ([], [])
-
-        print(3)
 
         def rec(og: any, new: any, root="") -> Tuple[List[str], List[str]]:
             c, f = [], []
@@ -970,8 +964,6 @@ class _UI(Thread):
             return c, f
 
         changes = rec(self.data[self.EDIT_PAGE]['db_saved'], self.data[self.EDIT_PAGE]['db'])
-
-        print(4, changes)
         return True, changes
 
     def save_db(self):
