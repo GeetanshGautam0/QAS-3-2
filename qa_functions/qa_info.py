@@ -7,7 +7,7 @@ class ConfigurationFile:
     completed = False
 
     if not os.path.exists(name):
-        raise_error(FileNotFoundError, "Main configuration file not found", ErrorLevels.Fatal)
+        raise_error(FileNotFoundError, ("Main configuration file not found", ), ErrorLevels.Fatal)
         sys.exit(ExitCodes.GENERAL_ERROR)
 
     try:
@@ -37,6 +37,7 @@ class App:
     version = ConfigurationFile.json_data['application']['version']
     build_id = hashlib.md5(ConfigurationFile.json_data['application']['build_id_str'].encode(ENCODING)).hexdigest()
     build_name = ConfigurationFile.json_data['application']['build_title']
+    build_number = ConfigurationFile.json_data['application']['build_number']
 
     github_url_base = ConfigurationFile.json_data['application']['root_update_url']
 

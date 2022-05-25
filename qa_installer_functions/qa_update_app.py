@@ -11,6 +11,7 @@ APPDATA = appdirs.user_data_dir(nv_json_data['application']['appdata_app_name'],
 NV_ROOT = f"{APPDATA}\\.nvf"
 NV_DELIMITER = "=="
 URL_BASE = nv_json_data['application']['root_update_url']
+APP_BUILD_NUMBER = nv_json_data['application']['build_number']
 
 _NV_ROOT = "L_UPDATE"
 HTTP = urllib3.PoolManager(
@@ -228,7 +229,7 @@ class UpdaterUI(threading.Thread):
 
             self.root.update()
 
-            success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
+            success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release/.config/main_config.json')[0]
             if not success:
                 self.insert_item('Connection not established (1)')
                 self.close_button.config(text="RETRY", command=self.load_commands)
@@ -285,7 +286,7 @@ class UpdaterUI(threading.Thread):
 
         self.root.update()
 
-        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
+        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release/.config/main_config.json')[0]
         if not success:
             self.insert_item('Connection not established (1)')
             self.close_button.config(text="RETRY")
@@ -525,7 +526,7 @@ class Install(threading.Thread):
 
         self.root.update()
 
-        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
+        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release/.config/main_config.json')[0]
         if not success:
             self.insert_item('Connection not established (1)')
             self.close_button.config(text="RETRY")
@@ -817,7 +818,7 @@ class Addons(threading.Thread):
 
         self.root.update()
 
-        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master/.config/main_config.json')[0]
+        success |= tr(HTTP.request, 'GET', 'https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release/.config/main_config.json')[0]
         if not success:
             self.insert_item('Connection not established (1)')
             self.close_button.config(text="RETRY")
@@ -919,30 +920,13 @@ def _cli_handler():
 @click.option('--UpdateAll', is_flag=True)
 def update(**kwargs):
     if _is_admin() or kwargs['noadmin']:
-        try:
-            commands = []
-            if kwargs.get('readflags'):
-                commands = ['ReadFlags']
-            if len(kwargs.get('command')) > 0:
-                commands.extend([*kwargs['command']])
+        commands = []
+        if kwargs.get('readflags'):
+            commands = ['ReadFlags']
+        if len(kwargs.get('command')) > 0:
+            commands.extend([*kwargs['command']])
 
-            UpdaterUI(commands, **kwargs)
-
-        except Exception as E:
-            messagebox.showerror("Updater", traceback.format_exc())
-
-            DIR = f"{APPDATA}\\.crash_logs\\.installer".replace("/", '\\')
-
-            if not os.path.isdir(DIR):
-                os.makedirs(DIR)
-            with open(f'{DIR}\\update.log', 'w') as FILE:
-                FILE.write(f"{traceback.format_exc()}")
-                FILE.close()
-
-            if kwargs['console']:
-                sys.stderr.write(f"{traceback.format_exc()}\n")
-                while True:
-                    pass
+        UpdaterUI(commands, **kwargs)
 
     else:
         argv = sys.argv
