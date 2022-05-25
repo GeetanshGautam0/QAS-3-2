@@ -181,6 +181,8 @@ class _UI(Thread):
 
         self.edit_quiz_configuration_container = tk.LabelFrame(self.edit_configuration_frame, text="Quiz Configuration")
 
+        self.sb_expand_shrink = ttk.Button(self.edit_sidebar, command=lambda: self.root.focus_get().event_generate('<<SideBar_Expand_Shrink>>'))
+
         self.start()
         self.root.mainloop()
 
@@ -252,11 +254,13 @@ class _UI(Thread):
 
     def configure_edit_frame(self):
         # Layout
-        self.edit_pic.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY*2)
-        self.edit_pic.config(text='', image=self.svgs['admt'])
+        self.edit_pic.pack(fill=tk.BOTH, expand=False, pady=self.padY*2, padx=self.padX)
+        self.edit_pic.config(text='Admin Tools', image=self.svgs['admt'], compound=tk.TOP)
 
-        self.edit_db_name.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
-        self.edit_btn_panel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.sb_expand_shrink.pack(fill=tk.X, expand=False, pady=(self.padY*2, 0), side=tk.BOTTOM)
+
+        self.edit_db_name.pack(fill=tk.X, expand=False, pady=self.padY, padx=self.padX, side=tk.BOTTOM)
+        self.edit_btn_panel.pack(fill=tk.X, expand=False, pady=self.padY)
 
         self.edit_configuration_btn.pack(fill=tk.X, expand=True, ipady=self.padY/2)
         self.edit_questions_btn.pack(fill=tk.X, expand=True, ipady=self.padY/2)
@@ -378,7 +382,15 @@ class _UI(Thread):
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
             ]
         ]
-        self.update_requests['edit_pic0'] = [self.edit_pic, COM.BG, [VAR.BG]]
+        self.update_requests['edit_pic0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_pic.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_LARGE
+            ]
+        ]
         self.update_requests['edit_configuration_title0'] = [
             None, COM.CUSTOM,
             [
@@ -490,6 +502,7 @@ class _UI(Thread):
         self.root.bind('<<EDIT_DB_PSW_RESET>>', self.db_psw_change)
         self.root.bind('<<EDIT_QZ_PSW_CLICK>>', self.qz_psw_toggle)
         self.root.bind('<<EDIT_QZ_PSW_RESET>>', self.qz_psw_change)
+        self.root.bind('<<SideBar_Expand_Shrink>>', self.expand_click)
 
         self.configure_sel_frame()
         self.configure_create_frame()
@@ -504,6 +517,28 @@ class _UI(Thread):
     # ---------------------
     # Custom Event Handlers
     # ---------------------
+
+    def expand_click(self, *args, **kwargs):
+        try:
+            curr = not self.data[self.EDIT_PAGE]['_UI']['sb_shrunk']
+            self.data[self.EDIT_PAGE]['_UI']['sb_shrunk'] = curr
+        except KeyError:
+            self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': False}
+            curr = False
+
+        if curr:
+            self.edit_configuration_btn.config(text='', compound=tk.CENTER)
+            self.edit_questions_btn.config(text='', compound=tk.CENTER)
+            self.sb_expand_shrink.config(text='', image=self.svgs['arrow_right_large']['normal'], compound=tk.CENTER)
+            self.edit_db_name.config(text='')
+            self.edit_pic.config(text='')
+
+        else:
+            self.edit_configuration_btn.config(text='Configuration', compound=tk.LEFT)
+            self.edit_questions_btn.config(text='Questions', compound=tk.LEFT)
+            self.sb_expand_shrink.config(text='Shrink', image=self.svgs['arrow_left_large']['normal'], compound=tk.LEFT)
+            self.edit_db_name.config(text=f"Current Database: \"{self.data[self.EDIT_PAGE]['db']['DB']['name']}\"")
+            self.edit_pic.config(text="Admin Tools")
 
     def db_psw_toggle(self, *args, **kwargs):
         if self.EDIT_PAGE not in self.data:
@@ -750,6 +785,7 @@ class _UI(Thread):
         self.menu_file.entryconfig('Close Database', state=tk.NORMAL)
         self.context_menu.entryconfig('Close Database', state=tk.NORMAL)
 
+        self.sb_expand_shrink.config(text='Shrink', image=self.svgs['arrow_left_large']['normal'], compound=tk.LEFT)
         self.page_index = self.EDIT_PAGE
 
         self.geo_large()
@@ -1381,6 +1417,7 @@ Technical Information: {traceback.format_exc()}"""))
             self.data[self.EDIT_PAGE] = {'db_path': path}
             self.data[self.EDIT_PAGE]['db'] = copy.deepcopy(n_data)
             self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(n_data)
+            self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': False}
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(

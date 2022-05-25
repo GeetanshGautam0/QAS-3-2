@@ -12,7 +12,7 @@ def raise_error(error_type, error_params: tuple, error_level: ErrorLevels, trace
     err_str = f"{time.ctime(time.time())}: [{error_level.name} ERROR]: {str(error_type(*error_params, ))}\n\n{traceback}".strip()
 
     log(err_str)
-    raise Exception(err_str)
+    raise error_type(*error_params)
 
 
 def log(data: str):
