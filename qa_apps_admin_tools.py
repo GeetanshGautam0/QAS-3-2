@@ -946,16 +946,43 @@ class _UI(Thread):
 
             # assert , "[CRITICAL] Failed to compile changes: {DDT}"
             if type(og) is not type(new):
-                c.append([root, og, new])
-                return c, []
+                if isinstance(new, dict):
+                    og1 = {k: None for k in new.keys()}
+                    c1, f1 = rec(og1, new)
+                    c.extend(c1)
+                    f.extend(f1)
+                    del c1, f1, og1
+
+                else:
+                    c.append([root, og, new])
+
+                return c, f
 
             tp = type(og)
 
             if tp in [list, dict, tuple, set]:
+                # assert , "[CRITICAL] Failed to compile changes: {LEN}"
                 if len(og) != len(new):
-                    c.append([root, '<ls/dct>', '<data_added>'])
+                    if isinstance(new, dict):
+                        if isinstance(og, dict):
+                            tks = {*og.keys(), *new.keys()}
+                            og1, new1 = {k: og.get(k) for k in tks}, {k: new.get(k) for k in tks}
+                            c1, f1 = rec(og1, new1)
+                            c.extend(c1)
+                            f.extend(f1)
+                            del og1, new1, c1, f1
 
-                if tp is dict:
+                        else:
+                            og1 = {k: None for k in new.keys()}
+                            c1, f1 = rec(og1, new)
+                            c.extend(c1)
+                            f.extend(f1)
+                            del c1, f1, og1
+
+                    else:
+                        c.append([root, '<ls>', '<data_added_or_removed>'])
+
+                elif tp is dict:
                     for (k1, _), (k2, _1) in zip(og.items(), new.items()):
                         if k1 != k2:
                             f.append('[CRITICAL] Failed to compile changes: {KoKt}')
@@ -981,8 +1008,68 @@ class _UI(Thread):
         changes = rec(self.data[self.EDIT_PAGE]['db_saved'], self.data[self.EDIT_PAGE]['db'])
         return True, changes
 
-    def save_db(self):
+    @staticmethod
+    def compile_changes_str(changes):
+        n_map = {
+            'psw': {
+                0: ['Database Password Protection', True, True],
+                1: ['Admin password', False, True]
+            },
+            'q_psw': {
+                0: ['Quiz Password Protection', True, True],
+                1: ['Quiz password', False, True]
+            },
+            'DB': ['Database root configuration', False, False],
+            'CONFIGURATION': ['Configuration data', False, False],
+            'QUESTIONS': ['Questions list', False, False],
+
+            # CONFIGURATION
+            'acc': ['Allow Custom Quiz Configuration', True, True],
+            'poa': ['Questions: Part or All', True, True],
+            'rqo': ['Randomize Question Order', True, True],
+            'ssd': ['POA; Subsample divisor', True, True],
+            'dpi': ['Deduct Points When Incorrect', True, True],
+            'a2d': ['Num. points to deduct', True, True],
+        }
+
+        c = []
+        for n, og, new in changes:
+            if isinstance(n, tuple):
+                n, ind = n
+                name, show, v_trans = n_map[n][ind]
+            else:
+                name, show, v_trans = n_map[n]
+
+            if v_trans:
+                o = False
+                if new is None:
+                    new = '<REMOVED>'
+                    o = True
+                elif isinstance(new, bool):
+                    new = f"{'En' if new else 'Dis'}abled"
+
+                if og is None:
+                    og = '<NON_EXISTENT>'
+                    o = True
+                elif isinstance(og, bool):
+                    og = f"{'En' if og else 'Dis'}abled"
+
+                if n == 'poa' and not o:
+                    og = "Part" if og == 'p' else "All"
+                    new = "Part" if new == 'p' else "All"
+
+            if show:
+                c.append(f"{name}: {og} \u2192 {new}")
+            else:
+                c.append(f"Changed {name.lower()}")
+
+        return "\n   *" + "\n   *".join(c)
+
+    def save_db(self, _do_not_prompt: bool = False):
+        s_mem = qa_functions.SMem()
+        s_mem.set('n')
         changed, [changes, failures] = self.compile_changes()
+
         if not changed:
             self.show_info(Message(Levels.ERROR, 'No changes found.'))
             return
@@ -994,47 +1081,16 @@ class _UI(Thread):
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(Str))
             return
 
-        c = []
-        n_map = {
-            'psw': {
-                0: ['Database Password Protection', True, True],
-                1: ['Admin password', False, True]
-            },
-            'q_psw': {
-                0: ['Quiz Password Protection', True, True],
-                1: ['Quiz password', False, True]
-            },
-            'DB': ['Database root configuration', False, False]
-        }
-        for n, og, new in changes:
-            if isinstance(n, tuple):
-                n, ind = n
-                name, show, v_trans = n_map[n][ind]
-            else:
-                name, show, v_trans = n_map[n]
+        if not _do_not_prompt:
+            qa_prompts.InputPrompts.ButtonPrompt(
+                s_mem, 'Review Changes', ('Yes, save changes', 'y'), ('No', 'n'), default='n',
+                message=f"Do you want to save the following changes:\n{self.compile_changes_str(changes)}"
+            )
 
-            if v_trans:
-                if isinstance(og, bool):
-                    og = f"{'En' if og else 'Dis'}abled"
+            if s_mem.get() is None:
+                return
 
-                if isinstance(new, bool):
-                    new = f"{'En' if new else 'Dis'}abled"
-
-            if show:
-                c.append(f"{name}: {og} \u2192 {new}")
-            else:
-                c.append(f"Changed {name.lower()}")
-
-        s_mem = qa_functions.SMem()
-        qa_prompts.InputPrompts.ButtonPrompt(
-            s_mem, 'Review Changes', ('Yes, save changes', 'y'), ('No', 'n'), default='n',
-            message='Changes:\n\t* ' + '\n\t* '.join(c)
-        )
-
-        if s_mem.get() is None:
-            return
-
-        if s_mem.get().strip() == 'y':
+        if s_mem.get().strip() == 'y' or _do_not_prompt:
             new = json.dumps(self.data[self.EDIT_PAGE]['db'])
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
             new, _ = qa_files.generate_file(FileType.QA_FILE, new)
@@ -1042,6 +1098,8 @@ class _UI(Thread):
             self.data[self.EDIT_PAGE]['db_saved'] = self.data[self.EDIT_PAGE]['db']
             log(LoggingLevel.SUCCESS, 'Successfully saved new data to database.')
             self.show_info(Message(Levels.OKAY, 'Successfully saved new data'))
+
+        del s_mem
 
     def new_main(self, *_0, **_1):
         global MAX
@@ -1213,6 +1271,34 @@ Technical Information: {traceback.format_exc()}"""))
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Quiz password corrupted; protection disabled.'))
             db['DB']['q_psw'] = [False, '']
 
+        # Configuration checks
+        cr = 'CONFIGURATION'
+        cd = db.get(cr)
+
+        if not cd:
+            log(LoggingLevel.ERROR, "Configuration data not found; resetting configuration data. ")
+            db[cr] = {
+                'acc': False,               # Allow custom quiz configuration
+                'poa': 'p',                 # Part or all
+                'rqo': False,               # Randomize question order
+                'ssd': 2,                   # Subsample divisor
+                'dpi': False,               # Deduct points on incorrect (responses)
+                'a2d': 1                    # Amount of points to deduct
+            }
+        else:
+            f = []
+            for k, (tp, default, ln) in (
+                    ('acc', (bool, False, None)),
+                    ('poa', (str, 'p', 1)),
+                    ('rqo', (bool, False, None)),
+                    ('ssd', (int, 2, None)),
+                    ('dpi', (bool, False, None)),
+                    ('a2d', (int, 1, None)),
+            ):
+                pass
+
+        qr = 'QUESTIONS'
+
         return db
 
     def open(self, path: str, data: dict, _bypass_psw: bool = False):
@@ -1224,6 +1310,35 @@ Technical Information: {traceback.format_exc()}"""))
         try:
             O_data = copy.deepcopy(data)
             n_data = self._clean_db(data)
+
+            self.data[self.EDIT_PAGE] = {'db_path': path}
+            self.data[self.EDIT_PAGE]['db'] = n_data
+            self.data[self.EDIT_PAGE]['db_saved'] = O_data
+
+            changed, (changes, failures) = self.compile_changes()
+
+            if changed:
+                s_mem = qa_functions.SMem()
+                s_mem.set('')
+                qa_prompts.InputPrompts.ButtonPrompt(
+                    s_mem,
+                    'Corrupted data found.',
+                    ('Fix now', 'fn'), ('Exit', 'ex'),
+                    default='ex',
+                    message='Corrupted data was found in the requested database; the application has compiled the changes needed to fix the database.\n\nDo you want to save the following changes:\n' +
+                    self.compile_changes_str(changes)
+                )
+
+                if s_mem.get() != 'fn':
+                    self.proc_exit(self.SELECT_PAGE)
+                    self.show_info(Message(Levels.ERROR, 'Aborted process.'))
+                    return
+
+                else:
+                    self.save_db(True)
+
+            del changed, changes, failures, O_data
+            self.data[self.EDIT_PAGE]['db_saved'] = n_data
 
             if not _bypass_psw and data['DB']['psw'][0]:
                 s_mem = qa_functions.SMem()
@@ -1264,8 +1379,8 @@ Technical Information: {traceback.format_exc()}"""))
 
             self.edit_db_name.config(text=f"Current Database: \"{data['DB']['name']}\"", anchor=tk.W)
             self.data[self.EDIT_PAGE] = {'db_path': path}
-            self.data[self.EDIT_PAGE]['db'] = n_data
-            self.data[self.EDIT_PAGE]['db_saved'] = O_data
+            self.data[self.EDIT_PAGE]['db'] = copy.deepcopy(n_data)
+            self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(n_data)
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(

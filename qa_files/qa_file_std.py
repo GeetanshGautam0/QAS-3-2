@@ -70,10 +70,10 @@ def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Unio
         return uenc_d, string
 
     except Exception as E:
-        E_hash = hashlib.md5(qa_functions.data_type_converter(str(E), bytes, qa_functions.ConverterFunctionArgs())).hexdigest()
+        E_hash = hashlib.md5(str(E).encode()).hexdigest()
         error_info = f"""Failed to load (verify) file data;
 Exception Code: {E_hash}
-Error String: {str(E)}
+Error String: {E.__class__.__name__}({E})
 
 Technical Information: {traceback.format_exc()}"""
 

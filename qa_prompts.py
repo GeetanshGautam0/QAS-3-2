@@ -1883,7 +1883,7 @@ class InputPrompts:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.title("Quizzing Application | URL Input")
+            self.root.title("Quizzing Application | Options")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
             self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
@@ -2206,7 +2206,7 @@ class InputPrompts:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.title("Quizzing Application | URL Input")
+            self.root.title("Quizzing Application | Prompt")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
             self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
@@ -2537,7 +2537,7 @@ class InputPrompts:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.title("Quizzing Application | URL Input")
+            self.root.title("Quizzing Application | Prompt")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
             self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
@@ -2860,7 +2860,7 @@ class InputPrompts:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
-            self.root.title("Quizzing Application | URL Input")
+            self.root.title("Quizzing Application | Options")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
             self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
