@@ -38,8 +38,13 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             return True, (), ("Latest version unknown",), RunTest
 
         lVer = res['application']['version']
+        lBuild = res['application']['build_number']
+        if lVer < App.version:
+            return  False, ("Unsupported application version", ), (True, ), Fix.UpdateApp
         if lVer > App.version:
             return False, ("New version available", ), (True, ), Fix.UpdateApp
+        elif lBuild > App.build_number:
+            return False, ("New application build available",), (True,), Fix.UpdateApp
         else:
             return True, ("Up to date", ), (True, ), RunTest
 

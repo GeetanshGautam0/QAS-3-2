@@ -2,6 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Quizzing Application 3"
+#define MyAppBuildNumber "1"  
 #define MyAppVersion "3.0"
 #define MyAppPublisher "Geetansh Gautam"
 #define MyAppURL "https://geetanshgautam.wixsite.com/home"

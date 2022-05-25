@@ -1,0 +1,15 @@
+{
+  "primary": [
+    "UPDATE_COMMANDS"
+  ],
+  "secondary": [
+    "MAIN_CONFIG",
+    "DEFAULT_THEME",
+    "ICONS",
+    "MODULES_QA_INSTALLER",
+    "MODULES_QA_FUNCTIONS",
+    "MODULES_QA_FILES",
+    "DEV_ESSENTIALS_PKG",
+    "APP_SCRIPTS"
+  ]
+}
