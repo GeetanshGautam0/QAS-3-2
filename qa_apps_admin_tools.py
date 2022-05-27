@@ -178,10 +178,15 @@ class _UI(Thread):
         self.edit_qz_psw_reset_btn = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_RESET>>'))
 
         self.edit_configuration_save = ttk.Button(self.edit_configuration_frame, text="Save Changes", command=self.save_db)
-
-        self.edit_quiz_configuration_container = tk.LabelFrame(self.edit_configuration_frame, text="Quiz Configuration")
-
         self.sb_expand_shrink = ttk.Button(self.edit_sidebar, command=lambda: self.root.focus_get().event_generate('<<SideBar_Expand_Shrink>>'))
+
+        self.edit_config_main_cont = tk.LabelFrame(self.edit_configuration_frame, text='Quiz Configuration')
+        self.edit_config_acc_cont = tk.LabelFrame(self.edit_config_main_cont, text="Custom Quiz Configuration")
+        self.edit_config_poa_cont = tk.LabelFrame(self.edit_config_main_cont, text="Quiz Distribution Settings")
+        self.edit_config_ddc_cont = tk.LabelFrame(self.edit_config_main_cont, text="Penalty Configuration")
+
+        # Config::ACC
+        self.edit_config_acc_lbl = tk.Label(self.edit_config_acc_cont)
 
         self.start()
         self.root.mainloop()
@@ -253,6 +258,8 @@ class _UI(Thread):
         self.select_scores.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.BOTTOM, ipady=self.padY)
 
     def configure_edit_frame(self):
+        global DEBUG_NORM
+
         # Layout
         self.edit_pic.pack(fill=tk.BOTH, expand=False, pady=self.padY*2, padx=self.padX)
         self.edit_pic.config(text='Admin Tools', image=self.svgs['admt'], compound=tk.TOP)
@@ -305,6 +312,16 @@ class _UI(Thread):
         self.edit_configuration_btn.config(compound=tk.LEFT, image=self.svgs['settings_cog_large']['normal'], style='LG.TButton')
         self.edit_questions_btn.config(compound=tk.LEFT, image=self.svgs['question_large']['normal'], style='LG.TButton')
 
+        self.edit_config_main_cont.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_acc_cont.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_acc_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_acc_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text="Though the default settings will remain the same as the ones below, if the following option is enabled, the user will be prompted to edit the ensuing settings themself prior to taking the quiz. Disabling this option will lock in the settings you choose."
+        )
+
         # Scrollbar setup
         self.edit_configuration_vsb.configure(command=self.edit_configuration_canvas.yview)
         self.edit_configuration_canvas.configure(yscrollcommand=self.edit_configuration_vsb.set)
@@ -320,9 +337,39 @@ class _UI(Thread):
         self.edit_configuration_frame.bind("<Configure>", self.onFrameConfig)
         self.edit_configuration_canvas.bind("<MouseWheel>", self._on_mousewheel)
 
-        # Theme Requests
         COM = ThemeUpdateCommands
         VAR = ThemeUpdateVars
+
+        # Logical Requests
+        if self.edit_config_acc_lbl not in self.late_update_requests:
+            self.late_update_requests[self.edit_config_acc_lbl] = []
+
+        self.late_update_requests[self.edit_config_acc_lbl].extend(
+            [
+                [
+                    COM.CUSTOM,
+                    [
+                        lambda *args: self.edit_config_acc_lbl.config(wraplength=args[0]-2*args[1]),
+                        ('<EXECUTE>', lambda *args: self.edit_config_acc_lbl.winfo_width()),
+                        ('<LOOKUP>', 'padX')
+                    ]
+                ],
+                [
+                    COM.CUSTOM,
+                    [
+                        lambda *args: print(f"{ANSI.FG_BRIGHT_MAGENTA}{ANSI.BOLD}[LUpdate[LU]::Rule_WrLP_Auto]", f"wraplength=({args[0]} - 2*{args[1]}) = {args[0] - 2 * args[1]}", ANSI.RESET),
+                        ('<EXECUTE>', lambda *args: self.edit_configuration_frame.winfo_width()),
+                        ('<LOOKUP>', 'padX'),
+                    ] if DEBUG_NORM else [lambda *args: None]
+                 ],
+                [
+                    COM.CUSTOM,
+                    [self.edit_config_acc_lbl.update]
+                ]
+            ]
+        )
+
+        # Theme Requests
 
         self.label_formatter(self.edit_db_name, size=VAR.FONT_SIZE_SMALL, uid='edit_db_name')
         self.update_requests['edit_btn_panel0'] = [self.edit_btn_panel, COM.BG, [VAR.BG]]
@@ -364,6 +411,46 @@ class _UI(Thread):
                 VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
             ]
         ]
+        self.update_requests['edit_config_acc_cont0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_acc_cont.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
+                    highlightbackground=args[5], bd='0'
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
+        self.update_requests['edit_config_poa_cont0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_poa_cont.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
+                    highlightbackground=args[5], bd='0'
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
+        self.update_requests['edit_config_ddc_cont0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_ddc_cont.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
+                    highlightbackground=args[5], bd='0'
+                ),
+                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
+        self.update_requests['edit_config_main_cont0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_main_cont.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
+                    highlightbackground=args[5]
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
+            ]
+        ]
         self.update_requests['edit_db_psw_lbl0'] = [
             None, COM.CUSTOM,
             [
@@ -377,6 +464,15 @@ class _UI(Thread):
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_qz_psw_lbl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests['edit_config_acc_lbl0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_acc_lbl.config(
                     bg=args[0], fg=args[1], font=(args[2], args[3])
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
@@ -1437,10 +1533,9 @@ Technical Information: {traceback.format_exc()}"""
     def update_ui(self, *_9, **_1):
         self.load_theme()
 
-        def tr(com) -> Tuple[bool, str]:
+        def tr(com, *args, **kwargs) -> Tuple[bool, str]:
             try:
-                com()
-                return True, '<no errors>'
+                return True, com(*args, **kwargs)
             except Exception as E:
                 return False, f"{E.__class__.__name__}({E})"
 
@@ -1452,7 +1547,7 @@ Technical Information: {traceback.format_exc()}"""
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BG_WHITE}{ANSI.BOLD}{ANSI.UNDERLINE}[ERROR] {"[SAVED] " if LOGGER_AVAIL else ""}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>{ANSI.RESET}\n')
+            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}{ANSI.UNDERLINE}[ERROR] {"[SAVED] " if LOGGER_AVAIL else ""}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>{ANSI.RESET}\n')
 
         def log_norm(com: str, el):
             if LOGGER_AVAIL:
@@ -1704,11 +1799,38 @@ Technical Information: {traceback.format_exc()}"""
         elID = "<lUP::unknown>"
 
         for element, commands in self.late_update_requests.items():
+            assert type(commands) in [list, tuple, set]
+            commands: Union[list, tuple, set]
+
             for command, args in commands:
                 lCommand = [False]
                 cargs = []
                 for index, arg in enumerate(args):
-                    cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                    carg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+
+                    if isinstance(arg, tuple):
+                        if len(arg) >= 2:
+                            if arg[0] == '<EXECUTE>':
+                                ps, res = (tr(arg[1]) if len(args) == 2 else tr(arg[1], arg[2::]))
+                                if ps:
+                                    carg = res
+                                else:
+                                    log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
+
+                            if arg[0] == '<LOOKUP>':
+                                rs = {
+                                    'padX': self.padX,
+                                    'padY': self.padY,
+                                    'root_width': self.root.winfo_width(),
+                                    'root_height': self.root.winfo_height(),
+                                }.get(arg[1])
+
+                                if rs is not None:
+                                    carg = rs
+                                else:
+                                    log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
+
+                    cargs.append(carg)
                     cargs: list
 
                     if isinstance(cargs[index], qa_functions.HexColor):
@@ -1983,7 +2105,7 @@ def log(level: LoggingLevel, data: str):
         )])
     else:
         if level == LoggingLevel.ERROR:
-            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BG_WHITE}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
+            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         elif level == LoggingLevel.SUCCESS:
             sys.stdout.write(f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         elif level == LoggingLevel.WARNING:
