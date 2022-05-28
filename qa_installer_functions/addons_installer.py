@@ -1,9 +1,4 @@
-import qa_prompts
-
-try:
-    import qa_prompts as qp, qa_functions, qa_files
-except:
-    from qa_functions import qa_prompts as qp, qa_functions, qa_files
+import qa_prompts, qa_functions
 
 
 def install_addon_themes():

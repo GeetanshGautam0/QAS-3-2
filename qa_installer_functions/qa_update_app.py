@@ -1,5 +1,6 @@
 import sys, traceback, click, ctypes, threading, urllib3, tkinter as tk, os, json, appdirs
 from tkinter import messagebox, ttk
+from typing import *
 
 
 with open('.\\.config\\main_config.json', 'r') as mc_file:
@@ -41,7 +42,7 @@ _THEME = {  # DEFAULT.DEFAULT.LIGHT
     }
 }
 
-_COMMANDS = {}
+_COMMANDS: Dict[str, list] = {}
 
 
 def load_commands() -> dict:
@@ -107,7 +108,7 @@ class UpdaterUI(threading.Thread):
 
         messagebox.showerror('QAUv2 | ERROR', f'Failed to update file: {traceback.format_exc()}')
 
-    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']):
+    def insert_item(self, text: str, bg=_THEME['background'], fg=_THEME['foreground'], sfg=_THEME['accent']):
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1
@@ -423,7 +424,7 @@ class Install(threading.Thread):
         self.close_button.config(state=tk.NORMAL)
         tr(self.insert_item, f'Failed to update file: {traceback.format_exc()}', _THEME['background'], _THEME['error'], _THEME['error'])
 
-    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']):
+    def insert_item(self, text: str, bg=_THEME['background'], fg=_THEME['foreground'], sfg=_THEME['accent']):
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1
@@ -710,7 +711,7 @@ class Addons(threading.Thread):
         self.close_button.config(state=tk.NORMAL)
         tr(self.insert_item, f'Failed to update file: {traceback.format_exc()}', _THEME['background'], _THEME['error'], _THEME['error'])
 
-    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']):
+    def insert_item(self, text: str, bg=_THEME['background'], fg=_THEME['foreground'], sfg=_THEME['accent']):
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1

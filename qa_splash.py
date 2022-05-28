@@ -1,5 +1,5 @@
-import tkinter.ttk as ttk, qa_functions, sys, PIL.Image, PIL.ImageTk, math
-from tkinter import *
+import tkinter.ttk as ttk, qa_functions, PIL.Image, PIL.ImageTk, math, sys
+import tkinter as tk
 from time import sleep
 from typing import *
 
@@ -7,14 +7,14 @@ from typing import *
 theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
 
-class Splash(Toplevel):
+class Splash(tk.Toplevel):
     def __init__(self, master, title, img_src):
         global theme
         self.theme = theme
         self.destroyed = False
 
-        self.root, self.title, self.img_path = master, title, img_src
-        self.frame = Frame(self.root)
+        self.root, self.title_string, self.img_path = master, title, img_src
+        self.frame: tk.Frame = tk.Frame(self.root)
         self.img_size = (60, 60)
         self.img = None
 
@@ -131,22 +131,22 @@ class Splash(Toplevel):
 
         self.root.update()
 
-    def setInfo(self, text) -> None:
+    def setInfo(self, string) -> None:
         if self.destroyed:
             return
 
         if self.complete:
             return
 
-        self.infoLbl.config(text=text)
+        self.infoLbl.config(text=string)
         self.root.update()
 
-    def setTitle(self, text: str) -> None:
+    def setTitle(self, string: str) -> None:
         if self.destroyed:
             return
 
-        self.title = text.strip()
-        self.titleLbl.config(text=self.title)
+        self.title_string = string.strip()
+        self.titleLbl.config(text=self.title_string)
         self.root.update()
 
     def update_ui(self) -> None:
@@ -155,9 +155,9 @@ class Splash(Toplevel):
 
         self.root.config(bg=self.theme.background.color)
         self.frame.config(bg=self.theme.background.color)
-        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, math.floor(self.theme.font_title_size * 1.1)), anchor=W, justify=LEFT)
-        self.infoLbl.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=W, justify=LEFT)
-        self.loading_label.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=W, justify=LEFT)
+        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, math.floor(self.theme.font_title_size * 1.1)), anchor=tk.W, justify=tk.LEFT)
+        self.infoLbl.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=tk.W, justify=tk.LEFT)
+        self.loading_label.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=tk.W, justify=tk.LEFT)
 
         self.style.configure(
             "Horizontal.TProgressbar",
@@ -179,8 +179,7 @@ class Splash(Toplevel):
         self.img = PIL.ImageTk.PhotoImage(i)
 
 
-def update_step(inst: Splash, ind: int, steps: Union[list, tuple, dict, set], resolution=100):
-
+def update_step(inst: Splash, ind: int, steps: Union[list, tuple, Dict[int, Any]], resolution=100):
     inst.setInfo(steps[ind])
 
     ind -= 1  # 0 >> Max
@@ -218,7 +217,7 @@ def hide(inst: Splash):
 
 def show(inst: Splash = None):
     if inst is None:
-        inst = Splash(Toplevel(), 'Quizzing Application', qa_functions.Files.QF_ico)
+        inst = Splash(tk.Toplevel(), 'Quizzing Application', qa_functions.Files.QF_ico)
 
     inst.root.overrideredirect(True)
     inst.root.deiconify()

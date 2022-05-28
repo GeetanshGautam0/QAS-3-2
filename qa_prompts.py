@@ -29,7 +29,7 @@ class InfoPacket:
     msg: str
 
     button_text: str = "OKAY"
-    title: str = None
+    title: Union[str, None] = None
     long: bool = False
 
 
@@ -39,7 +39,7 @@ class DownloadPacket:
 
     title: str = "Enter URL"
     message: str = ""
-    file_extn: Union[str, type] = any
+    file_extn: Union[str, None] = None
 
 
 class MessagePrompts:
@@ -78,13 +78,16 @@ class MessagePrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[qa_functions.HexColor, int, str, float]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[None, tk.Widget, tk.BaseWidget, ThemeUpdateCommands, List]]
+            ] = {}
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.info_svg'
@@ -397,13 +400,13 @@ class MessagePrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[qa_functions.HexColor, str, int, float]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.warning_svg'
@@ -717,13 +720,13 @@ class MessagePrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[qa_functions.HexColor, str, int, float]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.error_svg'
@@ -1020,7 +1023,7 @@ class InputPrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
 
             self.padX = 20
             self.padY = 10
@@ -1028,7 +1031,7 @@ class InputPrompts:
             self.download_queued = False
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.svg_size = (20, 20)
             self.appdata_svg_base = '.prog_svg'
@@ -1637,13 +1640,13 @@ class InputPrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -1964,13 +1967,13 @@ class InputPrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -2297,13 +2300,13 @@ class InputPrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -2621,13 +2624,13 @@ class InputPrompts:
             ]
 
             self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-            self.theme_update_map = {}
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
 
             self.padX = 20
             self.padY = 10
 
             self.load_theme()
-            self.update_requests = {}
+            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -2642,7 +2645,7 @@ class InputPrompts:
 
             self.err_acc = 0
 
-            self.button_dict = {}
+            self.button_dict: Dict[str, List[Union[tk.Button, str]]] = {}
 
             self.start()
             self.root.mainloop()

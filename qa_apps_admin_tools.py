@@ -1073,20 +1073,21 @@ class _UI(Thread):
         if self.data[self.EDIT_PAGE]['db_saved'] == self.data[self.EDIT_PAGE]['db']:
             return False, ([], [])
 
-        def rec(og: any, new: any, root="") -> Tuple[List[str], List[str]]:
-            c, f = [], []
+        def rec(og: any, new: any, root="") -> Tuple[List[Tuple], List[str]]:
+            c: List[Tuple] = []
+            f: List[str] = []
 
             # assert , "[CRITICAL] Failed to compile changes: {DDT}"
             if type(og) is not type(new):
                 if isinstance(new, dict):
-                    og1 = {k: None for k in new.keys()}
+                    og1 = {k: None for k in cast(dict, new).keys()}
                     c1, f1 = rec(og1, new)
                     c.extend(c1)
                     f.extend(f1)
                     del c1, f1, og1
 
                 else:
-                    c.append([root, og, new])
+                    c.append((root, og, new))
 
                 return c, f
 
@@ -1097,8 +1098,8 @@ class _UI(Thread):
                 if len(og) != len(new):
                     if isinstance(new, dict):
                         if isinstance(og, dict):
-                            tks = {*og.keys(), *new.keys()}
-                            og1, new1 = {k: og.get(k) for k in tks}, {k: new.get(k) for k in tks}
+                            tks = {*cast(dict, og).keys(), *cast(dict, new).keys()}
+                            og1, new1 = {k: cast(dict, og).get(k) for k in tks}, {k: cast(dict, new).get(k) for k in tks}
                             c1, f1 = rec(og1, new1)
                             c.extend(c1)
                             f.extend(f1)
@@ -1112,27 +1113,27 @@ class _UI(Thread):
                             del c1, f1, og1
 
                     else:
-                        c.append([root, '<ls>', '<data_added_or_removed>'])
+                        c.append((root, '<ls>', '<data_added_or_removed>'))
 
                 elif tp is dict:
-                    for (k1, _), (k2, _1) in zip(og.items(), new.items()):
+                    for (k1, _), (k2, _1) in zip(cast(dict, og).items(), cast(dict, new).items()):
                         if k1 != k2:
                             f.append('[CRITICAL] Failed to compile changes: {KoKt}')
                             continue
 
-                        a, b = rec(og[k1], new[k1], k1)
+                        a, b = rec(cast(dict, og)[k1], cast(dict, new)[k1], k1)
                         c.extend(a)
                         f.extend(b)
                         del a, b
 
                 else:
                     for i, (a, b) in enumerate(zip(og, new)):
-                        if a != b:
-                            c.append([(root, i), a, b])
+                        if cast(Union[str, bytes, int, float, bool], a) != cast(Union[str, bytes, int, float, bool], b):
+                            c.append(((root, i), a, b))
 
             else:
-                if og != new:
-                    c.append([root, og, new])
+                if cast(Union[str, bytes, int, float, bool], og) != cast(Union[str, bytes, int, float, bool], new):
+                    c.append((root, og, new))
 
             del tp
             return c, f
@@ -1225,7 +1226,7 @@ class _UI(Thread):
         if s_mem.get().strip() == 'y' or _do_not_prompt:
             new = json.dumps(self.data[self.EDIT_PAGE]['db'])
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
-            new, _ = qa_files.generate_file(FileType.QA_FILE, new)
+            new, _ = cast(Tuple, qa_files.generate_file(FileType.QA_FILE, new))
             qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
             self.data[self.EDIT_PAGE]['db_saved'] = self.data[self.EDIT_PAGE]['db']
             log(LoggingLevel.SUCCESS, 'Successfully saved new data to database.')
@@ -1418,7 +1419,7 @@ Technical Information: {traceback.format_exc()}"""))
                 'a2d': 1                    # Amount of points to deduct
             }
         else:
-            f = []
+            f: List[Any] = []
             for k, (tp, default, ln) in (
                     ('acc', (bool, False, None)),
                     ('poa', (str, 'p', 1)),
@@ -1965,7 +1966,7 @@ Technical Information: {traceback.format_exc()}"""
             ]
         ]
 
-    def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
         if padding is None:
             padding = self.padX
 
@@ -1983,7 +1984,14 @@ Technical Information: {traceback.format_exc()}"""
             [
                 lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=self.window_size[0] - 2 * args[4]),
                 bg, fg, font, size, padding
-            ]
+            ] if isinstance(label, tk.Label) else (
+                [
+                    lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                    bg, fg, font, size, padding
+                ] if isinstance(label, tk.LabelFrame) else [
+                    lambda *args: None
+                ]
+            )
         ]
 
     def load_theme(self):

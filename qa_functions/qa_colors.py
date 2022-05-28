@@ -1,4 +1,5 @@
 import re
+from typing import *
 from .qa_std import check_hex_contrast, clamp
 from .qa_custom import HexColor
 
@@ -17,7 +18,7 @@ class Convert:
         return i_rgb // 256 // 256 % 256, i_rgb // 256 % 256 // i_rgb // 256
 
     @staticmethod
-    def RGBToHex(rgb: tuple):
+    def RGBToHex(rgb: tuple) -> str:
         return "#%02x%02x%02x" % rgb
 
     @staticmethod
@@ -39,16 +40,16 @@ class Functions:
         deltas_pol = (*[((edRGB[i] - stRGB[i]) / abs(edRGB[i] - stRGB[i])) if (edRGB[i] - stRGB[i]) != 0 else 1 for i in range(3)],)
         deltas = (*[abs(edRGB[i] - stRGB[i]) for i in range(3)],)
         steps = sorted(deltas)[-1]
-        o = [start]
+        o = (start, )
 
         for step in range(steps):
-            o = (
+            o = cast(Tuple[str], (
                 *o, Convert.RGBToHex((*[
                     (int(clamp(0, (stRGB[j] + (deltas[j] * deltas_pol[j] / steps * step)), 255)))
                     for j in range(3)],))
-            )
+            ))
 
-        o = (*o, end)
+        o = cast(Tuple[str], (*o, end))
         return o
 
     @staticmethod

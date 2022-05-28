@@ -4,12 +4,7 @@ from .qa_file_handler import Save
 from .qa_info import App
 from .qa_info import Files
 from .qa_info import Extensions
-try:
-    import qa_files
-except:
-    from .. import qa_files
-
-import threading, time, sys, os
+import qa_files, threading, time, sys, os
 
 
 # Version Checking
