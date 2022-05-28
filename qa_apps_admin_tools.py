@@ -357,10 +357,10 @@ class _UI(Thread):
                 [
                     COM.CUSTOM,
                     [
-                        lambda *args: print(f"{ANSI.FG_BRIGHT_MAGENTA}{ANSI.BOLD}[LUpdate[LU]::Rule_WrLP_Auto]", f"wraplength=({args[0]} - 2*{args[1]}) = {args[0] - 2 * args[1]}", ANSI.RESET),
+                        lambda *args: log(LoggingLevel.DEVELOPER, f"[LUpdate[LU]::Rule_WrLP_Auto] wraplength=({args[0]} - 2*{args[1]}) = {args[0] - 2 * args[1]} {ANSI.RESET}"),
                         ('<EXECUTE>', lambda *args: self.edit_configuration_frame.winfo_width()),
                         ('<LOOKUP>', 'padX'),
-                    ] if DEBUG_NORM else [lambda *args: None]
+                    ] if DEBUG_NORM and qa_functions.App.DEV_MODE else [lambda *args: None]
                  ],
                 [
                     COM.CUSTOM,
@@ -2100,6 +2100,8 @@ def log(level: LoggingLevel, data: str):
 
     if level == LoggingLevel.DEBUG and not DEBUG_NORM:
         return
+    elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
+        return
 
     if LOGGER_AVAIL:
         if level == LoggingLevel.ERROR:
@@ -2118,6 +2120,8 @@ def log(level: LoggingLevel, data: str):
             sys.stdout.write(f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         elif level == LoggingLevel.WARNING:
             sys.stdout.write(f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {data}{ANSI.RESET}\n')
+        elif level == LoggingLevel.DEVELOPER:
+            sys.stdout.write(f'{ANSI.FG_BRIGHT_MAGENTA}{ANSI.BOLD}[{level.name.upper()}] {data}{ANSI.RESET}\n')
         else:
             sys.stdout.write(f'[{level.name.upper()}] {data}\n')
 
@@ -2133,6 +2137,7 @@ def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **k
         log(LoggingLevel.INFO, 'Logging test string')
         log(LoggingLevel.WARNING, 'Logging test string')
         log(LoggingLevel.DEBUG, 'Logging test string')
+        log(LoggingLevel.DEVELOPER, 'Logging test string')
 
     ui_root = tk.Toplevel()
     _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
