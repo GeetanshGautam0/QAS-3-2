@@ -25,7 +25,8 @@ def float_map(value: float, input_min: float, input_max: float, output_min: floa
     :return: mapped float
     """
 
-    assert not allow_overflow and (input_min <= value <= input_max), "Value outside of given bounds"
+    if not allow_overflow:
+        assert (input_min <= value <= input_max), "Value outside of given bounds"
 
     leftSpan = input_max - input_min
     rightSpan = output_max - output_min
@@ -109,6 +110,7 @@ def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, Any]:
                 if f1 and t1 in data:
                     found = True
                     token = t1
+                    break
 
         data = data[token] if found else None
 
@@ -274,7 +276,7 @@ def copy_to_clipboard(text: str, shell: Union[tk.Tk, tk.Toplevel], clear_old: bo
     shell.update()
 
 
-def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str], extra_encodings_to_try: tuple = ()) -> Tuple[str, str]:
+def brute_force_decoding(data: bytes, excluded_encodings: tuple, extra_encodings_to_try: tuple = ()) -> Tuple[str, str]:
     """
 
     **BRUTE_FORCE_DECODING**
@@ -295,18 +297,15 @@ def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str], extra_enco
     :return: (encoding used, string) **
     """
 
-    encodings = ('UTF-7', 'UTF-8', 'UTF-16', 'UTF-32', *extra_encodings_to_try)
+    encodings = ('UTF-8', 'UTF-16', *extra_encodings_to_try)
     for encoding in encodings:
         if encoding in excluded_encodings:
             continue
 
         try:
-            s = data.decode(encoding)
-
+            return encoding, data.decode(encoding)
         except:
             continue
-
-        return encoding, s
 
     raise Exception("encoding not found")
 
@@ -395,8 +394,8 @@ def data_type_converter(
 
                 for item in oa:
                     k, v = \
-                        item.split(cfa.dict_key_val_sep)[0], \
-                        item.replace(item.split(cfa.dict_key_val_sep)[0], data_type_converter('', original_type, cfa), 1).lstrip()
+                        item.split(cast(str, cfa.dict_key_val_sep))[0], \
+                        item.replace(item.split(cast(str, cfa.dict_key_val_sep))[0], data_type_converter('', original_type, cfa), 1).lstrip()
 
                     oa1[k] = v
 
@@ -427,9 +426,11 @@ def data_type_converter(
 
                 if s is not None:
                     try:
-                        output_type(cast(str, s))
+                        return output_type(cast(str, s))
                     except Exception as E:
                         RE(E)
+
+                return None
 
             elif output_type is bytes and isinstance(original, str):  # DONE
                 return original.encode(App.ENCODING)
@@ -468,7 +469,7 @@ def data_type_converter(
                         n_item: str = cast(str, data_type_converter(item_b, str, cfa))  # (Recursive)
                         assert isinstance(n_item, str)
 
-                        str_tokens: List[str] = n_item.split(cfa.dict_key_val_sep)
+                        str_tokens: List[str] = n_item.split(cast(str, cfa.dict_key_val_sep))
                         k, v = str_tokens[0], n_item.replace(str_tokens[0], '', 1).lstrip()
 
                         of[k] = v
@@ -523,7 +524,7 @@ def data_type_converter(
                     o1 = ""
                     for item_f in cast(Union[list, tuple, set], original):
                         i2 = cast(str, data_type_converter(item_f, str, cfa))
-                        o1 += f"{i2}{cfa.list_line_sep}"
+                        o1 += f"{i2}{cast(str, data_type_converter(cfa.list_line_sep, str, cfa))}"
 
                     if output_type is str:
                         return o1
@@ -544,10 +545,10 @@ def data_type_converter(
 
                     for key, val in cast(dict, original).items():
                         k2, v2 = \
-                            data_type_converter(key, str, cfa), \
-                            data_type_converter(val, str, cfa)
+                            cast(str, data_type_converter(key, str, cfa)), \
+                            cast(str, data_type_converter(val, str, cfa))
 
-                        o1 += f"{k2}{cfa.dict_key_val_sep}{v2}{cfa.dict_line_sep}"
+                        o1 += f"{k2}{cast(str, data_type_converter(cfa.dict_key_val_sep, str, cfa))}{v2}{cast(str, data_type_converter(cfa.dict_line_sep, str, cfa))}"
 
                     if output_type is str:
                         return o1

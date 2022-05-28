@@ -84,7 +84,10 @@
     "README.md": "README.md",
     "requirements.txt": "requirements.txt",
     "py_tests.py": "py_tests.py",
-    "mypy.ini": "mypy.ini"
+    "mypy.ini": "mypy.ini",
+    "pyproject.toml": "pyproject.toml",
+    "qa_auto_tests/__init__.py": "qa_auto_tests/__init__.py",
+    "qa_auto_tests/test_all.py": "qa_auto_tests/test_all.py"
   },
   "APP_SCRIPTS": {
     "qa_apps_admin_tools.py": "qa_apps_admin_tools.py",
