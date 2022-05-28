@@ -57,9 +57,8 @@ def _set_pref(file, theme, display_name):
 def _load_pref_data() -> list:
     direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
     fp = f"{direc}\\{Files.ThemePrefFile}"
-    odefault = Load._load_default()
-    default = {}
-    for kv in odefault.values():
+    default: Dict[str, Theme] = {}
+    for kv in Load._load_default().values():
         default = {**default, **kv}
 
     if not os.path.isdir(direc):
@@ -68,14 +67,13 @@ def _load_pref_data() -> list:
     if not os.path.isfile(fp):
         _reset_pref()
 
-    raw = {}
     with open(fp, 'r') as pref_file:
         raw = json.loads(pref_file.read())
         pref_file.close()
 
     df, dd = \
         data_at_dict_path('t\\file', raw)[0] and data_at_dict_path('t\\theme', raw)[0] and data_at_dict_path('t\\display_name', raw)[0], \
-        {'file': data_at_dict_path('t\\file', raw)[1], 'theme': data_at_dict_path('t\\theme', raw)[1], 'display_name': data_at_dict_path('t\\display_name', raw)[1]}
+        {'file': cast(str, data_at_dict_path('t\\file', raw)[1]), 'theme': cast(str, data_at_dict_path('t\\theme', raw)[1]), 'display_name': cast(str, data_at_dict_path('t\\display_name', raw)[1])}
 
     if not df:
         _reset_pref()
@@ -86,9 +84,12 @@ def _load_pref_data() -> list:
 
     ddp = {**dd}
 
-    if dd['file'] == '<DEFAULT>': dd['file'] = Files.default_theme_file_code
-    if dd['theme'] == '<DEFAULT>': dd['theme'] = list(default.values())[0].theme_code
-    if dd['display_name'] == '<DEFAULT>': dd['display_name'] = f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}'
+    if dd['file'] == '<DEFAULT>':
+        dd['file'] = Files.default_theme_file_code
+    if dd['theme'] == '<DEFAULT>':
+        dd['theme'] = list(default.values())[0].theme_code
+    if dd['display_name'] == '<DEFAULT>':
+        dd['display_name'] = f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}'
 
     for theme_and_data in Load.auto_load_all().values():
         theme = (*theme_and_data.values(),)[0]
@@ -129,9 +130,8 @@ class Load:
     def auto_load_pref_theme() -> Theme:
         direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
         fp = f"{direc}\\{Files.ThemePrefFile}"
-        odefault = Load._load_default()
-        default = {}
-        for kv in odefault.values():
+        default: Dict[str, Theme] = {}
+        for kv in Load._load_default().values():
             default = {**default, **kv}
 
         if not os.path.isdir(direc):
@@ -148,7 +148,7 @@ class Load:
 
         df, dd = \
             data_at_dict_path('t\\file', raw)[0] and data_at_dict_path('t\\theme', raw)[0] and data_at_dict_path('t\\display_name', raw)[0], \
-            {'file': data_at_dict_path('t\\file', raw)[1], 'theme': data_at_dict_path('t\\theme', raw)[1], 'display_name': data_at_dict_path('t\\display_name', raw)[1]}
+            {'file': cast(str, data_at_dict_path('t\\file', raw)[1]), 'theme': cast(str, data_at_dict_path('t\\theme', raw)[1]), 'display_name': cast(str, data_at_dict_path('t\\display_name', raw)[1])}
 
         if not df:
             _reset_pref()
@@ -180,7 +180,7 @@ class Load:
 
     @staticmethod
     def auto_load_all(inc_def: bool = True) -> dict:
-        output = {}
+        output: Dict[str, Dict[str, Theme]] = {}
         extn = qa_files.qa_theme_extn
 
         direc = f"{App.appdata_dir}\\{Files.ad_theme_folder}"
@@ -189,14 +189,14 @@ class Load:
             return output
 
         file_acc: int = 0
-        themes = {}
+        themes: Dict[int, Tuple] = {0: ()}
 
         ERR = "[ERROR] [THEME_LOADER] "
 
         with os.scandir(direc) as fls:
             for file in fls:
                 if file.name.endswith(extn):
-                    fp = file.path
+                    fp: str = file.path
 
                     try:
                         with open(fp, 'r') as theme_file:
@@ -204,15 +204,15 @@ class Load:
                             theme_file.close()
 
                     except Exception as E:
-                        print(f"{ERR}Failed to load data from theme file (path at end): %s. File: %s" % (str(E), file.name))
+                        sys.stderr.write(f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_BRIGHT_RED}{ERR}Failed to load data from theme file (path at end): %s. File: %s{ANSI.RESET}" % (str(E), file.name))
                         continue
 
                     df, dd = data_at_dict_path('file_info/avail_themes', raw)
                     if not df:
-                        print(f"{ERR}Failed to load data from theme file (path at end): File information unavailable %s" % file.name)
+                        sys.stderr.write(f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_BRIGHT_RED}{ERR}Failed to load data from theme file (path at end): File information unavailable %s{ANSI.RESET}" % file.name)
                         continue
                     if dd.get('num_themes') is None:
-                        print(f"{ERR}Failed to load data from theme file (path at end): File information unavailable %s" % file.name)
+                        sys.stderr.write(f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_BRIGHT_RED}{ERR}Failed to load data from theme file (path at end): File information unavailable %s{ANSI.RESET}" % file.name)
                         continue
 
                     avail_themes = dd
@@ -221,14 +221,15 @@ class Load:
                     file_acc += 1
                     themes[len(themes)] = (avail_themes, raw, fp)
 
+        themes.pop(0)
         for at, t, fp in themes.values():
             try:
                 nd = Load._load_theme(fp, t, at, False)
             except Exception as E:
                 fn = fp.replace('/', '\\').split('\\')[-1]
-                stri = f"Failed to load theme from '{fn}': {str(E)}; \n{traceback.format_exc()}"
-                sys.stderr.write(f"{stri}\n")
-                messagebox.showerror('Automatic Theme Loading Manager', f'DELETED CORRUPTED THEME FILE\n{stri}')
+                string = f"Failed to load theme from '{fn}': {str(E)}; \n{traceback.format_exc()}"
+                sys.stderr.write(f"{string}\n")
+                messagebox.showerror('Automatic Theme Loading Manager', f'DELETED CORRUPTED THEME FILE\n{string}')
                 os.remove(fp)
                 continue
 
@@ -237,7 +238,7 @@ class Load:
         if inc_def:
             output = {**output, **Load._load_default()}
 
-        print("[INFO] [THEME_LOADER] Found %d files from the AppData directory" % file_acc)
+        sys.stdout.write("[INFO] [THEME_LOADER] Found %d files from the AppData directory" % file_acc)
 
         return output
 
@@ -248,9 +249,9 @@ class Load:
 
         ofa = OpenFunctionArgs()
         cfa = ConverterFunctionArgs()
-        hashes = hash_raw = Open.read_file(default_theme_hash, ofa, Encryption.default_key, cfa)
+        hash_raw = cast(bytes, Open.read_file(default_theme_hash, ofa, Encryption.default_key, cfa))
 
-        def load(path_to_file: os.PathLike):
+        def load(path_to_file: str):
             raw = Open.read_file(File(str(path_to_file)), ofa, Encryption.default_key, cfa)
 
             json_data = json.loads(dtc(raw, str, cfa))
@@ -275,8 +276,6 @@ class Load:
 
             return Load._load_theme(default_direc, json_data, themes, _skip_test=True)
 
-        output_acc = {}
-
         f1 = Files.default_theme_file.replace(default_direc, '', 1).strip("\\")
         output_acc = {**load(Files.default_theme_file)}
 
@@ -289,7 +288,7 @@ class Load:
 
     @staticmethod
     def _load_theme(file_path, raw_theme_json: dict, theme_names: dict, _skip_test: bool = False) -> dict:
-        o = {}
+        o: Dict[str, Dict[str, Theme]] = {}
 
         for theme_name, theme in theme_names.items():
             assert theme in raw_theme_json, f"Data for '{theme_name}' theme not found."
@@ -329,8 +328,9 @@ class Load:
 
 class Test:
     @staticmethod
-    def check_file(json_data: dict, re_results: bool = False) -> bool:  # TODO: Add tests here
-        failures, warnings = [], []
+    def check_file(json_data: dict, re_results: bool = False):
+        failures: List[str] = []
+        warnings: List[str] = []
         abort = False
 
         for i, k in [('name', str), ('display_name', str), ('avail_themes/num_themes', int)]:
@@ -375,9 +375,11 @@ class Test:
 
             if not abort:
                 for theme_name in d0.values():
-                    _, f, w = Test.check_theme(theme_name, json_data[theme_name], True)
-                    failures.extend(f)
-                    warnings.extend(w)
+                    fa = Test.check_theme(theme_name, json_data[theme_name], True)
+                    failures.extend(cast(Tuple[bool, List[str], List[str]], fa)[1])
+                    warnings.extend(cast(Tuple[bool, List[str], List[str]], fa)[2])
+
+                    del fa
 
         # Failure printer
 
@@ -394,8 +396,9 @@ class Test:
         return len(failures) == 0 if not re_results else (len(failures) == 0, failures, warnings)
 
     @staticmethod
-    def check_theme(theme_name: str, theme_data: dict, re_failures: bool = False) -> Union[bool, Tuple[bool, List, List]]:
-        failures, warnings = [], []
+    def check_theme(theme_name: str, theme_data: dict, re_failures: bool = False):
+        failures: List[str] = []
+        warnings: List[str] = []
 
         contrast_ratio_adjustment_tbl = {
             'warning': 2.25555,
@@ -421,67 +424,68 @@ class Test:
             ('border/colour', HexColor)
         )
 
-        acc = [0, []]
+        n_acc: int = 0
+        acc: List[str] = []
         for item_name, item_type in checks:
             e, d = data_at_dict_path(item_name, theme_data)
-            f1 = acc[0]
+            f1 = n_acc
             bg_okay = True
 
-            acc[0] += abs(int(e) - 1)
+            n_acc += cast(int, abs(int(e) - 1))
 
             if not e:
-                acc[1].append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` not found")
+                acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` not found")
 
             if item_type is HexColor:
                 if not isinstance(d, str):
-                    acc[0] += 1
-                    acc[1].append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
+                    n_acc += 1
+                    acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
 
                 else:
                     if not HexColor(d).check():
-                        acc[0] += 1
-                        acc[1].append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (HexColor Check.)")
+                        n_acc += 1
+                        acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (HexColor Check.)")
 
                         if item_name == "background":
                             bg_okay = True
 
             elif not isinstance(d, item_type):
                 if not (item_type is int and isinstance(d, float)):
-                    acc[0] += 1
-                    acc[1].append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
+                    n_acc += 1
+                    acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
 
-            f1 = acc[0] == f1
+            f1 = n_acc == f1
             if f1 and "border" not in item_name:
                 if item_type is int:
                     if d <= 0:
-                        acc[0] += 1
-                        acc[1].append(f"{theme_name}` - Error #{acc[0]}: Value for `{item_name}` must have a value of at least 1.")
+                        n_acc += 1
+                        acc.append(f"{theme_name}` - Error #{acc[0]}: Value for `{item_name}` must have a value of at least 1.")
 
                     if d < 6:
                         warnings.append(f"{theme_name}` - Warning: Value for `{item_name}` must has a value of {d}; if value relates to font, the size may be too small.")
 
                 if item_type is str:
                     if len(d) <= 0:
-                        acc[0] += 1;
-                        acc[1].append(f'`{theme_name}` - Error #{acc[0]}: Empty string provided for `{item_name}`')
+                        n_acc += 1
+                        acc.append(f'`{theme_name}` - Error #{acc[0]}: Empty string provided for `{item_name}`')
 
                 if item_type is HexColor:
                     if item_name != "background":
                         if bg_okay:
-                            AA, AAA = check_hex_contrast(HexColor(theme_data['background']), HexColor(d), 0 if item_name not in contrast_ratio_adjustment_tbl else contrast_ratio_adjustment_tbl.get(item_name))
+                            AA, AAA = check_hex_contrast(HexColor(theme_data['background']), HexColor(d), cast(int, (1 if item_name not in contrast_ratio_adjustment_tbl else contrast_ratio_adjustment_tbl.get(item_name))))
 
                             if not AA:
-                                acc[0] += 1
-                                acc[1].append(f"`{theme_name}` - Error #{acc[0]}: Color value for `{item_name}` fails AA contrast check.")
+                                n_acc += 1
+                                acc.append(f"`{theme_name}` - Error #{acc[0]}: Color value for `{item_name}` fails AA contrast check.")
 
                             if not AAA:
                                 warnings.append(f"`{theme_name}` - Warning: Colour value for `{item_name}` does not pass AAA contrast check (non-fatal.)")
 
                         else:
-                            acc[0] += 1
-                            acc[1].append(f"`{theme_name}` - Error #{acc[0]}: No background colour to compare to; contrast for color `{item_name}` unknown.")
+                            n_acc += 1
+                            acc.append(f"`{theme_name}` - Error #{acc[0]}: No background colour to compare to; contrast for color `{item_name}` unknown.")
 
-        failures.extend(acc[1])
+        failures.extend(acc)
 
         if re_failures:
             return len(failures) == 0, failures, warnings

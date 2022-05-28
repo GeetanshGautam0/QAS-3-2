@@ -62,7 +62,7 @@ class Open:
 
 class Save:
     @staticmethod
-    def secure(file_obj: File, data: any, args: SaveFunctionArgs) -> bool:
+    def secure(file_obj: File, data: Any, args: SaveFunctionArgs) -> bool:
         """
         **SAVE.SECURE**
 
@@ -157,7 +157,7 @@ class Save:
                             bf.close()
                             of.close()
 
-                        hash1, hash2 = hashlib.sha3_512(bd), hashlib.sha3_512(od)
+                        hash1, hash2 = cast(str, hashlib.sha3_512(bd)), cast(str, hashlib.sha3_512(od))
                         f1 = hash1 == hash2
 
                         del hash1, hash2, bd, od, bf, of
@@ -198,7 +198,7 @@ class Save:
         return None
 
     @staticmethod
-    def normal(file_obj: File, data: any, args: SaveFunctionArgs, _bypass_checks: bool = False) -> None:
+    def normal(file_obj: File, data: Any, args: SaveFunctionArgs, _bypass_checks: bool = False) -> None:
         """
         **SAVE.NORMAL**
 
@@ -230,15 +230,15 @@ class Save:
 
         if args.append:
             with open(file_obj.file_path, 'rb') as source_file:
-                original_data = source_file.read().strip()
+                original_data = cast(Union[str, bytes], source_file.read().strip())
                 source_file.close()
 
-            original_data = dtc(original_data, output_type, cfa)
-            separator = dtc(args.new_old_data_sep, output_type, cfa)
+            original_data = cast(Union[str, bytes], dtc(original_data, output_type, cfa))
+            separator = cast(Union[str, bytes], dtc(args.new_old_data_sep, output_type, cfa))
 
         else:
-            original_data = "" if output_type is str else "".encode(App.ENCODING)
-            separator = "" if output_type is str else "".encode(App.ENCODING)
+            original_data = cast(Union[str, bytes], "" if output_type is str else "".encode(App.ENCODING))
+            separator = cast(Union[str, bytes], "" if output_type is str else "".encode(App.ENCODING))
 
         if args.encrypt:
             if len(original_data.strip()) > 0:
@@ -247,10 +247,12 @@ class Save:
             d2s = _Crypt.encrypt(new_data, args.encryption_key, cfa)
 
         else:
-            d2s = (original_data + separator + new_data).replace(
-                dtc('\r\n', output_type, cfa),
-                dtc('\n', output_type, cfa)
-            ).strip()
+            d2s = cast(Union[str, bytes], (
+                    cast(str, original_data) + cast(str, separator) + cast(str, new_data)).replace(
+                            cast(str, dtc('\r\n', output_type, cfa)),
+                            cast(str, dtc('\n', output_type, cfa))
+                        ).strip()
+                       )
 
         with open(file_obj.file_path, 'w' if output_type is str else 'wb') as output_file:
             output_file.write(d2s)
@@ -266,7 +268,7 @@ class _Crypt:
         return Fernet(key)
 
     @staticmethod
-    def encrypt(data: any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
+    def encrypt(data: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
         fer = _Crypt._make_fernet(key)
         b_data: bytes = dtc(data, bytes, cfa)
 
@@ -278,7 +280,7 @@ class _Crypt:
             return False
 
     @staticmethod
-    def decrypt(data: any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
+    def decrypt(data: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
         fer = _Crypt._make_fernet(key)
         b_data: bytes = dtc(data, bytes, cfa)
 
@@ -290,7 +292,7 @@ class _Crypt:
             return False
 
     @staticmethod
-    def save_sr_append_data(old_data: any, new_data: any, sep: any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> bytes:
+    def save_sr_append_data(old_data: Any, new_data: Any, sep: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> bytes:
         od = dtc(old_data, bytes, cfa)
         nd = dtc(new_data, bytes, cfa)
         sd = dtc(sep,      bytes, cfa)

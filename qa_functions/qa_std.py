@@ -25,7 +25,8 @@ def float_map(value: float, input_min: float, input_max: float, output_min: floa
     :return: mapped float
     """
 
-    assert not allow_overflow and (input_min <= value <= input_max), "Value outside of given bounds"
+    if not allow_overflow:
+        assert (input_min <= value <= input_max), "Value outside of given bounds"
 
     leftSpan = input_max - input_min
     rightSpan = output_max - output_min
@@ -53,20 +54,17 @@ def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple
     assert isinstance(fg, HexColor), err_str_1('fg')
     assert fg.check(), err_str_2('fg')
 
-    def map_rgb(color_rgb: Tuple[int, int, int]) -> Tuple:
+    def map_rgb(color_rgb: Tuple[int]) -> Tuple[float]:
         assert len(color_rgb) == 3, 'Invalid '
-        o_tuple: List[float, float, float] = []
+        o_tuple: Tuple[float] = cast(Tuple[float], (*[float_map(col, 0.00, 255.00, 0.00, 1.00) for col in color_rgb],))
 
-        for col in color_rgb:
-            o_tuple.append(float_map(col, 0.00, 255.00, 0.00, 1.00))
+        return o_tuple
 
-        return *o_tuple,
+    def hex_to_rgb(color: HexColor) -> Tuple[int]:
+        return cast(Tuple[int], tuple(int("".join(i for i in re.findall(r"\w", color.color))[j:j + 2], 16) for j in (0, 2, 4)))
 
-    def hex_to_rgb(color: HexColor) -> tuple:
-        return tuple(int("".join(i for i in re.findall(r"\w", color.color))[j:j + 2], 16) for j in (0, 2, 4))
-
-    col1 = hex_to_rgb(bg)
-    col2 = hex_to_rgb(fg)
+    col1: Tuple[int] = hex_to_rgb(bg)
+    col2: Tuple[int] = hex_to_rgb(fg)
     adjusted_contrast_ratio = wcag_contrast_ratio.rgb(map_rgb(col1), map_rgb(col2)) + adjustment
 
     AA_res = wcag_contrast_ratio.passes_AA(adjusted_contrast_ratio)
@@ -75,7 +73,7 @@ def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple
     return AA_res, AAA_res
 
 
-def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, any]:
+def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, Any]:
     """
     **DATA_AT_DICT_PATH**
 
@@ -112,6 +110,7 @@ def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, any]:
                 if f1 and t1 in data:
                     found = True
                     token = t1
+                    break
 
         data = data[token] if found else None
 
@@ -179,8 +178,8 @@ def dict_check_redundant_data_inter_dict(dic: dict, dic2: dict, root_name: str =
         assert isinstance(root, str)
 
         b = True
-        oc = {}
-        fnc = set()
+        oc: Dict[str, Tuple] = {}
+        fnc: Set[str] = set()
 
         for k, v in d2.items():
             if isinstance(v, dict):
@@ -223,8 +222,8 @@ def dict_check_redundant_data(dic: dict, root_name: str = '<root>') -> tuple:
         assert isinstance(root, str)
 
         b = True
-        oc = {}
-        fnc = set()
+        oc: Dict[str, Tuple] = {}
+        fnc: Set[str] = set()
 
         for k, v in d.items():
             if isinstance(v, dict):
@@ -277,7 +276,7 @@ def copy_to_clipboard(text: str, shell: Union[tk.Tk, tk.Toplevel], clear_old: bo
     shell.update()
 
 
-def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str], extra_encodings_to_try: tuple = ()) -> Tuple[str, str]:
+def brute_force_decoding(data: bytes, excluded_encodings: tuple, extra_encodings_to_try: tuple = ()) -> Tuple[str, str]:
     """
 
     **BRUTE_FORCE_DECODING**
@@ -298,18 +297,15 @@ def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str], extra_enco
     :return: (encoding used, string) **
     """
 
-    encodings = ('UTF-7', 'UTF-8', 'UTF-16', 'UTF-32', *extra_encodings_to_try)
+    encodings = ('UTF-8', 'UTF-16', *extra_encodings_to_try)
     for encoding in encodings:
         if encoding in excluded_encodings:
             continue
 
         try:
-            s = data.decode(encoding)
-
+            return encoding, data.decode(encoding)
         except:
             continue
-
-        return encoding, s
 
     raise Exception("encoding not found")
 
@@ -318,8 +314,7 @@ def data_type_converter(
         original: Union[str, bytes, list, tuple, set, dict, int, float],
         output_type: type,
         cfa: ConverterFunctionArgs
-) -> \
-        Union[str, bytes, list, tuple, set, dict, int, float]:
+) -> Union[Any]:
 
     """
     **DATA_TYPE_CONVERTOR**
@@ -382,27 +377,29 @@ def data_type_converter(
             assert original_type not in (float, int), "Unsupported conversion (Int/Float => List/Tuple/Set/Dict)"
 
             if output_type in (list, tuple, set):
-                ns = data_type_converter(cfa.list_line_sep, original_type, cfa)
-                no = data_type_converter(original, original_type, cfa)  # For bytes encoding
+                ns: Optional[str] = cast(Optional[str], data_type_converter(cfa.list_line_sep, original_type, cfa))
+                no: str = cast(str, data_type_converter(original, original_type, cfa))  # For bytes encoding
 
                 o = no.split(ns)
+
+                del ns, no
                 return output_type(o)
 
             elif output_type is dict:
-                ns = data_type_converter(cfa.dict_line_sep, original_type, cfa)
-                no = data_type_converter(original, original_type, cfa)  # For bytes encoding
+                nsa: Optional[str] = cast(Optional[str], data_type_converter(cfa.dict_line_sep, original_type, cfa))
+                noa: str = cast(str, data_type_converter(original, original_type, cfa))  # For bytes encoding
 
-                o = no.split(ns)
-                o1 = {}
+                oa = noa.split(nsa)
+                oa1 = {}
 
-                for item in o:
+                for item in oa:
                     k, v = \
-                        item.split(cfa.dict_key_val_sep)[0], \
-                        item.replace(item.split(cfa.dict_key_val_sep)[0], data_type_converter('', original_type, cfa), 1).lstrip()
+                        item.split(cast(str, cfa.dict_key_val_sep))[0], \
+                        item.replace(item.split(cast(str, cfa.dict_key_val_sep))[0], data_type_converter('', original_type, cfa), 1).lstrip()
 
-                    o1[k] = v
+                    oa1[k] = v
 
-                return o1
+                return oa1
 
             else:
                 raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
@@ -410,41 +407,42 @@ def data_type_converter(
         elif output_type in single:  # DONE
             if output_type in (int, float) and original_type is str:  # DONE ?
                 try:
-                    return output_type(float(original))
+                    return output_type(float(cast(str, original)))
 
                 except Exception as E:
                     RE(E)
 
             elif output_type in (int, float) and original_type is bytes:  # DONE ?
-                s = None
+                s = '0'
 
                 try:
-                    s = original.decode(App.ENCODING)
+                    s = cast(bytes, original).decode(App.ENCODING)
                 except:
                     try:
-                        _, s = brute_force_decoding(original, (App.ENCODING,))
+                        _, s = brute_force_decoding(cast(bytes, original), (App.ENCODING,))
 
                     except Exception as E:
                         RE(E)
 
                 if s is not None:
                     try:
-                        output_type(s)
+                        return output_type(cast(str, s))
                     except Exception as E:
                         RE(E)
 
-            elif output_type is bytes and original_type is str:  # DONE
+                return None
+
+            elif output_type is bytes and isinstance(original, str):  # DONE
                 return original.encode(App.ENCODING)
 
             elif output_type is str and original_type is bytes:  # DONE
                 try:
-                    o = original.decode(App.ENCODING)
-                    return o
-                except:
+                    return cast(bytes, original).decode(App.ENCODING)
+                except Exception as E:
                     try:
-                        _, s = brute_force_decoding(original, (App.ENCODING,))
+                        _, s = brute_force_decoding(cast(bytes, original), (App.ENCODING,))
                         return s
-                    except:
+                    except Exception as E:
                         RE("Unknown encoding for given bytes data.")
 
             elif output_type in (str, bytes) and original_type in (int, float):
@@ -463,22 +461,23 @@ def data_type_converter(
     elif original_type in multi:
         if output_type in multi:
             if original_type in (tuple, list, set):  # DONE
+                # original: Union[list, tuple, set] = cast(Union[list, tuple, set], original)
                 if output_type is dict:  # DONE
-                    o = {}
+                    of: Dict[str, str] = {}
 
-                    for item in original:
-                        n_item = data_type_converter(item, str, cfa)  # (Recursive)
+                    for item_b in cast(Union[list, tuple, set], original):
+                        n_item: str = cast(str, data_type_converter(item_b, str, cfa))  # (Recursive)
                         assert isinstance(n_item, str)
 
-                        str_tokens = n_item.split(cfa.dict_key_val_sep)
+                        str_tokens: List[str] = n_item.split(cast(str, cfa.dict_key_val_sep))
                         k, v = str_tokens[0], n_item.replace(str_tokens[0], '', 1).lstrip()
 
-                        o[k] = v
+                        of[k] = v
 
-                    return o
+                    return of
 
                 elif output_type in (tuple, list, set):  # DONE
-                    return output_type([*original])
+                    return output_type([*cast(Union[tuple, list, set], original)])
 
                 else:
                     raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
@@ -493,7 +492,7 @@ def data_type_converter(
 
                     o = []
 
-                    for ok, ov in original.items():
+                    for ok, ov in cast(dict, original).items():
                         k, v = \
                             data_type_converter(ok, str, cfa), \
                             data_type_converter(ov, str, cfa)
@@ -512,20 +511,20 @@ def data_type_converter(
             if original_type in (list, tuple, set):
                 if output_type in (float, int):
                     try:
-                        return output_type(sum(original))
+                        return output_type(sum(cast(Iterable[Union[int, float]], original)))
                     except:
                         acc = 0.0
 
-                        for item in original:
-                            acc += data_type_converter(item, float, cfa)
+                        for item in cast(Iterable[Any], original):
+                            acc += cast(float, data_type_converter(item, float, cfa))
 
                         return output_type(acc)
 
                 elif output_type in (str, bytes):
                     o1 = ""
-                    for item in original:
-                        i2 = data_type_converter(item, str, cfa)
-                        o1 += f"{i2}{cfa.list_line_sep}"
+                    for item_f in cast(Union[list, tuple, set], original):
+                        i2 = cast(str, data_type_converter(item_f, str, cfa))
+                        o1 += f"{i2}{cast(str, data_type_converter(cfa.list_line_sep, str, cfa))}"
 
                     if output_type is str:
                         return o1
@@ -539,17 +538,17 @@ def data_type_converter(
 
             elif original_type is dict:
                 if output_type in (float, int):
-                    return output_type(sum(list(original.values())))
+                    return output_type(sum(list(cast(dict, original).values())))
 
                 elif output_type in (str, bytes):
                     o1 = ""
 
-                    for key, val in original.items():
+                    for key, val in cast(dict, original).items():
                         k2, v2 = \
-                            data_type_converter(key, str, cfa), \
-                            data_type_converter(val, str, cfa)
+                            cast(str, data_type_converter(key, str, cfa)), \
+                            cast(str, data_type_converter(val, str, cfa))
 
-                        o1 += f"{k2}{cfa.dict_key_val_sep}{v2}{cfa.dict_line_sep}"
+                        o1 += f"{k2}{cast(str, data_type_converter(cfa.dict_key_val_sep, str, cfa))}{v2}{cast(str, data_type_converter(cfa.dict_line_sep, str, cfa))}"
 
                     if output_type is str:
                         return o1
@@ -569,6 +568,8 @@ def data_type_converter(
 
     else:
         raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+
+    return None
 
 
 def gen_short_uid(prefix: str = "qa") -> str:

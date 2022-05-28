@@ -4,15 +4,15 @@ from .qa_files_ltbl import *
 from tkinter import messagebox
 
 
-_ft_map = {
-    qa_functions.qa_enum.FileType.QA_FILE: [qa_file_extn, qa_file_enck],
-    qa_functions.qa_enum.FileType.QA_ENC: [qa_enc_extn, qa_enc_enck],
-    qa_functions.qa_enum.FileType.QA_EXPORT: [qa_export_extn, qa_export_enck],
-    qa_functions.qa_enum.FileType.QA_QUIZ: [qa_quiz_extn, qa_quiz_enck]
+_ft_map: Dict[qa_functions.qa_enum.FileType, Tuple[str, bytes]] = {
+    qa_functions.qa_enum.FileType.QA_FILE: (qa_file_extn, qa_file_enck),
+    qa_functions.qa_enum.FileType.QA_ENC: (qa_enc_extn, qa_enc_enck),
+    qa_functions.qa_enum.FileType.QA_EXPORT: (qa_export_extn, qa_export_enck),
+    qa_functions.qa_enum.FileType.QA_QUIZ: (qa_quiz_extn, qa_quiz_enck),
 }
 
 
-def generate_file(file_type: qa_functions.qa_enum.FileType, raw_data: Union[bytes, str]) -> Union[type(None), tuple]:
+def generate_file(file_type: qa_functions.qa_enum.FileType, raw_data: Union[bytes, str]):
     global _ft_map
 
     try:
@@ -37,7 +37,7 @@ Technical Information: {traceback.format_exc()}"""
         return None
 
 
-def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Union[type(None), Tuple[bytes, str]]:
+def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Union[None, Tuple[bytes, str]]:
     global _ft_map
 
     try:

@@ -7,7 +7,7 @@ class ConfigurationFile:
     completed = False
 
     if not os.path.exists(name):
-        raise_error(FileNotFoundError, ("Main configuration file not found", ), ErrorLevels.Fatal)
+        raise_error(FileNotFoundError, ("Main configuration file not found", ), ErrorLevels.FATAL)
         sys.exit(ExitCodes.GENERAL_ERROR)
 
     try:
@@ -17,7 +17,7 @@ class ConfigurationFile:
         json_data = json.loads(d)
 
     except Exception as E:
-        raise_error(E.__class__, str(E), ErrorLevels.FATAL, traceback.format_exc())
+        raise_error(E.__class__, (str(E), ), ErrorLevels.FATAL, traceback.format_exc())
         sys.exit(ExitCodes.GENERAL_ERROR)
 
     completed = True

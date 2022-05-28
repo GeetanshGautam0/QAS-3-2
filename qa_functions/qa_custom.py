@@ -87,10 +87,10 @@ class SaveFunctionArgs:
 
 @dataclass
 class ConverterFunctionArgs:
-    list_line_sep:              str = "\n"
+    list_line_sep:              Union[str, bytes] = "\n"
 
-    dict_key_val_sep:           str = " "
-    dict_line_sep:              str = "\n"
+    dict_key_val_sep:           Union[str, bytes] = " "
+    dict_line_sep:              Union[str, bytes] = "\n"
 
 
 @dataclass

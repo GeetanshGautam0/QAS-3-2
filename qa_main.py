@@ -75,9 +75,9 @@ class _Run(Thread):
             return self.shell
 
         if self.func in _ico_map:
-            _bg_window.iconbitmap(_ico_map[self.func])
+            cast(Union[tk.Tk, tk.Toplevel], _bg_window).iconbitmap(_ico_map[self.func])
 
-        _bg_window.protocol("WM_DELETE_WINDOW", self.close)
+        cast(Union[tk.Tk, tk.Toplevel], _bg_window).protocol("WM_DELETE_WINDOW", self.close)
         tk.Tk.report_callback_exception = self.tk_err_handler
 
         _ui_shell = self.func(self, _bg_window, **self.tokens)
@@ -256,13 +256,12 @@ def check_for_updates():
 
 
 if __name__ == "__main__":
-    _bg_window: tk.Tk = tk.Tk()
+    _bg_window = cast(tk.Tk, tk.Tk())
     _bg_window.withdraw()
 
     sys.stdout.write("Loaded modules; running application now.\n")
 
-    SPLASH: qa_splash.Splash
-    SPLASH = qa_splash.Splash(tk.Toplevel(), 'Quizzing Application', qa_functions.Files.QF_png)
+    SPLASH = cast(qa_splash.Splash, qa_splash.Splash(tk.Toplevel(), 'Quizzing Application', qa_functions.Files.QF_png))
     qa_splash.update_step(SPLASH, 1, BOOT_STEPS)
 
     check_for_updates()

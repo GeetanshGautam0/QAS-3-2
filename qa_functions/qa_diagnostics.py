@@ -1,14 +1,6 @@
 import sys, os, json, traceback, hashlib, urllib3
-
-try:
-    from qa_functions import *
-except:
-    from . import qa_theme_loader
-
-try:
-    from qa_installer_functions import update
-except:
-    from ..qa_installer_functions import update
+from qa_functions import *
+from qa_installer_functions import update
 
 
 HTTP = urllib3.PoolManager(
