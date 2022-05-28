@@ -1,5 +1,7 @@
 # Quizzing Application v3
 
+![Automated Tests](https://github.com/GeetanshGautam0/QAS-3-2/actions/workflows/tests.yml/badge.svg)
+
 <details>
 <summary>Changelog</summary>
 
