@@ -31,4 +31,4 @@ jobs:
           mypy .
       - name: PyTest Tests
         run: |
-          pytest
+          pytest -vv
