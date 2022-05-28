@@ -26,11 +26,11 @@ class Splash(tk.Toplevel):
             int(self.root.winfo_screenheight() / 2 - 125)
         )
 
-        self.titleLbl = Label(self.frame, text=title)
-        self.imgLbl = Label(self.frame, anchor=E)
-        self.pbar = ttk.Progressbar(self.frame, length=100, mode='determinate', orient=HORIZONTAL)
-        self.loading_label = Label(self.frame, justify=LEFT, anchor=W, text="Loading\nGeetansh Gautam\nPress\"ALT + F4\" to exit")
-        self.infoLbl = Label(self.frame, justify=LEFT, anchor=W, text="")
+        self.titleLbl = tk.Label(self.frame, text=title)
+        self.imgLbl = tk.Label(self.frame, anchor=tk.E)
+        self.pbar = ttk.Progressbar(self.frame, length=100, mode='determinate', orient=tk.HORIZONTAL)
+        self.loading_label = tk.Label(self.frame, justify=tk.LEFT, anchor=tk.W, text="Loading\nGeetansh Gautam\nPress\"ALT + F4\" to exit")
+        self.infoLbl = tk.Label(self.frame, justify=tk.LEFT, anchor=tk.W, text="")
 
         self.ac_start = self.theme.foreground.color
         self.ac_end = self.theme.accent.color
@@ -57,7 +57,7 @@ class Splash(tk.Toplevel):
         self.root.wm_attributes('-topmost', 1)
         self.root.geometry(self.geo)
 
-        self.frame.pack(fill=BOTH, expand=True)
+        self.frame.pack(fill=tk.BOTH, expand=True)
         self.frame.config(bg=self.theme.background.color, bd='0')
 
         self.load_png()
@@ -69,12 +69,12 @@ class Splash(tk.Toplevel):
         )
         self.imgLbl.image = self.img
 
-        self.loading_label.pack(fill=X, expand=False, padx=5, side=BOTTOM)
-        self.infoLbl.pack(fill=X, expand=False, padx=5, side=BOTTOM)
-        self.pbar.pack(fill=X, expand=False, side=BOTTOM)
+        self.loading_label.pack(fill=tk.X, expand=False, padx=5, side=tk.BOTTOM)
+        self.infoLbl.pack(fill=tk.X, expand=False, padx=5, side=tk.BOTTOM)
+        self.pbar.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
 
-        self.titleLbl.pack(fill=BOTH, expand=True, padx=5, side=RIGHT)
-        self.imgLbl.pack(fill=BOTH, expand=False, padx=(5, 0), side=LEFT)
+        self.titleLbl.pack(fill=tk.BOTH, expand=True, padx=5, side=tk.RIGHT)
+        self.imgLbl.pack(fill=tk.BOTH, expand=False, padx=(5, 0), side=tk.LEFT)
 
         self.update_ui()
         self.setProgress(0)
