@@ -4,6 +4,7 @@
       "name":               "Quizzing Application",
       "version":            3.0,
       "build_number":       1,
+      "dev_mode":           true,
       "build_id_str":       "0.1",
       "build_title":        "beta_01",
       "appdata_app_name":   "Quizzing Application",
@@ -13,7 +14,7 @@
           "year":           "2022"
       },
       "appdata_roaming":    false,
-      "root_update_url":    "https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/master"
+      "root_update_url":    "https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release"
   }
 
 }
