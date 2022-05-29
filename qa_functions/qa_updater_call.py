@@ -1,6 +1,4 @@
 import os
-from tkinter import messagebox
-from . import qa_update_app
 
 
 def RunUpdater(cli="--ReadFlags", path=".qa_update\\"):

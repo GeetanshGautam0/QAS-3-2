@@ -91,7 +91,7 @@ class MessagePrompts:
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.info_svg'
-            self.svg_src = ".src\\.icons\\.info\\base_icon.svg"
+            self.svg_src = "../.src/.icons/.info/base_icon.svg"
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
@@ -410,7 +410,7 @@ class MessagePrompts:
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.warning_svg'
-            self.svg_src = ".src\\.icons\\.warning\\base_icon.svg"
+            self.svg_src = "../.src/.icons/.warning/base_icon.svg"
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
@@ -730,7 +730,7 @@ class MessagePrompts:
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.error_svg'
-            self.svg_src = ".src\\.icons\\.error\\base_icon.svg"
+            self.svg_src = "../.src/.icons/.error/base_icon.svg"
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
@@ -1035,10 +1035,10 @@ class InputPrompts:
 
             self.svg_size = (20, 20)
             self.appdata_svg_base = '.prog_svg'
-            self.ok_svg_src = ".src\\.icons\\.progress\\checkmark.svg"
-            self.error_svg_src = ".src\\.icons\\.progress\\exclamation.svg"
-            self.blank_svg_src = ".src\\.icons\\.progress\\blank.svg"
-            self.title_svg_src = ".src\\.icons\\.misc\\www.svg"
+            self.ok_svg_src = "../.src/.icons/.progress/checkmark.svg"
+            self.error_svg_src = "../.src/.icons/.progress/exclamation.svg"
+            self.blank_svg_src = "../.src/.icons/.progress/blank.svg"
+            self.title_svg_src = "../.src/.icons/.misc/www.svg"
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}".replace('/', '\\')
             self.img_ok = None
             self.img_error = None

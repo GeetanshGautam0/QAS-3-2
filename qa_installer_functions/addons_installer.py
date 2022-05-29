@@ -1,4 +1,4 @@
-import qa_prompts, qa_functions
+import qa_functions, qa_ui
 
 
 def install_addon_themes():
@@ -6,8 +6,8 @@ def install_addon_themes():
     for url in file_urls:
         name = url.split('/')[-1]
         try:
-            qa_prompts.InputPrompts.DownloadFile(
-                qa_prompts.DownloadPacket(
+            qa_ui.qa_prompts.InputPrompts.DownloadFile(
+                qa_ui.qa_prompts.DownloadPacket(
                     f'{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}\\{name}'.replace('/', '\\'),
                     f"Downloading {name}",
                     "Please wait as the theme file is downloading..."
@@ -16,7 +16,7 @@ def install_addon_themes():
             )
 
         except Exception as E:
-            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(f"Failed to install {name}: {E}"))
+            qa_ui.qa_prompts.MessagePrompts.show_error(qa_ui.qa_prompts.InfoPacket(f"Failed to install {name}: {E}"))
 
 
 def RunAddonsInstaller(*args, **kwargs):

@@ -1,5 +1,5 @@
-from typing import *
 from .qa_custom import *
+from typing import *
 import time, sys
 
 
@@ -8,7 +8,7 @@ LOGGER_FUNCTION = lambda arg1: None
 LOGGER_FILE = None
 
 
-def raise_error(error_type, error_params: tuple, error_level: ErrorLevels, traceback: Optional[str] = ""):
+def raise_error(error_type: Callable, error_params: Tuple, error_level: ErrorLevels, traceback: Optional[str] = "") -> None:
     err_str = f"{time.ctime(time.time())}: [{error_level.name} ERROR]: {str(error_type(*error_params, ))}\n\n{traceback}".strip()
 
     log(err_str)

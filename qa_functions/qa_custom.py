@@ -13,8 +13,9 @@ class HexColor:
         self.color = color.upper()
         assert self.check, 'Color provided does not match expected pattern (1)'
 
-    def check(self):
-        return re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', self.color)
+    def check(self) -> Union[str, None]:
+        res = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', self.color)
+        return cast(str, res) if res is not None else None
 
 
 # Data Classes
@@ -124,7 +125,7 @@ class CannotCreateBackup(Exception):
     def __init__(self, original_file: str, traceback: str):
         self.original_file, self.traceback = original_file, traceback
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Cannot create backup for file {self.original_file}: {self.traceback}"
 
 
@@ -132,7 +133,7 @@ class CannotSave(Exception):
     def __init__(self, string: str = ""):
         self.str = string
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.str
 
 
@@ -140,7 +141,7 @@ class UnexpectedEdgeCase(Exception):
     def __init__(self, string: str = ""):
         self.str = string
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.str
 
 
@@ -148,13 +149,13 @@ class EncryptionError(Exception):
     def __init__(self, string: str = ""):
         self.str = string
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.str
 
 
 class InvalidCLIArgument(Exception):
-    def __init__(self, arg_name, arg_got, arg_expected_str):
+    def __init__(self, arg_name: Any, arg_got: Any, arg_expected_str: Any):
         self.an, self.ag, self.ae = arg_name, arg_got, arg_expected_str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"CLI Error: Invalid Argument: Argument `{self.an}` got token `{self.ag}`; {self.ae}"

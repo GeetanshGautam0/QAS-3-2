@@ -1,10 +1,11 @@
+import tkinter as tk, sys, os, qa_functions, traceback, subprocess
 from threading import Thread
-import tkinter as tk, sys, os, qa_functions, qa_prompts, traceback, subprocess
 from tkinter import ttk
 from typing import *
 from qa_functions.qa_diagnostics import RunTest, Diagnostics
-from qa_prompts import configure_scrollbar_style, gsuid
+from .qa_prompts import configure_scrollbar_style, gsuid
 from qa_functions.qa_enum import *
+from . import qa_prompts
 from PIL import ImageTk, Image
 
 

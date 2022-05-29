@@ -1,10 +1,9 @@
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, PIL, hashlib, random, json, copy, subprocess
+import sys, qa_functions, qa_files, os, traceback, PIL, json, copy, subprocess
+from . import qa_prompts
 from threading import Thread
-from typing import *
 from tkinter import ttk, filedialog
-from qa_functions.qa_enum import *
 from qa_functions.qa_std import *
-from qa_prompts import gsuid, configure_scrollbar_style
+from .qa_prompts import gsuid, configure_scrollbar_style
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
@@ -92,11 +91,11 @@ class _UI(Thread):
             'checkmark_large': {'accent': '', 'normal': ''},
             'admt': ''
         }
-        self.checkmark_src = ".src\\.icons\\.progress\\checkmark.svg"
-        self.cog_src = '.src\\.icons\\.misc\\settings.svg'
-        self.arrow_left_src = '.src\\.icons\\.misc\\left_arrow.svg'
-        self.question_src = '.src\\.icons\\.misc\\question.svg'
-        self.arrow_right_src = '.src\\.icons\\.misc\\right_arrow.svg'
+        self.checkmark_src = "./.src/.icons/.progress/checkmark.svg"
+        self.cog_src = './.src/.icons/.misc/settings.svg'
+        self.arrow_left_src = './.src/.icons/.misc/left_arrow.svg'
+        self.question_src = './.src/.icons/.misc/question.svg'
+        self.arrow_right_src = './.src/.icons/.misc/right_arrow.svg'
         self.svg_tmp = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup".replace('/', '\\')
         self.load_png()
 
@@ -2045,13 +2044,16 @@ Technical Information: {traceback.format_exc()}"""
             [self.question_src, 'question_accent', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')],
             [self.question_src, 'question_accent_accent', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')],
         ]:
-            File = qa_functions.File(src)
-            tmp = f"{self.svg_tmp}\\{File.file_name}"
-            raw_data = qa_functions.OpenFile.read_file(File, qa_functions.OpenFunctionArgs(str, False), b'', qa_functions.ConverterFunctionArgs())
-            new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, foreground.color)
-            File = qa_functions.File(tmp)
-            qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
-            self.svgs[a][b] = get_svg(tmp, background.color, (size, size), name)
+            try:
+                File = qa_functions.File(src)
+                tmp = f"{self.svg_tmp}\\{File.file_name}"
+                raw_data = qa_functions.OpenFile.read_file(File, qa_functions.OpenFunctionArgs(str, False), b'', qa_functions.ConverterFunctionArgs())
+                new_data = raw_data.replace(qa_prompts._SVG_COLOR_REPL_ROOT, foreground.color)
+                File = qa_functions.File(tmp)
+                qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
+                self.svgs[a][b] = get_svg(tmp, background.color, (size, size), name)
+            except Exception as E:
+                log(LoggingLevel.ERROR, f'admt::load_png - Failed to load requested svg ({src}): {E}')
 
     def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button]]):
         self.dsb = True

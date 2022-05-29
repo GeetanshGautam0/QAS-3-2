@@ -1,10 +1,10 @@
-import shutil
+import tkinter as tk, sys, qa_functions, qa_files, os, traceback, hashlib, json, random
 from threading import Thread
-import tkinter as tk, sys, qa_prompts, qa_functions, qa_files, os, traceback, hashlib, json, random
+from . import qa_prompts
 from typing import *
 from tkinter import ttk, filedialog, colorchooser, font
 from qa_functions.qa_enum import *
-from qa_prompts import gsuid, configure_scrollbar_style
+from .qa_prompts import gsuid, configure_scrollbar_style
 from PIL import Image, ImageTk
 
 
