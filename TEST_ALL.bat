@@ -1,9 +1,9 @@
 @echo off
 
 echo Running MyPy tests
-mypy . > a.res
+mypy . > exclude_a.res
 echo Running PyTest
-pytest -vv > b.res
+pytest -vv > exclude_b.res
 
 echo Consolidating
 copy *.res exclude_TEST_RESULTS.log
