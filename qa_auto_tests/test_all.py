@@ -1,4 +1,5 @@
-import qa_functions, pytest
+import qa_functions, pytest, os, sys, json
+from typing import *
 
 
 def test_cryptography():
@@ -369,3 +370,38 @@ def test_float_map():
     assert qa_functions.float_map(-.1, 0, 5, 0, 1000, True) == -20
     with pytest.raises(AssertionError):
         qa_functions.float_map(-10, -1, 10, 0, 1, False)
+
+
+def test_src_files():
+    excl = ('TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '.qa_update', 'dist', 'build', 'installer')
+    addons = ('ADDONS_THEME', )
+
+    with open('.config\\update_commands.json') as file:
+        sd = json.loads(file.read().strip())
+        for i in addons:
+            if i in sd:
+                sd.pop(i)
+
+        lsd = qa_functions.flatten_list(
+            [(*d.values(), ) for d in [*sd.values()]],
+            lambda *args: ".\\{}".format(args[0].replace('/', '\\')),
+        )
+        file.close()
+
+    def rc(root):
+        ls = os.listdir(root)
+        for f in ls:
+            if f not in excl and "exclude_" not in f:
+                if os.path.isdir(f"{root}\\{f}"):
+                    rc(f"{root}\\{f}")
+                elif os.path.isfile(f"{root}\\{f}"):
+                    assert f"{root}\\{f}" in lsd, f"File \"{root}\\{f}\" not included in UPDATE_COMMANDS"
+                    # sys.stdout.write(f'{qa_functions.ANSI.FG_BRIGHT_GREEN}{qa_functions.ANSI.BOLD}File "{root}\\{f}" included in UPDATE_COMMANDS{qa_functions.ANSI.RESET}\n')
+                    lsd.pop(lsd.index(f'{root}\\{f}'))
+
+                else:
+                    raise qa_functions.UnexpectedEdgeCase(f"Item type unknown for \"{root}\\{f}\".")
+
+    rc('.')
+
+    assert len(lsd) == 0, f"The following files (which exist in UPDATE_COMMANDS) no longer exist:\n\t* %s" % "\n\t* ".join(lsd)

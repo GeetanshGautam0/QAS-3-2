@@ -40,6 +40,7 @@ class App:
     build_number = ConfigurationFile.json_data['application']['build_number']
 
     github_url_base = ConfigurationFile.json_data['application']['root_update_url']
+    DEV_MODE = ConfigurationFile.json_data['application']['dev_mode']
 
 
 class Extensions:

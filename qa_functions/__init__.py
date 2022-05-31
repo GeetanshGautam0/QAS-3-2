@@ -41,6 +41,8 @@ from .qa_theme_loader import TTK as TTKTheme
 from .qa_diagnostics import Diagnostics
 from .qa_diagnostics import Fix
 
+from .qa_updater_call import *
+
 
 def RaiseError(error_type, error_params: tuple, error_level: ErrorLevels, traceback: Optional[str] = ""):
     return _re(error_type, error_params, error_level, traceback)

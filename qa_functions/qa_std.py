@@ -652,3 +652,31 @@ class ANSI:
     UNDERLINE = '\x1b[4m'
     REVERSED = '\x1b[7m'
     RESET = '\x1b[0m'
+
+
+def flatten_list(ls: Iterable, *additional_functions) -> List:
+    """
+    Flattens iterable objects; example: ([1, 2, 3], [4], {5, 6}) --> [1, 2, 3, 4, 5, 6]
+    :param ls: Input (iterable)
+    :param additional_functions: Additional functions to apply to each item (lambda statements; syntax: lambda *args; args[0] will be supplied with the item.)
+    :return: flattened list
+    """
+
+    if len(additional_functions) == 0:
+        return [
+            item
+            for sublist in ls
+            for item in sublist
+        ]
+
+    else:
+        fls = flatten_list(ls)
+        nfls = []
+        for item in fls:
+            i = None
+            for function in additional_functions:
+                i = function(item)
+
+            nfls.append(i)
+
+        return nfls

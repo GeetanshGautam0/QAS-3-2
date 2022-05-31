@@ -1,10 +1,7 @@
-import sys, traceback, click, datetime, qa_functions, subprocess, os, qa_splash
+import sys, traceback, click, datetime, qa_functions, subprocess, os
 from qa_functions.qa_std import *
-from tkinter import messagebox, ttk
-import qa_apps_admin_tools as AdminTools
-import qa_apps_quizzing_form as QuizzingForm
-import qa_apps_recovery_util as RecoveryUtils
-import qa_apps_theming_util as ThemingUtil
+from tkinter import messagebox
+from qa_ui import *
 from threading import Thread
 from qa_installer_functions.addons_installer import RunAddonsInstaller
 

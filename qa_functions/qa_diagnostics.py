@@ -1,7 +1,5 @@
-import sys, os, json, traceback, hashlib, urllib3
+import urllib3
 from qa_functions import *
-from qa_installer_functions import update
-
 
 HTTP = urllib3.PoolManager(
     timeout=urllib3.Timeout(connect=1.0, read=1.5),
@@ -31,9 +29,9 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
 
         lVer = res['application']['version']
         lBuild = res['application']['build_number']
-        if lVer < App.version:
-            return  False, ("Unsupported application version", ), (True, ), Fix.UpdateApp
-        if lVer > App.version:
+        if lVer < App.version and not App.DEV_MODE:
+            return False, ("Unsupported application version", ), (True, ), Fix.UpdateApp
+        elif lVer > App.version:
             return False, ("New version available", ), (True, ), Fix.UpdateApp
         elif lBuild > App.build_number:
             return False, ("New application build available",), (True,), Fix.UpdateApp
@@ -92,31 +90,31 @@ class Fix:
         def default_theme(re_str=False, *args, **kwargs):
             if re_str:
                 return '-c DEFAULT_THEME'
-            update.RunUpdater('-c DEFAULT_THEME')
+            RunUpdater('-c DEFAULT_THEME')
 
         @staticmethod
         def fix_functions_mod(re_str=False, *args, **kwargs):
             if re_str:
                 return '-c MODULES_QA_FUNCTIONS'
-            update.RunUpdater('-c MODULES_QA_FUNCTIONS')
+            RunUpdater('-c MODULES_QA_FUNCTIONS')
 
         @staticmethod
         def fix_files_mod(re_str=False, *args, **kwargs):
             if re_str:
                 return '-c MODULES_QA_FILES'
-            update.RunUpdater('-c MODULES_QA_FILES')
+            RunUpdater('-c MODULES_QA_FILES')
 
         @staticmethod
         def fix_update_mod(re_str=False, *args, **kwargs):
             if re_str:
                 return '-c MODULES_QA_FILES'
-            update.RunUpdater('-c MODULES_QA_FILES')
+            RunUpdater('-c MODULES_QA_FILES')
 
         @staticmethod
         def reset_defaults(re_str=False, *args, **kwargs):
             if re_str:
                 return '-c ICONS -c DEFAULT_THEMES'
-            update.RunUpdater('-c ICONS -c DEFAULT_THEMES')
+            RunUpdater('-c ICONS -c DEFAULT_THEMES')
 
     @staticmethod
     def UpdateApp(re_str=False, *args, **kwargs):
@@ -124,7 +122,7 @@ class Fix:
             print('re_str')
             return 'UPDATE_ALL'
 
-        update.RunUpdater('--UpdateAll')
+        RunUpdater('--UpdateAll')
 
 
 def RunTest(function: Callable = lambda *a, **k: True, *args, **kwargs):

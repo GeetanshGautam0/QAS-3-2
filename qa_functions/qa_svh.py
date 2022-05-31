@@ -11,7 +11,7 @@ EXPECTED = {
 }
 
 
-def create_script_version_hash(file_path, silent=False) -> str:
+def create_script_version_hash(file_path: str, silent: bool = False) -> str:
     if silent and 'AppData\\Local\\Temp' in file_path.replace('/', '\\'):
         return ''
 
