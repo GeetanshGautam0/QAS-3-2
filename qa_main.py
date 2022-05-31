@@ -233,21 +233,34 @@ def check_file(**kwargs):
 
 
 def check_up_tickets():
+    global SPLASH
+
     if len(qa_functions.YieldAllNVFlagsAsList('L_UPDATE')) > 0:
+        qa_splash.hide(SPLASH)
+
         if messagebox.askyesno('QA Updater', 'Outstanding update tickets exist; do you want to execute the updater now?'):
-            subprocess.Popen([os.path.abspath('.qa_update\\.qa_update_app.exe'), 'update', '--ReadFlags'])
+            subprocess.Popen([os.path.abspath('.qa_update\\qa_update_app.exe'), 'update', '--ReadFlags'])
             sys.exit(0)
+
+        qa_splash.show(SPLASH)
 
 
 def check_for_updates():
+    global SPLASH
+
     if not qa_functions.Diagnostics.app_version()[0]:
         qa_functions.ClearAppNVFlags('L_UPDATE')
         sys.stdout.write('App needs to updated.\n')
 
+        qa_splash.hide(SPLASH)
+
         if messagebox.askyesno('QA Updater', 'A new version of the app is available; do you want to update the app now?'):
             qa_functions.CreateNVFlag('L_UPDATE', 'UPDATE_ALL')
-            subprocess.Popen([os.path.abspath('.qa_update\\.qa_update_app.exe'), 'update', '--ReadFlags'])
+            subprocess.Popen([os.path.abspath('.qa_update\\qa_update_app.exe'), 'update', '--ReadFlags'])
             sys.exit(0)
+
+        qa_splash.show(SPLASH)
+
     else:
         sys.stdout.write("App configuration implies app is up to date.\n")
 
