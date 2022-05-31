@@ -238,7 +238,7 @@ class Load:
         if inc_def:
             output = {**output, **Load._load_default()}
 
-        sys.stdout.write("[INFO] [THEME_LOADER] Found %d files from the AppData directory" % file_acc)
+        sys.stdout.write("[INFO] [THEME_LOADER] Found %d files from the AppData directory.\n" % file_acc)
 
         return output
 

@@ -1540,24 +1540,10 @@ Technical Information: {traceback.format_exc()}"""
                 return False, f"{E.__class__.__name__}({E})"
 
         def log_error(com: str, el, reason: str, ind: int):
-            if LOGGER_AVAIL:
-                LOGGER_FUNC([qa_functions.LoggingPackage(
-                    LoggingLevel.ERROR,
-                    f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                    LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                )])
-
-            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}{ANSI.UNDERLINE}[ERROR] {"[SAVED] " if LOGGER_AVAIL else ""}[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>{ANSI.RESET}\n')
+            log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
         def log_norm(com: str, el):
-            if LOGGER_AVAIL:
-                LOGGER_FUNC([qa_functions.LoggingPackage(
-                    LoggingLevel.DEBUG,
-                    f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                    LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                )])
-
-            sys.stdout.write(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>\n")
+            log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
         for elID, (element, command, args) in self.update_requests.items():
             lCommand = [False]
@@ -2105,27 +2091,24 @@ def log(level: LoggingLevel, data: str):
     elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
         return
 
-    if LOGGER_AVAIL:
-        if level == LoggingLevel.ERROR:
-            sys.stderr.write(f'[{level.name.upper()}] [SAVED] {data}\n')
-        else:
-            sys.stdout.write(f'[{level.name.upper()}] [SAVED] {data}\n')
+    if level == LoggingLevel.ERROR:
+        sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n')
+    elif level == LoggingLevel.SUCCESS:
+        sys.stdout.write(f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n')
+    elif level == LoggingLevel.WARNING:
+        sys.stdout.write(f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n')
+    elif level == LoggingLevel.DEVELOPER:
+        sys.stdout.write(f'{ANSI.FG_BRIGHT_BLUE}{ANSI.BOLD}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n')
+    elif level == LoggingLevel.DEBUG:
+        sys.stdout.write(f'{ANSI.FG_BRIGHT_MAGENTA}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n')
+    else:
+        sys.stdout.write(f'[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n')
 
+    if LOGGER_AVAIL:
         LOGGER_FUNC([qa_functions.LoggingPackage(
             level, data,
             LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
         )])
-    else:
-        if level == LoggingLevel.ERROR:
-            sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
-        elif level == LoggingLevel.SUCCESS:
-            sys.stdout.write(f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}{ANSI.UNDERLINE}[{level.name.upper()}] {data}{ANSI.RESET}\n')
-        elif level == LoggingLevel.WARNING:
-            sys.stdout.write(f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {data}{ANSI.RESET}\n')
-        elif level == LoggingLevel.DEVELOPER:
-            sys.stdout.write(f'{ANSI.FG_BRIGHT_MAGENTA}{ANSI.BOLD}[{level.name.upper()}] {data}{ANSI.RESET}\n')
-        else:
-            sys.stdout.write(f'[{level.name.upper()}] {data}\n')
 
 
 def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
@@ -2134,12 +2117,12 @@ def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **k
         k = windll.kernel32
         k.SetConsoleMode(k.GetStdHandle(-11), 7)
 
-        log(LoggingLevel.ERROR, 'Logging test string')
-        log(LoggingLevel.SUCCESS, 'Logging test string')
-        log(LoggingLevel.INFO, 'Logging test string')
-        log(LoggingLevel.WARNING, 'Logging test string')
-        log(LoggingLevel.DEBUG, 'Logging test string')
-        log(LoggingLevel.DEVELOPER, 'Logging test string')
+        log(LoggingLevel.ERROR, '[USER CHECK] Error message logging available')
+        log(LoggingLevel.SUCCESS, '[USER CHECK] Success message logging available')
+        log(LoggingLevel.INFO, '[USER CHECK] Info message logging available')
+        log(LoggingLevel.WARNING, '[USER CHECK] Warning message logging available')
+        log(LoggingLevel.DEBUG, '[USER CHECK] Debug message logging available')
+        log(LoggingLevel.DEVELOPER, '[USER CHECK] Developer console logging available')
 
     ui_root = tk.Toplevel()
     _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
