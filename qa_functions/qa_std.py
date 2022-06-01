@@ -585,7 +585,7 @@ def gen_short_uid(prefix: str = "qa") -> str:
     ra = int(random.random() * 10 ** 3)
 
     r *= ra if ra != 0 else 1
-    return f"{prefix}::{t}{r}::{random.random() + random.randint(0, 9)}"
+    return f"{prefix}::{t}_{r}_{str(random.random()).split('.')[-1]}"
 
 
 class SMem:
@@ -652,6 +652,17 @@ class ANSI:
     UNDERLINE = '\x1b[4m'
     REVERSED = '\x1b[7m'
     RESET = '\x1b[0m'
+
+
+class AppLogColors:
+    THEMING_UTILITY = ANSI.FG_BRIGHT_YELLOW
+    ADMIN_TOOLS = ANSI.FG_BRIGHT_RED
+    QUIZZING_FORM = ANSI.FG_BRIGHT_CYAN
+    RECOVERY_UTILITY = ANSI.FG_BRIGHT_GREEN
+    QA_PROMPTS = ANSI.FG_BRIGHT_MAGENTA
+
+    DEFAULT = ANSI.RESET
+    EXTRA = f"{ANSI.UNDERLINE}{ANSI.BOLD}{ANSI.REVERSED}"
 
 
 def flatten_list(ls: Iterable, *additional_functions) -> List:

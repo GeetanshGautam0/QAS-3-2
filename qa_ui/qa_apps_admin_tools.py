@@ -2085,6 +2085,22 @@ def get_svg(svg_file, background, size=None, name=None):
 
 def log(level: LoggingLevel, data: str):
     global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM
+    assert isinstance(data, str)
+
+    if level == LoggingLevel.ERROR:
+        data = f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.SUCCESS:
+        data = f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.WARNING:
+        data = f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.DEVELOPER:
+        data = f'{ANSI.FG_BRIGHT_BLUE}{ANSI.BOLD}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+    elif level == LoggingLevel.DEBUG:
+        data = f'{ANSI.FG_BRIGHT_MAGENTA}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+    else:
+        data = f'[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+
+    data = f"{AppLogColors.ADMIN_TOOLS}{AppLogColors.EXTRA}[ADMIN_TOOLS]{ANSI.RESET} {data}"
 
     if level == LoggingLevel.DEBUG and not DEBUG_NORM:
         return
@@ -2092,17 +2108,9 @@ def log(level: LoggingLevel, data: str):
         return
 
     if level == LoggingLevel.ERROR:
-        sys.stderr.write(f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n')
-    elif level == LoggingLevel.SUCCESS:
-        sys.stdout.write(f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n')
-    elif level == LoggingLevel.WARNING:
-        sys.stdout.write(f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n')
-    elif level == LoggingLevel.DEVELOPER:
-        sys.stdout.write(f'{ANSI.FG_BRIGHT_BLUE}{ANSI.BOLD}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n')
-    elif level == LoggingLevel.DEBUG:
-        sys.stdout.write(f'{ANSI.FG_BRIGHT_MAGENTA}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n')
+        sys.stderr.write(data)
     else:
-        sys.stdout.write(f'[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n')
+        sys.stdout.write(data)
 
     if LOGGER_AVAIL:
         LOGGER_FUNC([qa_functions.LoggingPackage(
@@ -2112,6 +2120,11 @@ def log(level: LoggingLevel, data: str):
 
 
 def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+    qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
+    qa_prompts.LOGGER_FUNC = LOGGER_FUNC
+    qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME
+    qa_prompts.DEBUG_NORM = DEBUG_NORM
+
     subprocess.call('', shell=True)
     if os.name == 'nt':  # Only if we are running on Windows
         k = windll.kernel32
