@@ -5,8 +5,10 @@ from typing import *
 from qa_functions.qa_diagnostics import RunTest, Diagnostics
 from .qa_prompts import configure_scrollbar_style, gsuid
 from qa_functions.qa_enum import *
+from qa_functions.qa_std import *
 from . import qa_prompts
 from PIL import ImageTk, Image
+from ctypes import windll
 
 
 script_name = "APP_RU"
@@ -154,24 +156,10 @@ class _UI(Thread):
                 return False, str(E)
 
         def log_error(com: str, el, reason: str, ind: int):
-            if LOGGER_AVAIL:
-                LOGGER_FUNC([qa_functions.LoggingPackage(
-                    LoggingLevel.ERROR,
-                    f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                    LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                )])
-
-            sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+            log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
         def log_norm(com: str, el):
-            if LOGGER_AVAIL:
-                LOGGER_FUNC([qa_functions.LoggingPackage(
-                    LoggingLevel.DEBUG,
-                    f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                    LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                )])
-
-            sys.stdout.write(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>\n")
+            log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
         for elID, (element, command, args) in self.update_requests.items():
             lCommand = [False]
@@ -363,39 +351,71 @@ class _UI(Thread):
             selectforeground=self.theme.background.color
         )
 
-    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG):
+    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid=None):
         if padding is None:
             padding = self.padX
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [bg if not accent else ThemeUpdateVars.ACCENT]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [fg if not accent else ThemeUpdateVars.BG]]
+        if uid is None:
+            uid = gsuid()
+        else:
+            uid = f'{uid}<BTN>'
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [abg if not accent else ThemeUpdateVars.BG]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [afg if not accent else ThemeUpdateVars.ACCENT]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+        while uid in self.update_requests:
+            uid = f"{uid}[{random.randint(1000, 9999)}]"
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+        self.update_requests[uid] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda tbc, tbs, *args: button.config(
+                    bg=args[0], fg=args[1], activebackground=args[2], activeforeground=args[3],
+                    font=(args[4], args[5]),
+                    wraplength=args[6],
+                    highlightbackground=tbc,
+                    bd=tbs,
+                    highlightcolor=tbc,
+                    highlightthickness=tbs,
+                    borderwidth=tbs,
+                    relief=tk.RIDGE
+                ),
+                ThemeUpdateVars.BORDER_COLOR,
+                ThemeUpdateVars.BORDER_SIZE,
+                (bg if not accent else ThemeUpdateVars.ACCENT),
+                (fg if not accent else ThemeUpdateVars.BG),
+                (abg if not accent else ThemeUpdateVars.BG),
+                (afg if not accent else ThemeUpdateVars.ACCENT),
+                font, size,
+                self.window_size[0] - 2 * padding
+            ]
+        ]
 
-        self.update_requests[gsuid()] = [button, ThemeUpdateCommands.CUSTOM, [lambda tbc, tbs: button.configure(
-            highlightbackground=tbc,
-            bd=tbs,
-            highlightcolor=tbc,
-            highlightthickness=tbs,
-            borderwidth=tbs,
-            relief=tk.RIDGE
-        ), ThemeUpdateVars.BORDER_COLOR, ThemeUpdateVars.BORDER_SIZE]]
-
-    def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
         if padding is None:
             padding = self.padX
 
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+        if uid is None:
+            uid = gsuid()
+        else:
+            uid = f'{uid}<LBL>'
 
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-        self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+        while uid in self.update_requests:
+            uid = f"{uid}[{random.randint(1000, 9999)}]"
+
+        self.update_requests[uid] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=self.window_size[0] - 2 * args[4]),
+                bg, fg, font, size, padding
+            ] if isinstance(label, tk.Label) else (
+                [
+                    lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                    bg, fg, font, size, padding
+                ] if isinstance(label, tk.LabelFrame) else [
+                    lambda *args: None
+                ]
+            )
+        ]
 
     def load_theme(self):
         self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -633,8 +653,61 @@ class _UI(Thread):
         self.thread.join(self, 0)
 
 
+def log(level: LoggingLevel, data: str):
+    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM
+    assert isinstance(data, str)
+
+    if level == LoggingLevel.ERROR:
+        data = f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.SUCCESS:
+        data = f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.WARNING:
+        data = f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.DEVELOPER:
+        data = f'{ANSI.FG_BRIGHT_BLUE}{ANSI.BOLD}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+    elif level == LoggingLevel.DEBUG:
+        data = f'{ANSI.FG_BRIGHT_MAGENTA}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+    else:
+        data = f'[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+
+    data = f"{AppLogColors.RECOVERY_UTILITY}{AppLogColors.EXTRA}[RECOVERY_UTILITY]{ANSI.RESET} {data}"
+
+    if level == LoggingLevel.DEBUG and not DEBUG_NORM:
+        return
+    elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
+        return
+
+    if level == LoggingLevel.ERROR:
+        sys.stderr.write(data)
+    else:
+        sys.stdout.write(data)
+
+    if LOGGER_AVAIL:
+        LOGGER_FUNC([qa_functions.LoggingPackage(
+            level, data,
+            LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+        )])
+
+
 def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+    qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
+    qa_prompts.LOGGER_FUNC = LOGGER_FUNC
+    qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME
+    qa_prompts.DEBUG_NORM = DEBUG_NORM
+
+    subprocess.call('', shell=True)
+    if os.name == 'nt':  # Only if we are running on Windows
+        k = windll.kernel32
+        k.SetConsoleMode(k.GetStdHandle(-11), 7)
+
+        log(LoggingLevel.ERROR, '[USER CHECK] Error message logging available')
+        log(LoggingLevel.SUCCESS, '[USER CHECK] Success message logging available')
+        log(LoggingLevel.INFO, '[USER CHECK] Info message logging available')
+        log(LoggingLevel.WARNING, '[USER CHECK] Warning message logging available')
+        log(LoggingLevel.DEBUG, '[USER CHECK] Debug message logging available')
+        log(LoggingLevel.DEVELOPER, '[USER CHECK] Developer console logging available')
+
     ui_root = tk.Toplevel()
-    cls = _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
+    _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
 
     return ui_root

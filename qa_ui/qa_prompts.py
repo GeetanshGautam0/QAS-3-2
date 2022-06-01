@@ -1,19 +1,19 @@
-import hashlib
+import threading, traceback, tkinter as tk, qa_functions, sys, os, shutil, re, urllib3, subprocess, PIL.Image, hashlib
 from tkinter import messagebox, ttk
-import PIL.Image
 from qa_functions.qa_enum import *
-import threading, traceback, tkinter as tk, qa_functions, sys, os, shutil, re, urllib3
+from qa_functions.qa_std import *
 from typing import *
 from dataclasses import dataclass
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
+from ctypes import windll
 
 LOGGER_AVAIL = False
-LOGGER_FUNC = lambda *args: 0
+LOGGER_FUNC = qa_functions.NormalLogger
 LOGGING_FILE_NAME = ''
-LOGGING_SCRIPT_NAME = ''
+LOGGING_SCRIPT_NAME = 'QA_PROMPTS'
 DEBUG_NORM = False
 
 TTK_THEME = 'clam'
@@ -129,24 +129,10 @@ class MessagePrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -274,26 +260,26 @@ class MessagePrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -323,8 +309,8 @@ class MessagePrompts:
             # self.root.resizable(False, True)
             self.root.focus_get()
             
-            self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
             self.svg_label.pack(side=tk.LEFT, pady=self.padY, padx=(self.padX, self.padX/8))
             self.svg_size = (50, 50)
@@ -343,7 +329,7 @@ class MessagePrompts:
                 self.data_txt.pack(fill=tk.BOTH, expand=True, padx=(self.padX, self.padX/4), pady=self.padY, side=tk.LEFT)
                 self.data_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padX/4, self.padX), pady=self.padY, side=tk.RIGHT)
                 self.label_formatter(self.data_txt, size=ThemeUpdateVars.FONT_SIZE_SMALL)
-                self.update_requests[gsuid()] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid('qa_prompts')] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
                 self.data_frame.pack(fill=tk.BOTH, expand=True)
                 self.data_txt['yscrollcommand'] = self.data_sc_bar.set
                 self.data_sc_bar.config(command=self.data_txt.yview)
@@ -448,24 +434,10 @@ class MessagePrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -593,26 +565,26 @@ class MessagePrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.WARNING]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.WARNING]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.WARNING if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.WARNING]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.WARNING if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.WARNING]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -642,8 +614,8 @@ class MessagePrompts:
             # self.root.resizable(False, True)
             self.root.focus_get()
 
-            self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
             self.svg_label.pack(side=tk.LEFT, pady=self.padY, padx=(self.padX, self.padX / 8))
             self.svg_size = (50, 50)
@@ -662,7 +634,7 @@ class MessagePrompts:
                 self.data_txt.pack(fill=tk.BOTH, expand=True, padx=(self.padX, self.padX / 4), pady=self.padY, side=tk.LEFT)
                 self.data_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padX / 4, self.padX), pady=self.padY, side=tk.RIGHT)
                 self.label_formatter(self.data_txt, size=ThemeUpdateVars.FONT_SIZE_SMALL)
-                self.update_requests[gsuid()] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid('qa_prompts')] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
                 self.data_frame.pack(fill=tk.BOTH, expand=True)
                 self.data_txt['yscrollcommand'] = self.data_sc_bar.set
                 self.data_sc_bar.config(command=self.data_txt.yview)
@@ -730,7 +702,7 @@ class MessagePrompts:
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.error_svg'
-            self.svg_src = "../.src/.icons/.error/base_icon.svg"
+            self.svg_src = ".src/.icons/.error/base_icon.svg"
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
@@ -768,24 +740,10 @@ class MessagePrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -912,26 +870,26 @@ class MessagePrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ERROR]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ERROR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ERROR if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ERROR]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ERROR if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ERROR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -961,8 +919,8 @@ class MessagePrompts:
             # self.root.resizable(False, True)
             self.root.focus_get()
 
-            self.update_requests[gsuid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
             self.svg_label.pack(side=tk.LEFT, pady=self.padY, padx=(self.padX, self.padX / 8))
             self.svg_size = (50, 50)
@@ -981,7 +939,7 @@ class MessagePrompts:
                 self.data_txt.pack(fill=tk.BOTH, expand=True, padx=(self.padX, self.padX / 4), pady=self.padY, side=tk.LEFT)
                 self.data_sc_bar.pack(fill=tk.Y, expand=False, padx=(self.padX / 4, self.padX), pady=self.padY, side=tk.RIGHT)
                 self.label_formatter(self.data_txt, size=ThemeUpdateVars.FONT_SIZE_SMALL)
-                self.update_requests[gsuid()] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid('qa_prompts')] = [self.data_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
                 self.data_frame.pack(fill=tk.BOTH, expand=True)
                 self.data_txt['yscrollcommand'] = self.data_sc_bar.set
                 self.data_sc_bar.config(command=self.data_txt.yview)
@@ -1119,24 +1077,10 @@ class InputPrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -1331,26 +1275,26 @@ class InputPrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -1380,7 +1324,7 @@ class InputPrompts:
             self.root.title("Quizzing Application | URL Input")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
-            self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, TUC.BG, [TUV.BG]]
 
             self.title_frame.pack(fill=tk.X, expand=False)
             self.title_label.config(text=self.data.title, justify=tk.LEFT, anchor=tk.W)
@@ -1424,18 +1368,18 @@ class InputPrompts:
             self.label_formatter(self.loading_step4_I, size=TUV.FONT_SIZE_MAIN)
             self.label_formatter(self.loading_step4_L, size=TUV.FONT_SIZE_MAIN)
 
-            self.update_requests[gsuid()] = [self.title_frame, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.button_panel, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
 
-            self.update_requests[gsuid()] = [self.loading_step1_m, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.loading_step2_m, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.loading_step3_m, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.loading_step4_m, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.loading_step1_m, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.loading_step2_m, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.loading_step3_m, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.loading_step4_m, TUC.BG, [TUV.BG]]
 
-            self.update_requests[gsuid()] = [self.page_input, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.page_loading, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.url_entry_frame, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.url_entry, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_SMALL]]
+            self.update_requests[gsuid('qa_prompts')] = [self.page_input, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.page_loading, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.url_entry_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.url_entry, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_SMALL]]
 
             self.page_input.pack(fill=tk.BOTH, expand=True)
 
@@ -1445,7 +1389,7 @@ class InputPrompts:
                 self.url_entry.insert(0, self.url.strip())
                 self.download_queued = True
 
-            self.update_requests[gsuid()] = [self.url_entry, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
+            self.update_requests[gsuid('qa_prompts')] = [self.url_entry, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
 
             self.update_ui()
 
@@ -1690,24 +1634,10 @@ class InputPrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -1840,26 +1770,26 @@ class InputPrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -1889,7 +1819,7 @@ class InputPrompts:
             self.root.title("Quizzing Application | Options")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
-            self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, TUC.BG, [TUV.BG]]
 
             self.title_frame.pack(fill=tk.X, expand=False)
             self.title_label.config(text="Select an Item", justify=tk.LEFT, anchor=tk.W)
@@ -1916,8 +1846,8 @@ class InputPrompts:
             self.label_formatter(self.head_label, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
             self.label_formatter(self.error_label, fg=TUV.ERROR, size=TUV.FONT_SIZE_SMALL)
 
-            self.update_requests[gsuid()] = [self.title_frame, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.button_panel, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
 
             self.update_ui()
 
@@ -2013,24 +1943,10 @@ class InputPrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -2163,26 +2079,26 @@ class InputPrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -2212,7 +2128,7 @@ class InputPrompts:
             self.root.title("Quizzing Application | Prompt")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
-            self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, TUC.BG, [TUV.BG]]
 
             self.title_frame.pack(fill=tk.X, expand=False)
             self.title_label.config(text="Information Required", justify=tk.LEFT, anchor=tk.W)
@@ -2244,11 +2160,11 @@ class InputPrompts:
             self.label_formatter(self.lbl2, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
             self.label_formatter(self.error_label, fg=TUV.ERROR, size=TUV.FONT_SIZE_SMALL)
 
-            self.update_requests[gsuid()] = [self.title_frame, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.button_panel, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
 
-            self.update_requests[gsuid()] = [self.entry1, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
-            self.update_requests[gsuid()] = [self.entry2, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
+            self.update_requests[gsuid('qa_prompts')] = [self.entry1, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
+            self.update_requests[gsuid('qa_prompts')] = [self.entry2, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
 
             self.update_ui()
 
@@ -2344,24 +2260,10 @@ class InputPrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -2494,26 +2396,26 @@ class InputPrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -2543,7 +2445,7 @@ class InputPrompts:
             self.root.title("Quizzing Application | Prompt")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
-            self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, TUC.BG, [TUV.BG]]
 
             self.title_frame.pack(fill=tk.X, expand=False)
             self.title_label.config(text="Information Required", justify=tk.LEFT, anchor=tk.W)
@@ -2569,10 +2471,10 @@ class InputPrompts:
             self.label_formatter(self.lbl1, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
             self.label_formatter(self.error_label, fg=TUV.ERROR, size=TUV.FONT_SIZE_SMALL)
 
-            self.update_requests[gsuid()] = [self.title_frame, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.button_panel, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
 
-            self.update_requests[gsuid()] = [self.entry1, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
+            self.update_requests[gsuid('qa_prompts')] = [self.entry1, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
 
             self.update_ui()
 
@@ -2667,24 +2569,10 @@ class InputPrompts:
                     return False, str(E)
 
             def log_error(com: str, el, reason: str, ind: int):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.ERROR,
-                        f'Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    sys.stderr.write(f"[ERROR] {'[SAVED] ' if LOGGER_AVAIL else ''}Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>\n")
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
             def log_norm(com: str, el):
-                if LOGGER_AVAIL:
-                    LOGGER_FUNC([qa_functions.LoggingPackage(
-                        LoggingLevel.DEBUG,
-                        f'Applied command \'{com}\' to {el} successfully <{elID}>',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )])
-                else:
-                    print(f"[DEBUG] {'[SAVED] ' if LOGGER_AVAIL else ''}Applied command \'{com}\' to {el} successfully <{elID}>")
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
             for elID, (element, command, args) in self.update_requests.items():
                 lCommand = [False]
@@ -2817,26 +2705,26 @@ class InputPrompts:
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
 
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
             if padding is None:
                 padding = self.padX
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.BG, [bg]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FG, [fg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
 
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.FONT, [font, size]]
-            self.update_requests[gsuid()] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
         def load_theme(self):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -2866,7 +2754,7 @@ class InputPrompts:
             self.root.title("Quizzing Application | Options")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.focus_get()
-            self.update_requests[gsuid()] = [self.root, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.root, TUC.BG, [TUV.BG]]
 
             self.title_frame.pack(fill=tk.X, expand=False)
             self.title_label.config(text=self.title, justify=tk.LEFT, anchor=tk.W)
@@ -2886,11 +2774,11 @@ class InputPrompts:
             self.label_formatter(self.lbl1, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
             self.label_formatter(self.error_label, fg=TUV.ERROR, size=TUV.FONT_SIZE_SMALL)
 
-            self.update_requests[gsuid()] = [self.title_frame, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.button_panel, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
 
             for text, code in self.buttons:
-                uid = gsuid()
+                uid = gsuid('qa_prompts')
                 btn = ttk.Button(self.button_panel, text=text)
                 btn.pack(side=tk.LEFT)
 
@@ -2946,4 +2834,40 @@ def check_url_regex(url):
 
 def gsuid(arg1: str = 'elForm'):
     return qa_functions.gen_short_uid(arg1)
+
+
+def log(level: LoggingLevel, data: str):
+    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM
+    assert isinstance(data, str)
+
+    if level == LoggingLevel.ERROR:
+        data = f'{ANSI.FG_BRIGHT_RED}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.SUCCESS:
+        data = f'{ANSI.FG_BRIGHT_GREEN}{ANSI.BOLD}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.WARNING:
+        data = f'{ANSI.FG_BRIGHT_YELLOW}[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}{ANSI.RESET}\n'
+    elif level == LoggingLevel.DEVELOPER:
+        data = f'{ANSI.FG_BRIGHT_BLUE}{ANSI.BOLD}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+    elif level == LoggingLevel.DEBUG:
+        data = f'{ANSI.FG_BRIGHT_MAGENTA}[{level.name.upper()}]{ANSI.RESET} {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+    else:
+        data = f'[{level.name.upper()}] {"[SAVED] " if LOGGER_AVAIL else ""}{data}\n'
+
+    data = f"{AppLogColors.QA_PROMPTS}{AppLogColors.EXTRA}[PROMPT]{ANSI.RESET} {data}"
+
+    if level == LoggingLevel.DEBUG and not DEBUG_NORM:
+        return
+    elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
+        return
+
+    if level == LoggingLevel.ERROR:
+        sys.stderr.write(data)
+    else:
+        sys.stdout.write(data)
+
+    if LOGGER_AVAIL:
+        LOGGER_FUNC([qa_functions.LoggingPackage(
+            level, data,
+            LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
+        )])
 
