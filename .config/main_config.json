@@ -3,10 +3,10 @@
   "application": {
       "name":               "Quizzing Application",
       "version":            3.0,
-      "build_number":       2,
+      "build_number":       3,
       "dev_mode":           true,
-      "build_id_str":       "0.0.2",
-      "build_title":        "alpha_02",
+      "build_id_str":       "0.0.3",
+      "build_title":        "alpha_03",
       "appdata_app_name":   "Quizzing Application",
       "app_author":         "Geetansh Gautam",
       "dev_date":           {
