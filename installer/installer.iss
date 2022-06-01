@@ -50,6 +50,8 @@ Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "install"; WorkingDir:
 Filename: "{app}\.qa_update\{#SetupEXEName}"; Parameters: "addon -a ADDONS_THEME"; WorkingDir: "{app}"; Tasks: addons_theme; StatusMsg: "Installing Official Themes Addon"; Flags: shellexec hidewizard waituntilterminated
 
 [UninstallDelete]
+; <test::uninstaller> start_here
+
 Type: filesandordirs; Name: "{app}\.config"
 Type: filesandordirs; Name: "{app}\.qa_update"
 Type: filesandordirs; Name: "{app}\.src"
@@ -61,6 +63,15 @@ Type: filesandordirs; Name: "{app}\qa_installer_functions"
 Type: filesandordirs; Name: "{app}\_config.yml"
 Type: filesandordirs; Name: "{app}\compile.bat"
 Type: filesandordirs; Name: "{app}\README.md"
+Type: filesandordirs; Name: "{app}\.github"
+Type: filesandordirs; Name: "{app}\mypy.ini"
+Type: filesandordirs; Name: "{app}\pyproject.toml"
+Type: filesandordirs; Name: "{app}\requirements.txt"
+Type: filesandordirs; Name: "{app}\qa_ui"
+Type: filesandordirs; Name: "{app}\TEST_ALL.bat"
+Type: filesandordirs; Name: "{app}\qa_auto_tests"
+
+; <test::uninstaller> stop_here
 
 [Messages]
 BeveledLabel=Geetansh Gautam
