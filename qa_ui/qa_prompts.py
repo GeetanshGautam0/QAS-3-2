@@ -11,7 +11,7 @@ from io import BytesIO
 from ctypes import windll
 
 LOGGER_AVAIL = False
-LOGGER_FUNC = lambda *args: 0
+LOGGER_FUNC = qa_functions.NormalLogger
 LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = 'QA_PROMPTS'
 DEBUG_NORM = False
