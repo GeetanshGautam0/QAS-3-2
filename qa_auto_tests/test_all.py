@@ -372,9 +372,11 @@ def test_float_map():
         qa_functions.float_map(-10, -1, 10, 0, 1, False)
 
 
+
 def test_src_files():
-    excl = ('TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '.qa_update', 'dist', 'build', 'installer')
+    excl = ('.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
     addons = ('ADDONS_THEME', )
+    lsa = []
 
     with open('.config\\update_commands.json') as file:
         sd = json.loads(file.read().strip())
@@ -382,29 +384,32 @@ def test_src_files():
             if i in sd:
                 sd.pop(i)
 
-        lsd = qa_functions.flatten_list(
+        lsd = [*{*qa_functions.flatten_list(
             [(*d.values(), ) for d in [*sd.values()]],
             lambda *args: ".\\{}".format(args[0].replace('/', '\\')),
-        )
+        )}]
         file.close()
 
-    def rc(root):
+    def rc(root):        
         ls = os.listdir(root)
         for f in ls:
             if f not in excl and "exclude_" not in f:
                 if os.path.isdir(f"{root}\\{f}"):
                     rc(f"{root}\\{f}")
                 elif os.path.isfile(f"{root}\\{f}"):
-                    assert f"{root}\\{f}" in lsd, f"File \"{root}\\{f}\" not included in UPDATE_COMMANDS"
-                    # sys.stdout.write(f'{qa_functions.ANSI.FG_BRIGHT_GREEN}{qa_functions.ANSI.BOLD}File "{root}\\{f}" included in UPDATE_COMMANDS{qa_functions.ANSI.RESET}\n')
-                    lsd.pop(lsd.index(f'{root}\\{f}'))
+                    if f"{root}\\{f}" not in lsd:
+                        sys.stderr.write(f"{qa_functions.ANSI.BOLD}{qa_functions.ANSI.FG_BRIGHT_RED}[SRC] ERROR: File \"{root}\\{f}\" not included in UPDATE_COMMANDS{qa_functions.ANSI.RESET}\n")
+                        lsa.append(f"{root}\\{f}")
+                    else:
+                        lsd.pop(lsd.index(f"{root}\\{f}"))
 
                 else:
                     raise qa_functions.UnexpectedEdgeCase(f"Item type unknown for \"{root}\\{f}\".")
 
     rc('.')
-
-    assert len(lsd) == 0, f"The following files (which exist in UPDATE_COMMANDS) no longer exist:\n\t* %s" % "\n\t* ".join(lsd)
+    for a in lsd:
+        sys.stdout.write(f"{qa_functions.ANSI.BOLD}{qa_functions.ANSI.FG_BRIGHT_YELLOW}[SRC] WARNING: File \"{a}\" included in UPDATE_COMMANDS but doesn't actually exist.{qa_functions.ANSI.RESET}\n")
+    assert len(lsa) == 0, f"The following files are not included in UPDATE_COMMANDS:\n\t* %s" % "\n\t* ".join(lsd)
 
 
 def test_installer_iss():
