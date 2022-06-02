@@ -589,12 +589,12 @@ class TTK:
         return style
 
     @staticmethod
-    def configure_entry_style(style: ttk.Style, theme: Theme):
+    def configure_entry_style(style: ttk.Style, theme: Theme, font_size: int = -1, pref: str = 'My'):
         style.configure(
-            'TEntry',
+            f'{pref}.TEntry',
             background=theme.background.color,
             foreground=theme.accent.color,
-            font=(theme.font_face, theme.font_main_size),
+            font=(theme.font_face, font_size if font_size != -1 else theme.font_main_size),
             bordercolor=theme.accent.color,
             fieldbackground=theme.background.color,
             selectbackground=theme.accent.color,
@@ -603,7 +603,7 @@ class TTK:
         )
 
         style.map(
-            'TEntry',
+            f'{pref}.TEntry',
             background=[('disabled', theme.background.color), ('readonly', theme.gray.color)],
             foreground=[('disabled', theme.gray.color), ('readonly', theme.background.color)],
             fieldbackground=[('disabled', theme.background.color), ('readonly', theme.gray.color)]

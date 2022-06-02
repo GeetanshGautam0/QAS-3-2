@@ -44,10 +44,15 @@ def _run_command(COM: str, *args, admin=False):
         sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to run command:   {ANSI.FG_BRIGHT_RED}{ANSI.REVERSED}{ANSI.BOLD} {E.__class__.__name__}({E}) {ANSI.RESET}\n")
         return
     
-    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Command Status:          {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
+
 
 if __name__ == "__main__":
-    
+    subprocess.call('', shell=True)
+    if os.name == 'nt':  # Only if we are running on Windows
+        k = windll.kernel32
+        k.SetConsoleMode(k.GetStdHandle(-11), 7)
+
     while True:
         print(
 f"""Quizzing App - Build Manager
@@ -103,5 +108,5 @@ Push changes to gihub? Answer below:
     
     if push:
         _run_command(*f'git commit -a -m \"{BUILD_NAME_STR}\"'.split())
-        _run_command(*f'git push --all'.split())
+        _run_command(*f'git push'.split())
     

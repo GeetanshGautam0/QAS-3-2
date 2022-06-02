@@ -1,1 +1,2 @@
-TODO: When making distribution version (with installer): compile exes using 'one_dir' mode for performance sake.
+TODO: Add option to randomize order of MCQ options
+TODO: Extended response questions - add option to automatically test answer (with match%)
