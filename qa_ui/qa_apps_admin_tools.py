@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from enum import Enum
 from ctypes import windll
 
-
 script_name = "APP_AT"
 APP_TITLE = "Quizzing Application | Admin Tools"
 LOGGER_AVAIL = False
@@ -181,11 +180,26 @@ class _UI(Thread):
 
         self.edit_config_main_cont = tk.LabelFrame(self.edit_configuration_frame, text='Quiz Configuration')
         self.edit_config_acc_cont = tk.LabelFrame(self.edit_config_main_cont, text="Custom Quiz Configuration")
-        self.edit_config_poa_cont = tk.LabelFrame(self.edit_config_main_cont, text="Quiz Distribution Settings")
+        self.edit_config_qz_dc = tk.LabelFrame(self.edit_config_main_cont, text="Quiz Distribution Configuration")
         self.edit_config_ddc_cont = tk.LabelFrame(self.edit_config_main_cont, text="Penalty Configuration")
 
-        # Config::ACC
+        # Config :: ACC
         self.edit_config_acc_lbl = tk.Label(self.edit_config_acc_cont)
+
+        # Config :: POA
+        self.edit_config_poa_lbl = tk.Label(self.edit_config_qz_dc)
+
+        # Config :: RQO
+        self.edit_config_rqo_lbl = tk.Label(self.edit_config_qz_dc)
+
+        # Config :: SSD
+        self.edit_config_ssd_lbl = tk.Label(self.edit_config_qz_dc)
+
+        # Config :: DPI
+        self.edit_config_dpi_lbl = tk.Label(self.edit_config_ddc_cont)
+
+        # Config :: A2D
+        self.edit_config_dda_lbl = tk.Label(self.edit_config_ddc_cont)
 
         self.start()
         self.root.mainloop()
@@ -205,8 +219,8 @@ class _UI(Thread):
         self.create_config_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
 
         self.create_btn_frame.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY)
-        self.create_cancel.pack(fill=tk.BOTH, expand=True, side=tk.LEFT, ipady=self.padY/2)
-        self.create_create.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT, ipady=self.padY/2)
+        self.create_cancel.pack(fill=tk.BOTH, expand=True, side=tk.LEFT, ipady=self.padY / 2)
+        self.create_create.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT, ipady=self.padY / 2)
 
         self.update_requests['create_inp10'] = [
             self.create_inp1,
@@ -260,16 +274,16 @@ class _UI(Thread):
         global DEBUG_NORM
 
         # Layout
-        self.edit_pic.pack(fill=tk.BOTH, expand=False, pady=self.padY*2, padx=self.padX)
+        self.edit_pic.pack(fill=tk.BOTH, expand=False, pady=self.padY * 2, padx=self.padX)
         self.edit_pic.config(text='Admin Tools', image=self.svgs['admt'], compound=tk.TOP)
 
-        self.sb_expand_shrink.pack(fill=tk.X, expand=False, pady=(self.padY*2, 0), side=tk.BOTTOM)
+        self.sb_expand_shrink.pack(fill=tk.X, expand=False, pady=(self.padY * 2, 0), side=tk.BOTTOM)
 
         self.edit_db_name.pack(fill=tk.X, expand=False, pady=self.padY, padx=self.padX, side=tk.BOTTOM)
         self.edit_btn_panel.pack(fill=tk.X, expand=False, pady=self.padY)
 
-        self.edit_configuration_btn.pack(fill=tk.X, expand=True, ipady=self.padY/2)
-        self.edit_questions_btn.pack(fill=tk.X, expand=True, ipady=self.padY/2)
+        self.edit_configuration_btn.pack(fill=tk.X, expand=True, ipady=self.padY / 2)
+        self.edit_questions_btn.pack(fill=tk.X, expand=True, ipady=self.padY / 2)
 
         self.edit_sidebar.pack(fill=tk.Y, expand=False, side=tk.LEFT)
         self.edit_sep.pack(fill=tk.Y, expand=False, side=tk.LEFT, pady=(self.padY, 0))
@@ -279,7 +293,7 @@ class _UI(Thread):
         self.edit_configuration_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=self.padY)
 
         self.edit_configuration_title.config(text="Configuration Manager")
-        self.edit_configuration_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY*2, side=tk.TOP)
+        self.edit_configuration_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY * 2, side=tk.TOP)
 
         self.edit_password_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
         self.edit_db_psw_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=(self.padY, 0))
@@ -306,7 +320,7 @@ class _UI(Thread):
         self.edit_qz_psw_button.config(text="")
         self.edit_qz_psw_reset_btn.config(text="Reset Password")
 
-        self.edit_configuration_save.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY, ipady=self.padY/2)
+        self.edit_configuration_save.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY, ipady=self.padY / 2)
 
         self.edit_configuration_btn.config(compound=tk.LEFT, image=self.svgs['settings_cog_large']['normal'], style='LG.TButton')
         self.edit_questions_btn.config(compound=tk.LEFT, image=self.svgs['question_large']['normal'], style='LG.TButton')
@@ -319,6 +333,48 @@ class _UI(Thread):
             justify=tk.LEFT,
             wraplength=1,
             text="Though the default settings will remain the same as the ones below, if the following option is enabled, the user will be prompted to edit the ensuing settings themself prior to taking the quiz. Disabling this option will lock in the settings you choose."
+        )
+
+        self.edit_config_qz_dc.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_poa_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_poa_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text="\"Part or All\": Should the quiz taker be prompted with ALL the questions or a subset of the questions?"
+        )
+
+        self.edit_config_rqo_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_rqo_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text="\"Randomize Question Order\": Should the question order be randomized?"
+        )
+
+        self.edit_config_ssd_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_ssd_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text="\"Subsample Divisor\": (Applicable when \"Part or All\" is set to \"PART\") the divisor used to find the subsample of the questions.\n\tExample: If there are twenty questions, setting this number to 2 would yield ten questions for the quiz taker to be prompted with (sampled during quiz.)"
+        )
+
+        self.edit_config_ddc_cont.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_dpi_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_dpi_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text=f"\"Penalize Incorrect Responses\": Should points be subtracted when an incorrect response given?"
+        )
+
+        self.edit_config_dda_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_dda_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text=f"\"Deduction Amount\": How many points should be deducted on incorrect responses?"
         )
 
         # Scrollbar setup
@@ -340,33 +396,15 @@ class _UI(Thread):
         VAR = ThemeUpdateVars
 
         # Logical Requests
-        if self.edit_config_acc_lbl not in self.late_update_requests:
-            self.late_update_requests[self.edit_config_acc_lbl] = []
-
-        self.late_update_requests[self.edit_config_acc_lbl].extend(
-            [
-                [
-                    COM.CUSTOM,
-                    [
-                        lambda *args: self.edit_config_acc_lbl.config(wraplength=args[0]-2*args[1]),
-                        ('<EXECUTE>', lambda *args: self.edit_config_acc_lbl.winfo_width()),
-                        ('<LOOKUP>', 'padX')
-                    ]
-                ],
-                [
-                    COM.CUSTOM,
-                    [
-                        lambda *args: log(LoggingLevel.DEVELOPER, f"[LUpdate[LU]::Rule_WrLP_Auto] wraplength=({args[0]} - 2*{args[1]}) = {args[0] - 2 * args[1]} {ANSI.RESET}"),
-                        ('<EXECUTE>', lambda *args: self.edit_configuration_frame.winfo_width()),
-                        ('<LOOKUP>', 'padX'),
-                    ] if DEBUG_NORM and qa_functions.App.DEV_MODE else [lambda *args: None]
-                 ],
-                [
-                    COM.CUSTOM,
-                    [self.edit_config_acc_lbl.update]
-                ]
-            ]
-        )
+        for el, name in (
+                (self.edit_config_acc_lbl, 'acc'),
+                (self.edit_config_poa_lbl, 'poa'),
+                (self.edit_config_rqo_lbl, 'rqo'),
+                (self.edit_config_ssd_lbl, 'ssd'),
+                (self.edit_config_dpi_lbl, 'dpi'),
+                (self.edit_config_dda_lbl, 'dda')
+        ):
+            self._config_lbl_wrl(cast(tk.Label, el), name)
 
         # Theme Requests
 
@@ -420,10 +458,10 @@ class _UI(Thread):
                 VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL, VAR.BORDER_SIZE, VAR.BORDER_COLOR
             ]
         ]
-        self.update_requests['edit_config_poa_cont0'] = [
+        self.update_requests['edit_config_qz_dc0'] = [
             None, COM.CUSTOM,
             [
-                lambda *args: self.edit_config_poa_cont.config(
+                lambda *args: self.edit_config_qz_dc.config(
                     bg=args[0], fg=args[1], font=(args[2], args[3]), highlightthickness=args[4],
                     highlightbackground=args[5], bd='0'
                 ),
@@ -454,7 +492,7 @@ class _UI(Thread):
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_db_psw_lbl.config(
-                    bg=args[0], fg=args[1], font=(args[2], args[3]) #, font=args[2:3]
+                    bg=args[0], fg=args[1], font=(args[2], args[3])  # , font=args[2:3]
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
             ]
@@ -472,6 +510,51 @@ class _UI(Thread):
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_config_acc_lbl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests['edit_config_poa_lbl0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_poa_lbl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests['edit_config_rqo_lbl0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_rqo_lbl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests['edit_config_ssd_lbl0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_ssd_lbl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests['edit_config_dpi_lbl0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_dpi_lbl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                ),
+                VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests['edit_config_dda_lbl0'] = [
+            None, COM.CUSTOM,
+            [
+                lambda *args: self.edit_config_dda_lbl.config(
                     bg=args[0], fg=args[1], font=(args[2], args[3])
                 ),
                 VAR.BG, VAR.FG, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_SMALL
@@ -613,10 +696,39 @@ class _UI(Thread):
     # Custom Event Handlers
     # ---------------------
 
+    def _config_lbl_wrl(self, el: tk.Label, name: str):
+        if el not in self.late_update_requests:
+            self.late_update_requests[el] = []
+
+        self.late_update_requests[el].extend(
+            [
+                [
+                    ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *args: el.config(wraplength=args[0] - 2 * args[1]),
+                        ('<EXECUTE>', lambda *args: el.winfo_width()),
+                        ('<LOOKUP>', 'padX')
+                    ]
+                ],
+                [
+                    ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *args: log(LoggingLevel.DEVELOPER, f"[LUpdate[LU][{name}]::Rule_WrLP_Auto] wraplength=({args[0]} - 2*{args[1]}) = {args[0] - 2 * args[1]} {ANSI.RESET}"),
+                        ('<EXECUTE>', lambda *args: self.edit_configuration_frame.winfo_width()),
+                        ('<LOOKUP>', 'padX'),
+                    ] if DEBUG_NORM and qa_functions.App.DEV_MODE else [lambda *args: None]
+                ],
+                [
+                    ThemeUpdateCommands.CUSTOM,
+                    [el.update]
+                ]
+            ]
+        )
+
     def expand_click(self, *args, **kwargs):
         try:
-            curr = not self.data[self.EDIT_PAGE]['_UI']['sb_shrunk']
-            self.data[self.EDIT_PAGE]['_UI']['sb_shrunk'] = curr
+            curr = self.data[self.EDIT_PAGE]['_UI']['sb_shrunk']
+            self.data[self.EDIT_PAGE]['_UI']['sb_shrunk'] = curr if kwargs['do_not_reset'] else not curr
         except KeyError:
             self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': False}
             curr = False
@@ -830,11 +942,11 @@ class _UI(Thread):
         self.general_info_label.config(text=data.MSG)
         self.late_update_requests[self.general_info_label] = [
             [ThemeUpdateCommands.FG, [{
-                Levels.ERROR: ThemeUpdateVars.ERROR,
-                Levels.OKAY: ThemeUpdateVars.OKAY,
-                Levels.WARNING: ThemeUpdateVars.WARNING,
-                Levels.NORMAL: ThemeUpdateVars.ACCENT
-            }[data.LVL]]]
+                                          Levels.ERROR: ThemeUpdateVars.ERROR,
+                                          Levels.OKAY: ThemeUpdateVars.OKAY,
+                                          Levels.WARNING: ThemeUpdateVars.WARNING,
+                                          Levels.NORMAL: ThemeUpdateVars.ACCENT
+                                      }[data.LVL]]]
         ]
         self._job = self.root.after(timeout, self._clear_info)
         self.update_ui()
@@ -1208,7 +1320,7 @@ class _UI(Thread):
 
         if len(failures) > 0:
             Str = "Failed to compile changes made due to the following error(s):\n\t* " + \
-                    "\n\t* ".join(f for f in failures)
+                  "\n\t* ".join(f for f in failures)
             log(LoggingLevel.ERROR, f"<SAVE_DB>: {str}")
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(Str))
             return
@@ -1227,7 +1339,7 @@ class _UI(Thread):
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
             new, _ = cast(Tuple, qa_files.generate_file(FileType.QA_FILE, new))
             qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
-            self.data[self.EDIT_PAGE]['db_saved'] = self.data[self.EDIT_PAGE]['db']
+            self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(self.data[self.EDIT_PAGE]['db'])
             log(LoggingLevel.SUCCESS, 'Successfully saved new data to database.')
             self.show_info(Message(Levels.OKAY, 'Successfully saved new data'))
 
@@ -1410,12 +1522,12 @@ Technical Information: {traceback.format_exc()}"""))
         if not cd:
             log(LoggingLevel.ERROR, "Configuration data not found; resetting configuration data. ")
             db[cr] = {
-                'acc': False,               # Allow custom quiz configuration
-                'poa': 'p',                 # Part or all
-                'rqo': False,               # Randomize question order
-                'ssd': 2,                   # Subsample divisor
-                'dpi': False,               # Deduct points on incorrect (responses)
-                'a2d': 1                    # Amount of points to deduct
+                'acc': False,  # Allow custom quiz configuration
+                'poa': 'p',  # Part or all
+                'rqo': False,  # Randomize question order
+                'ssd': 2,  # Subsample divisor
+                'dpi': False,  # Deduct points on incorrect (responses)
+                'a2d': 1  # Amount of points to deduct
             }
         else:
             f: List[Any] = []
@@ -1427,6 +1539,7 @@ Technical Information: {traceback.format_exc()}"""))
                     ('dpi', (bool, False, None)),
                     ('a2d', (int, 1, None)),
             ):
+                # TODO: Implement test
                 pass
 
         qr = 'QUESTIONS'
@@ -1458,7 +1571,7 @@ Technical Information: {traceback.format_exc()}"""))
                     ('Fix now', 'fn'), ('Exit', 'ex'),
                     default='ex',
                     message='Corrupted data was found in the requested database; the application has compiled the changes needed to fix the database.\n\nDo you want to save the following changes:\n' +
-                    self.compile_changes_str(changes)
+                            self.compile_changes_str(changes)
                 )
 
                 if s_mem.get() != 'fn':
@@ -1513,7 +1626,9 @@ Technical Information: {traceback.format_exc()}"""))
             self.data[self.EDIT_PAGE] = {'db_path': path}
             self.data[self.EDIT_PAGE]['db'] = copy.deepcopy(n_data)
             self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(n_data)
-            self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': False}
+            self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': True}
+
+            self.expand_click(do_not_reset=True)
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(
@@ -2018,7 +2133,7 @@ Technical Information: {traceback.format_exc()}"""
             [self.arrow_left_src, 'arrow_left_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_left', 'accent')],
             [self.question_src, 'question', self.theme.background, self.theme.accent, self.theme.font_main_size, ('question', 'normal')],
             [self.question_src, 'question_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('question', 'accent')],
-            
+
             [self.checkmark_src, 'c_mark_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('checkmark_large', 'normal')],
             [self.checkmark_src, 'c_mark_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('checkmark_large', 'accent')],
             [self.cog_src, 'cog_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('settings_cog_large', 'normal')],

@@ -44,7 +44,7 @@ def _run_command(COM: str, *args, admin=False):
         sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to run command:   {ANSI.FG_BRIGHT_RED}{ANSI.REVERSED}{ANSI.BOLD} {E.__class__.__name__}({E}) {ANSI.RESET}\n")
         return
     
-    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Command Status:          {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
 
 if __name__ == "__main__":
     
