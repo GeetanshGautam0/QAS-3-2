@@ -64,7 +64,19 @@ Select the type of build:
                 3: 'stable-release'
             }[int(lvl.strip())]
             break
-        
+    
+    while True:
+        print(
+f"""Quizzing App - Build Manager
+Push changes to gihub? Answer below:
+    ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
+    ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
+""")
+        _p = input("> ")
+        if _p.strip() in ('0', '1'):
+            push = bool(int(_p.strip()))
+            break
+    
     BUILD_NUMBER = _build_number()
     
     if lvl == "alpha":
@@ -88,4 +100,8 @@ Select the type of build:
     COM = f"\"installer\\installer.iss\""
     
     _run_command(ISCC, COM, admin=False)
+    
+    if push:
+        _run_command(*f'git commit -a -m \"{BUILD_NAME_STR}\"'.split())
+        _run_command(*f'git push --all'.split())
     
