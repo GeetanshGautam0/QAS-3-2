@@ -3,7 +3,7 @@ from . import qa_prompts
 from threading import Thread
 from tkinter import ttk, filedialog
 from qa_functions.qa_std import *
-from .qa_prompts import gsuid, configure_scrollbar_style
+from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
@@ -102,7 +102,10 @@ class _UI(Thread):
 
         self.ttk_style = ttk.Style()
         self.ttk_style.theme_use(self.ttk_theme)
-        self.ttk_style = self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
+        self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_main_size, 'My')
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_large_size, 'MyLarge')
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
 
         self.page_index = self.SELECT_PAGE
         self.prev_page = self.page_index
@@ -124,8 +127,8 @@ class _UI(Thread):
         self.create_inp2_var = tk.StringVar()
 
         self.select_lbl = tk.Label(self.select_frame, text="Select a database to edit")
-        self.select_open = ttk.Button(self.select_frame, text="Open Existing DB", command=lambda: self.root.focus_get().event_generate('<<OpenDB>>'))
-        self.select_new = ttk.Button(self.select_frame, text="Create New DB", command=lambda: self.root.focus_get().event_generate('<<NewDB>>'))
+        self.select_open = ttk.Button(self.select_frame, text="Open Existing DB", command=self.open_entry)
+        self.select_new = ttk.Button(self.select_frame, text="Create New DB", command=self.new_entry)
         self.select_scores = ttk.Button(self.select_frame, text="Score Manager")
 
         self.create_title = tk.Label(self.create_frame, text="Create New Database")
@@ -139,7 +142,7 @@ class _UI(Thread):
 
         self.create_btn_frame = tk.Frame(self.create_frame)
         self.create_cancel = ttk.Button(self.create_btn_frame, text="Cancel", command=lambda: self.proc_exit(None))
-        self.create_create = ttk.Button(self.create_btn_frame, text="Create", command=lambda: self.root.focus_get().event_generate('<<CreateDB_MAIN>>'))
+        self.create_create = ttk.Button(self.create_btn_frame, text="Create", command=self.new_main)
 
         self.general_info_label = tk.Label(self.root, text="")
 
@@ -151,8 +154,8 @@ class _UI(Thread):
         self.edit_sep = ttk.Separator(self.db_frame)
 
         # Menu Buttons (Edit page)
-        self.edit_configuration_btn = ttk.Button(self.edit_btn_panel, text='Configuration', command=lambda: self.root.focus_get().event_generate('<<EditConfiguration>>'))
-        self.edit_questions_btn = ttk.Button(self.edit_btn_panel, text='Questions', command=lambda: self.root.focus_get().event_generate('<<EditQuestions>>'))
+        self.edit_configuration_btn = ttk.Button(self.edit_btn_panel, text='Configuration', command=self.edit_configuration)
+        self.edit_questions_btn = ttk.Button(self.edit_btn_panel, text='Questions', command=self.edit_configuration)
 
         # Configuration page:: Main Elements (Edit page)
         self.edit_configuration_master_frame = tk.Frame(self.db_frame)
@@ -168,15 +171,15 @@ class _UI(Thread):
         self.edit_qz_psw_container = tk.LabelFrame(self.edit_password_container)
 
         self.edit_db_psw_lbl = tk.Label(self.edit_db_psw_container)
-        self.edit_db_psw_button = ttk.Button(self.edit_db_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_DB_PSW_CLICK>>'))
-        self.edit_db_psw_reset_btn = ttk.Button(self.edit_db_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_DB_PSW_RESET>>'))
+        self.edit_db_psw_button = ttk.Button(self.edit_db_psw_container, command=self.db_psw_toggle)
+        self.edit_db_psw_reset_btn = ttk.Button(self.edit_db_psw_container, command=self.db_psw_change)
 
         self.edit_qz_psw_lbl = tk.Label(self.edit_qz_psw_container)
-        self.edit_qz_psw_button = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_CLICK>>'))
-        self.edit_qz_psw_reset_btn = ttk.Button(self.edit_qz_psw_container, command=lambda: self.root.focus_get().event_generate('<<EDIT_QZ_PSW_RESET>>'))
+        self.edit_qz_psw_button = ttk.Button(self.edit_qz_psw_container, command=self.qz_psw_toggle)
+        self.edit_qz_psw_reset_btn = ttk.Button(self.edit_qz_psw_container, command=self.qz_psw_change)
 
         self.edit_configuration_save = ttk.Button(self.edit_configuration_frame, text="Save Changes", command=self.save_db)
-        self.sb_expand_shrink = ttk.Button(self.edit_sidebar, command=lambda: self.root.focus_get().event_generate('<<SideBar_Expand_Shrink>>'))
+        self.sb_expand_shrink = ttk.Button(self.edit_sidebar, command=self.expand_click)
 
         self.edit_config_main_cont = tk.LabelFrame(self.edit_configuration_frame, text='Quiz Configuration')
         self.edit_config_acc_cont = tk.LabelFrame(self.edit_config_main_cont, text="Custom Quiz Configuration")
@@ -185,21 +188,37 @@ class _UI(Thread):
 
         # Config :: ACC
         self.edit_config_acc_lbl = tk.Label(self.edit_config_acc_cont)
+        self.edit_config_acc_btns = tk.Frame(self.edit_config_acc_cont)
+        self.edit_config_acc_btn1 = ttk.Button(self.edit_config_acc_btns, command=self._acc_enable)
+        self.edit_config_acc_btn2 = ttk.Button(self.edit_config_acc_btns, command=self._acc_disable)
 
         # Config :: POA
         self.edit_config_poa_lbl = tk.Label(self.edit_config_qz_dc)
+        self.edit_config_poa_btns = tk.Frame(self.edit_config_qz_dc)
+        self.edit_config_poa_btn1 = ttk.Button(self.edit_config_poa_btns, command=self._poa_part)
+        self.edit_config_poa_btn2 = ttk.Button(self.edit_config_poa_btns, command=self._poa_all)
 
         # Config :: RQO
         self.edit_config_rqo_lbl = tk.Label(self.edit_config_qz_dc)
+        self.edit_config_rqo_btns = tk.Frame(self.edit_config_qz_dc)
+        self.edit_config_rqo_btn1 = ttk.Button(self.edit_config_rqo_btns, command=self._rqo_enable)
+        self.edit_config_rqo_btn2 = ttk.Button(self.edit_config_rqo_btns, command=self._rqo_disable)
 
         # Config :: SSD
         self.edit_config_ssd_lbl = tk.Label(self.edit_config_qz_dc)
+        self.edit_config_ssd_var = tk.StringVar()
+        self.edit_config_ssd_field = ttk.Entry(self.edit_config_qz_dc, textvariable=self.edit_config_ssd_var)
 
         # Config :: DPI
         self.edit_config_dpi_lbl = tk.Label(self.edit_config_ddc_cont)
+        self.edit_config_dpi_btns = tk.Frame(self.edit_config_ddc_cont)
+        self.edit_config_dpi_btn1 = ttk.Button(self.edit_config_dpi_btns, command=self._dpi_enable)
+        self.edit_config_dpi_btn2 = ttk.Button(self.edit_config_dpi_btns, command=self._dpi_disable)
 
         # Config :: A2D
         self.edit_config_dda_lbl = tk.Label(self.edit_config_ddc_cont)
+        self.edit_config_dda_var = tk.StringVar()
+        self.edit_config_dda_field = ttk.Entry(self.edit_config_ddc_cont, textvariable=self.edit_config_dda_var)
 
         self.start()
         self.root.mainloop()
@@ -213,6 +232,8 @@ class _UI(Thread):
         self.create_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
         self.create_inp1.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.create_inp1.config(style='My.TEntry')
+        self.create_inp2.config(style='My.TEntry')
         self.create_inp1_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
         self.create_add_psw_sel.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
         self.create_inp2_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY))
@@ -335,6 +356,10 @@ class _UI(Thread):
             text="Though the default settings will remain the same as the ones below, if the following option is enabled, the user will be prompted to edit the ensuing settings themself prior to taking the quiz. Disabling this option will lock in the settings you choose."
         )
 
+        self.edit_config_acc_btns.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_acc_btn1.pack(fill=tk.X, expand=True, ipady=self.padY/2, side=tk.LEFT)
+        self.edit_config_acc_btn2.pack(fill=tk.X, expand=True, ipady=self.padY/2, side=tk.RIGHT)
+
         self.edit_config_qz_dc.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
         self.edit_config_poa_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
         self.edit_config_poa_lbl.config(
@@ -344,6 +369,21 @@ class _UI(Thread):
             text="\"Part or All\": Should the quiz taker be prompted with ALL the questions or a subset of the questions?"
         )
 
+        self.edit_config_poa_btns.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_poa_btn1.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.LEFT)
+        self.edit_config_poa_btn2.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.RIGHT)
+
+        self.edit_config_ssd_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_config_ssd_lbl.config(
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1,
+            text="\"Subsample Divisor\": (Applicable when \"Part or All\" is set to \"PART\") the divisor used to find the subsample of the questions.\n\nExample: If there are twenty questions, setting this number to 2 would yield ten questions for the quiz taker to be prompted with (sampled during quiz.)"
+        )
+
+        self.edit_config_ssd_field.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_ssd_field.config(style='MyLarge.TEntry')
+
         self.edit_config_rqo_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
         self.edit_config_rqo_lbl.config(
             anchor=tk.W,
@@ -352,13 +392,9 @@ class _UI(Thread):
             text="\"Randomize Question Order\": Should the question order be randomized?"
         )
 
-        self.edit_config_ssd_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
-        self.edit_config_ssd_lbl.config(
-            anchor=tk.W,
-            justify=tk.LEFT,
-            wraplength=1,
-            text="\"Subsample Divisor\": (Applicable when \"Part or All\" is set to \"PART\") the divisor used to find the subsample of the questions.\n\tExample: If there are twenty questions, setting this number to 2 would yield ten questions for the quiz taker to be prompted with (sampled during quiz.)"
-        )
+        self.edit_config_rqo_btns.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_rqo_btn1.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.LEFT)
+        self.edit_config_rqo_btn2.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.RIGHT)
 
         self.edit_config_ddc_cont.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
         self.edit_config_dpi_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
@@ -369,6 +405,10 @@ class _UI(Thread):
             text=f"\"Penalize Incorrect Responses\": Should points be subtracted when an incorrect response given?"
         )
 
+        self.edit_config_dpi_btns.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_dpi_btn1.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.LEFT)
+        self.edit_config_dpi_btn2.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.RIGHT)
+
         self.edit_config_dda_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
         self.edit_config_dda_lbl.config(
             anchor=tk.W,
@@ -376,6 +416,9 @@ class _UI(Thread):
             wraplength=1,
             text=f"\"Deduction Amount\": How many points should be deducted on incorrect responses?"
         )
+
+        self.edit_config_dda_field.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
+        self.edit_config_dda_field.config(style='MyLarge.TEntry')
 
         # Scrollbar setup
         self.edit_configuration_vsb.configure(command=self.edit_configuration_canvas.yview)
@@ -406,8 +449,12 @@ class _UI(Thread):
         ):
             self._config_lbl_wrl(cast(tk.Label, el), name)
 
-        # Theme Requests
+        self.edit_config_ssd_var.set('')
+        self.edit_config_dda_var.set('')
+        self.edit_config_ssd_var.trace('w', self._ssd_inp)
+        self.edit_config_dda_var.trace('w', self._dda_inp)
 
+        # Theme Requests
         self.label_formatter(self.edit_db_name, size=VAR.FONT_SIZE_SMALL, uid='edit_db_name')
         self.update_requests['edit_btn_panel0'] = [self.edit_btn_panel, COM.BG, [VAR.BG]]
         self.update_requests['edit_sidebar0'] = [self.edit_sidebar, COM.BG, [VAR.BG]]
@@ -578,10 +625,85 @@ class _UI(Thread):
                 VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_TITLE
             ]
         ]
+        self.update_requests['edit_config_acc_btns0'] = [
+            self.edit_config_acc_btns,
+            COM.BG,
+            [VAR.BG]
+        ]
+        self.update_requests['edit_config_poa_btns0'] = [
+            self.edit_config_poa_btns,
+            COM.BG,
+            [VAR.BG]
+        ]
+        self.update_requests['edit_config_dpi_btns0'] = [
+            self.edit_config_dpi_btns,
+            COM.BG,
+            [VAR.BG]
+        ]
+        self.update_requests['edit_config_rqo_btns0'] = [
+            self.edit_config_rqo_btns,
+            COM.BG,
+            [VAR.BG]
+        ]
+        self.update_requests['edit_config_dda_field<font>'] = [
+            self.edit_config_dda_field,
+            COM.FONT,
+            [VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_MAIN]
+        ]
+        self.update_requests['edit_config_ssd_field<font>'] = [
+            self.edit_config_ssd_field,
+            COM.FONT,
+            [VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_MAIN]
+        ]
         self.update_requests['UpRule[d]::<db_psw_toggle>0'] = [None, COM.CUSTOM, [lambda: self.db_psw_toggle(nrst=True)]]
         self.update_requests['UpRule[d]::<qz_psw_toggle>0'] = [None, COM.CUSTOM, [lambda: self.qz_psw_toggle(nrst=True)]]
 
         del COM, VAR
+
+    def configure_edit_controls(self):
+        d = copy.deepcopy(self.data[self.EDIT_PAGE]['db']['CONFIGURATION'])
+        if d['acc']:
+            self.edit_config_acc_btn1.config(style='Active.TButton', state=tk.DISABLED, text='Enabled')
+            self.edit_config_acc_btn2.config(style='TButton', state=tk.NORMAL, text='Disable')
+        else:
+            self.edit_config_acc_btn2.config(style='Active.TButton', state=tk.DISABLED, text='Disabled')
+            self.edit_config_acc_btn1.config(style='TButton', state=tk.NORMAL, text='Enable')
+
+        if d['poa'] == 'p':
+            self.edit_config_poa_btn1.config(style='Active.TButton', state=tk.DISABLED, text='Part')
+            self.edit_config_poa_btn2.config(style='TButton', state=tk.NORMAL, text='All')
+            self.edit_config_ssd_field.config(state=tk.NORMAL)
+            self.edit_config_ssd_var.set(str(d['ssd']))
+        elif d['poa'] == 'a':
+            self.edit_config_poa_btn2.config(style='Active.TButton', state=tk.DISABLED, text='All')
+            self.edit_config_poa_btn1.config(style='TButton', state=tk.NORMAL, text='Part')
+            self.edit_config_ssd_field.config(state=tk.DISABLED)
+            self.edit_config_ssd_var.set('Set POA to "All" to edit.')
+
+        else:
+            log(LoggingLevel.ERROR, '[CONFIG_EDIT_CONTROLS]: <POA> - Unexpected edge case [0]')
+            raise qa_functions.UnexpectedEdgeCase('Configuration: <POA> - expected value to be `p` or `a`.')
+
+        if d['rqo']:
+            self.edit_config_rqo_btn1.config(style='Active.TButton', state=tk.DISABLED, text='Enabled')
+            self.edit_config_rqo_btn2.config(style='TButton', state=tk.NORMAL, text='Disable')
+        else:
+            self.edit_config_rqo_btn2.config(style='Active.TButton', state=tk.DISABLED, text='Disabled')
+            self.edit_config_rqo_btn1.config(style='TButton', state=tk.NORMAL, text='Enable')
+
+        if d['dpi']:
+            self.edit_config_dpi_btn1.config(style='Active.TButton', state=tk.DISABLED, text='Enabled')
+            self.edit_config_dpi_btn2.config(style='TButton', state=tk.NORMAL, text='Disable')
+            self.edit_config_dda_field.config(state=tk.NORMAL)
+            self.edit_config_dda_var.set(str(d['a2d']))
+        else:
+            self.edit_config_dpi_btn2.config(style='Active.TButton', state=tk.DISABLED, text='Disabled')
+            self.edit_config_dpi_btn1.config(style='TButton', state=tk.NORMAL, text='Enable')
+            self.edit_config_dda_field.config(state=tk.DISABLED)
+            self.edit_config_dda_var.set('Set "Penalize Errors" to "Enabled" to edit.')
+
+        del d
+        return
 
     # -----------------
     # LL Event Handlers
@@ -593,6 +715,9 @@ class _UI(Thread):
         Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
         Change: added "int" around the first arg
         """
+        if self.page_index != self.EDIT_PAGE:
+            return
+
         self.edit_configuration_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def onFrameConfig(self, event):
@@ -667,20 +792,11 @@ class _UI(Thread):
         self.label_formatter(self.general_info_label, size=TUV.FONT_SIZE_SMALL, uid='general_info_label')
 
         self.root.bind('<<ExitCall>>', self.close)
-        self.root.bind('<<NewDB>>', self.new_entry)
         self.root.bind('<<CloseDB>>', self.close_entry)
-        self.root.bind('<<OpenDB>>', self.open_entry)
-        self.root.bind('<<CreateDB_MAIN>>', self.new_main)
         self.root.bind('<3>', self.context_menu_show)
         self.root.bind('<F5>', self.update_ui)
         self.root.bind('<Control-r>', self.update_ui)
-        self.root.bind('<<EditConfiguration>>', self.edit_configuration)
-        self.root.bind('<<EditQuestions>>', self.edit_questions)
-        self.root.bind('<<EDIT_DB_PSW_CLICK>>', self.db_psw_toggle)
-        self.root.bind('<<EDIT_DB_PSW_RESET>>', self.db_psw_change)
-        self.root.bind('<<EDIT_QZ_PSW_CLICK>>', self.qz_psw_toggle)
-        self.root.bind('<<EDIT_QZ_PSW_RESET>>', self.qz_psw_change)
-        self.root.bind('<<SideBar_Expand_Shrink>>', self.expand_click)
+        self.root.bind('<MouseWheel>', self._on_mousewheel)
 
         self.configure_sel_frame()
         self.configure_create_frame()
@@ -695,6 +811,144 @@ class _UI(Thread):
     # ---------------------
     # Custom Event Handlers
     # ---------------------
+
+    def _acc_enable(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['acc'] = True
+        self.configure_edit_controls()
+
+    def _acc_disable(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['acc'] = False
+        self.configure_edit_controls()
+
+    def _poa_part(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['poa'] = 'p'
+        self.configure_edit_controls()
+
+    def _poa_all(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['poa'] = 'a'
+        self.configure_edit_controls()
+
+    def _rqo_enable(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['rqo'] = True
+        self.configure_edit_controls()
+
+    def _rqo_disable(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['rqo'] = False
+        self.configure_edit_controls()
+
+    def _dpi_enable(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['dpi'] = True
+        self.configure_edit_controls()
+
+    def _dpi_disable(self, *args, **kwargs):
+        self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['dpi'] = False
+        self.configure_edit_controls()
+
+    def _ssd_inp(self, *args, **kwargs):
+        if self.page_index != self.EDIT_PAGE:
+            return
+
+        if self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['poa'] != 'p':
+            return
+
+        try:
+            d_set = self.edit_config_ssd_var.get().strip()
+            p = True
+
+            if d_set in ('', None):
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = 1
+                return
+
+            if not d_set.isnumeric():
+                fx = re.findall(r'[0-9]{1,2}', self.edit_config_ssd_var.get().strip())
+                self.edit_config_ssd_var.set(fx[0] if fx else 1)
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = fx[0] if fx else 1
+                p = False
+
+            if p and not 1 <= len(d_set) <= 2:
+                if len(d_set) == 0:
+                    self.edit_config_ssd_var.set('1')
+                    self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = 1
+                else:
+                    fx = re.findall(r'[0-9]{1,2}', d_set)
+                    self.edit_config_ssd_var.set(fx[0] if fx else 1)
+                    self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = fx[0] if fx else 1
+
+                p = False
+            assert p, 'Subsample divisor must be an integer between 1 and 10'
+
+            f = float(d_set)
+            if not (1 <= f <= 10):
+                self.edit_config_ssd_var.set('1' if f < 1 else '10')
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = '1' if f < 1 else '10'
+                assert False, 'Subsample divisor must be between 1 and 10'
+
+            if f != int(f):
+                self.edit_config_ssd_var.set(str(int(f)))
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = int(f)
+                assert False, 'Subsample divisor cannot contain a decimal'
+
+            self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['ssd'] = int(f)
+
+        except Exception as E:
+            self.show_info(
+                Message(Levels.ERROR, str(E)),
+                3000
+            )
+            return
+
+    def _dda_inp(self, *args, **kwargs):
+        if self.page_index != self.EDIT_PAGE:
+            return
+
+        if not self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['dpi']:
+            return
+
+        try:
+            d_set = self.edit_config_dda_var.get().strip()
+            p = True
+
+            if d_set in ('', None):
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = 1
+                return
+
+            if not d_set.isnumeric():
+                fx = re.findall(r'[0-9]{1,2}', d_set)
+                self.edit_config_dda_var.set(fx[0] if fx else 1)
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = fx[0] if fx else 1
+                p = False
+
+            if p and not 1 <= len(d_set) <= 2:
+                if len(d_set) == 0:
+                    self.edit_config_dda_var.set('1')
+                    self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = 1
+                else:
+                    fx = re.findall(r'[0-9]{1,2}', self.edit_config_dda_var.get().strip())
+                    self.edit_config_dda_var.set(fx[0] if fx else 1)
+                    self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = fx[0] if fx else 1
+
+                p = False
+            assert p, 'Deduction amount must be an integer between 1 and 10'
+
+            f = float(d_set)
+            if not (1 <= f <= 10):
+                self.edit_config_dda_var.set('1' if f < 1 else '10')
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = '1' if f < 1 else '10'
+                assert False, 'Deduction amount must be between 1 and 10'
+
+            if f != int(f):
+                self.edit_config_dda_var.set(str(int(f)))
+                self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = int(f)
+                assert False, 'Deduction amount cannot contain a decimal'
+
+            self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['a2d'] = int(f)
+
+        except Exception as E:
+            self.show_info(
+                Message(Levels.ERROR, str(E)),
+                3000
+            )
+            return
 
     def _config_lbl_wrl(self, el: tk.Label, name: str):
         if el not in self.late_update_requests:
@@ -728,7 +982,7 @@ class _UI(Thread):
     def expand_click(self, *args, **kwargs):
         try:
             curr = self.data[self.EDIT_PAGE]['_UI']['sb_shrunk']
-            self.data[self.EDIT_PAGE]['_UI']['sb_shrunk'] = curr if kwargs['do_not_reset'] else not curr
+            self.data[self.EDIT_PAGE]['_UI']['sb_shrunk'] = curr if kwargs.get('do_not_reset') else not curr
         except KeyError:
             self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': False}
             curr = False
@@ -996,6 +1250,7 @@ class _UI(Thread):
         self.page_index = self.EDIT_PAGE
 
         self.geo_large()
+        self.edit_configuration()
 
     def psw_sel_click(self, reset=False):
         if self.CREATE_PAGE not in self.data:
@@ -1629,6 +1884,7 @@ Technical Information: {traceback.format_exc()}"""))
             self.data[self.EDIT_PAGE]['_UI'] = {'sb_shrunk': True}
 
             self.expand_click(do_not_reset=True)
+            self.configure_edit_controls()
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(
@@ -1854,7 +2110,9 @@ Technical Information: {traceback.format_exc()}"""
         del cb_fg
 
         self.ttk_style = qa_functions.TTKTheme.configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
-        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme)
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_main_size)
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_large_size, 'MyLarge')
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
 
         self.ttk_style.configure(
             'Active.TButton',
@@ -1870,8 +2128,8 @@ Technical Information: {traceback.format_exc()}"""
 
         self.ttk_style.map(
             'Active.TButton',
-            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.accent.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
         self.ttk_style.configure(
@@ -1888,8 +2146,8 @@ Technical Information: {traceback.format_exc()}"""
 
         self.ttk_style.map(
             'ActiveLG.TButton',
-            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
+            background=[('active', self.theme.accent.color), ('disabled', self.theme.accent.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
         self.ttk_style.configure(
