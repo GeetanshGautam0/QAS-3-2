@@ -98,7 +98,8 @@
     "TEST_ALL.bat": "TEST_ALL.bat",
     ".github/ISSUE_TEMPLATE/bug_report.md": ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/feature_request.md": ".github/ISSUE_TEMPLATE/feature_request.md",
-    ".github/workflows/tests.yml": ".github/workflows/tests.yml"
+    ".github/workflows/tests.yml": ".github/workflows/tests.yml",
+    "build_new_version.py": "build_new_version.py"
   },
   "APP_SCRIPTS": {
     "qa_ui/__init__.py": "qa_ui/__init__.py",
