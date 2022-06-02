@@ -405,3 +405,47 @@ def test_src_files():
     rc('.')
 
     assert len(lsd) == 0, f"The following files (which exist in UPDATE_COMMANDS) no longer exist:\n\t* %s" % "\n\t* ".join(lsd)
+
+
+def test_installer_iss():
+    rt = "<test::uninstaller>"
+    excl = ('TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
+    
+    req = {*[i for i in os.listdir() if (i not in excl and "exclude_" not in i)]}
+    extn_req = {*[i.split('.')[-1] for i in req if os.path.isfile(i)]}
+    extn_del = []
+    item_del = []
+    
+    with open("installer\\installer.iss", 'r') as iss_file:
+        iss_data = iss_file.read()
+        iss_file.close()
+
+    if f"; {rt} start_here" in iss_data and f"; {rt} stop_here" in iss_data:
+        if iss_data.count(f"; {rt} start_here") == iss_data.count(f"; {rt} stop_here") == 1:
+            iss_data = iss_data.split(f"; {rt} start_here")[-1].split(f"; {rt} stop_here")[0]
+            
+            for line in iss_data.split('\n'):
+                if len(line.strip()) == 0:
+                    continue
+                
+                line = line.split("Name:")[-1].replace('{app}', '').strip().split('\"')[1].strip('\\')
+                
+                if '*.' in line:
+                    extn_del.append(line.split('.')[-1])
+                    if line.split('.')[-1] not in extn_req:
+                        sys.stdout.write(f"{qa_functions.ANSI.FG_BRIGHT_YELLOW}{qa_functions.ANSI.BOLD}[WARNING] [INSTALLER] Extension \".{line.split('.')[-1]}\" in delete commands; not found in source directry.{qa_functions.ANSI.RESET}\n")
+                    
+                else:
+                    item_del.append(line)
+                    if line not in req:
+                        sys.stdout.write(f"{qa_functions.ANSI.FG_BRIGHT_YELLOW}{qa_functions.ANSI.BOLD}[WARNING] [INSTALLER] Item \"{line}\" in delete commands; not found in source directry.{qa_functions.ANSI.RESET}\n")
+        else:
+            assert False, "Invalid start and end points in iss_data."
+    else:
+        assert False, "Start and end points not found in iss_data."
+    
+    for name in req:
+        extn = name.split('.')[-1]
+        if extn not in extn_del and name not in item_del:
+            sys.stdout.write(f"{qa_functions.ANSI.FG_BRIGHT_YELLOW}{qa_functions.ANSI.BOLD}[WARNING] [INSTALLER] Item \"{name}\" not covered by deletion commands.{qa_functions.ANSI.RESET}\n")            
+    

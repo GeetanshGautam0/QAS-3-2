@@ -1,20 +1,18 @@
 {
-
-  "application": {
-      "name":               "Quizzing Application",
-      "version":            3.0,
-      "build_number":       2,
-      "dev_mode":           true,
-      "build_id_str":       "0.0.2",
-      "build_title":        "alpha_02",
-      "appdata_app_name":   "Quizzing Application",
-      "app_author":         "Geetansh Gautam",
-      "dev_date":           {
-          "complete":       "n/a",
-          "year":           "2022"
-      },
-      "appdata_roaming":    false,
-      "root_update_url":    "https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release"
-  }
-
+    "application": {
+        "name": "Quizzing Application",
+        "version": 3.0,
+        "build_number": 2206152.181333578,
+        "dev_mode": false,
+        "build_id_str": "x_x_2206152.181333578",
+        "build_title": "alpha_2206152.181333578",
+        "appdata_app_name": "Quizzing Application",
+        "app_author": "Geetansh Gautam",
+        "dev_date": {
+            "complete": "n/a",
+            "year": "2022"
+        },
+        "appdata_roaming": false,
+        "root_update_url": "https://raw.githubusercontent.com/GeetanshGautam0/QAS-3-2/release"
+    }
 }
