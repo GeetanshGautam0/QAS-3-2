@@ -449,38 +449,12 @@ class _UI(Thread):
         uc_restart_functions = []
         norm_call_functions = []
 
-        def log(String, level=LoggingLevel.DEBUG):
-            global DEBUG_NORM, LOGGER_FUNC, LOGGER_AVAIL, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-            if DEBUG_NORM and level == LoggingLevel.DEBUG:
-                if len(String.strip()) > 0:
-                    print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
-
-                LOGGER_FUNC(
-                    [qa_functions.LoggingPackage(
-                        level,
-                        f'[TEST] {String}' if len(String.strip()) > 0 else '',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )]
-                )
-
-            elif LOGGER_AVAIL and level != LoggingLevel.DEBUG:
-                if len(String.strip()) > 0:
-                    print(f'[DEBUG] [SAVED] [{level.name.upper()}] {String}')
-
-                LOGGER_FUNC(
-                    [qa_functions.LoggingPackage(
-                        level,
-                        f'[TEST] {String}' if len(String.strip()) > 0 else '',
-                        LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
-                    )]
-                )
-
         for test, string in (
             (Diagnostics.app_version, 'Checking for updates'),
             (Diagnostics.default_theme, 'Checking default theme'),
             (Diagnostics.global_check, 'Checking all files')
         ):
-            log(string, LoggingLevel.INFO)
+            log(LoggingLevel.INFO, string)
 
             if len(self.activity) > 0:
                 self.insert_into_lb("")
@@ -495,23 +469,23 @@ class _UI(Thread):
 
             if passed:
                 self.insert_into_lb('PASSED', fg=ThemeUpdateVars.OKAY, sbg=ThemeUpdateVars.OKAY)
-                log('[RESULT] Test PASSED')
+                log(LoggingLevel.SUCCESS, '[RESULT] Test PASSED')
 
                 pass_acc += 1
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
                         self.insert_into_lb(f"    {st}")
-                        log(f'[PASS] [MESSAGE]\t\t{st}')
+                        log(LoggingLevel.INFO, f'[PASS] [MESSAGE]\t\t{st}')
 
             else:
                 self.insert_into_lb('FAILED', fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
                 fail_acc += 1
-                log('[RESULT] Test FAILED')
+                log(LoggingLevel.ERROR, '[RESULT] Test FAILED')
 
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
                         self.insert_into_lb(f"    Failure: {st}")
-                        log(f'[FAIL] [FAILURE]\t\t{st}', LoggingLevel.ERROR)
+                        log(LoggingLevel.INFO, f'[FAIL] [FAILURE]\t\t{st}')
 
                 if fix_command in qa_functions.qa_diagnostics._UC_FUNC:
                     if fix_command in qa_functions.qa_diagnostics._REQ_RESTART:
@@ -527,7 +501,7 @@ class _UI(Thread):
                     if isinstance(d, str):
                         self.insert_into_lb(f"    Warning: {d}", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
                         warn_acc += 1
-                        log(f'[{"PASS" if passed else "FAIL"}] [WARNING]\t\t{d}', LoggingLevel.WARNING)
+                        log(LoggingLevel.WARNING, f'[{"PASS" if passed else "FAIL"}] [WARNING]\t\t{d}')
 
         self.insert_into_lb("")
         self.insert_into_lb(f"Ran {pass_acc + fail_acc} checks:")
@@ -535,69 +509,69 @@ class _UI(Thread):
         self.insert_into_lb(f"    > {fail_acc} tests failed", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
         self.insert_into_lb(f"    > {warn_acc} warnings", fg=ThemeUpdateVars.WARNING, sbg=ThemeUpdateVars.WARNING)
 
-        log(f'[ACC. RESULTS] ({pass_acc} Passed) ({fail_acc} Failed) ({warn_acc} Warnings) ', LoggingLevel.INFO)
+        log(LoggingLevel.INFO, f'[ACC. RESULTS] ({ANSI.FG_BRIGHT_GREEN}{pass_acc} Passed{ANSI.RESET}) ({ANSI.FG_BRIGHT_RED}{fail_acc} Failed{ANSI.RESET}) ({ANSI.FG_BRIGHT_YELLOW}{warn_acc} Warnings{ANSI.RESET}) ')
 
         if fail_acc > 0:
-            log(f'Found {fail_acc} failures; prompting for permission to fix now', LoggingLevel.INFO)
+            log(LoggingLevel.INFO, f'Found {fail_acc} failures; prompting for permission to fix now')
 
             s_mem = qa_functions.SMem()
             qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Fix Errors?', ('Yes', 'y'), ('No', 'n'), default='<cancel>', message=f'Found {fail_acc} errors; do you want to fix these errors now?')
 
             if s_mem.get() == 'y':
-                log(f'User agreed to fix errors.', LoggingLevel.INFO)
+                log(LoggingLevel.INFO, f'User agreed to fix errors.')
 
                 self.insert_into_lb("")
                 self.insert_into_lb("-"*100)
                 self.insert_into_lb("Running FIX commands")
 
-                log(f"UC:\n\t\t\t\"[UPDATE_EXE]\" {uc_functions}", LoggingLevel.INFO)
+                log(LoggingLevel.INFO, f"UC:\n\t\t\t\"[UPDATE_EXE]\" {uc_functions}")
 
                 if len(uc_functions.strip()) > 0:
                     self.insert_into_lb(f"Running UC: [UPDATE_EXE] {uc_functions}")
                     os.system(f'.qa_update\\qa_update_app.exe update {uc_functions} --Title Recovery')
-                    log("Finished executing UC commands (status unknown)", LoggingLevel.INFO)
+                    log(LoggingLevel.INFO, "Finished executing UC commands (status unknown)")
 
                 else:
                     self.insert_into_lb("No UC commands needed.")
 
                 if len(norm_call_functions):
                     for func in norm_call_functions:
-                        log(f"Running function {func}", LoggingLevel.INFO)
+                        log(LoggingLevel.INFO, f"Running function {func}")
 
                         try:
                             func()
-                            log("\tSuccessfully ran function.", LoggingLevel.INFO)
+                            log(LoggingLevel.INFO, "\tSuccessfully ran function.")
                         except Exception as E:
-                            log(f"\tFailed to run function: \n\t{traceback.format_exc()}")
+                            log(LoggingLevel.ERROR, f"\tFailed to run function: \n\t{traceback.format_exc()}")
                             self.insert_into_lb("    Failed to run function", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
 
                 if len(uc_restart_functions) > 0:
-                    log("Creating UC_RESTART_FUNCTIONS flags", LoggingLevel.INFO)
+                    log(LoggingLevel.INFO, "Creating UC_RESTART_FUNCTIONS flags")
                     for func in uc_restart_functions:
                         self.insert_into_lb(f'\tCreated NVF: L_UPDATE:{func}')
-                        log(f"\t\t>CREATED FLAG: {func}", LoggingLevel.INFO)
+                        log(LoggingLevel.INFO, f"\t\t>CREATED FLAG: {func}")
                         qa_functions.CreateNVFlag("L_UPDATE", func)
 
-                    log("Prompting user to restart now.", LoggingLevel.INFO)
+                    log(LoggingLevel.INFO, "Prompting user to restart now.")
                     s_mem = qa_functions.SMem()
                     qa_prompts.InputPrompts.ButtonPrompt(
                         s_mem, "App Restart Required", ('Now', '<now>'), ('Later', '<later>'),
                         message="The application needs to restart to finish the errors; restart NOW or LATER (when the app is closed)?",
                         default='<none>'
                     )
-                    log(f'User responded: {s_mem.get().strip()}', LoggingLevel.INFO)
+                    log(LoggingLevel.INFO, f'User responded: {s_mem.get().strip()}')
 
                     if s_mem.get().strip().lower() == "<now>":
-                        log("Restarting app...", LoggingLevel.INFO)
+                        log(LoggingLevel.INFO, "Restarting app...")
                         subprocess.Popen(['.qa_update\\qa_update_app.exe', 'update', '--ReadFlags', '--noAdmin', '--Console'])
                         sys.exit()
 
                     else:
-                        log('Created NVF ticket for updater.', LoggingLevel.INFO)
+                        log(LoggingLevel.INFO, 'Created NVF ticket for updater.')
                         self.insert_into_lb('NVF: L_UPDATE ticket(s) created.')
 
             else:
-                log('User denied access to fix errors.', LoggingLevel.INFO)
+                log(LoggingLevel.INFO, 'User denied access to fix errors.')
 
             del s_mem
 
