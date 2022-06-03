@@ -90,7 +90,7 @@ Push changes to github? Answer below:
     while True:
         print(
 f"""Quizzing App - Build Manager
-Release cahnges? Answer below:
+Release changes? Answer below:
 ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
 ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
 """)
