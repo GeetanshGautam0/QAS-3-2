@@ -134,3 +134,8 @@ Release changes? Answer below:
         _run_command(*'git merge master'.split())
         _run_command(*'git push -u origin release'.split())
 
+        _run_command(*'git pull origin master'.split())
+        _run_command(*'git checkout master'.split())
+        _run_command(*'git merge release'.split())
+        _run_command(*'git push -u origin master'.split())
+
