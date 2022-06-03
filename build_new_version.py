@@ -109,9 +109,7 @@ Push changes to gihub? Answer below:
     _run_command(ISCC, COM, admin=False)
     
     if push:
-        _run_command('git fetch')
-        _run_command('git pull')
         _run_command(*f'git commit -a -m \"{msg}\"'.split())
         _run_command(*f'git commit -a -m \"dev::{BUILD_NAME_STR}\"'.split())
-        _run_command(*f'git push {extra}'.split())
+        _run_command(*f'git push -f {extra}'.split())
     
