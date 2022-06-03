@@ -80,6 +80,8 @@ Push changes to gihub? Answer below:
         _p = input("> ")
         if _p.strip() in ('0', '1'):
             push = bool(int(_p.strip()))
+            msg = input('\n\tGit: Commit message > ')
+            extra = input('\n\tGit: Add extra push flags > ')
             break
     
     BUILD_NUMBER = _build_number()
@@ -107,6 +109,7 @@ Push changes to gihub? Answer below:
     _run_command(ISCC, COM, admin=False)
     
     if push:
-        _run_command(*f'git commit -a -m \"{BUILD_NAME_STR}\"'.split())
-        _run_command(*f'git push'.split())
+        _run_command(*f'git commit -a -m \"{msg}\"')
+        _run_command(*f'git commit -a -m \"dev::{BUILD_NAME_STR}\"'.split())
+        _run_command(*f'git push {extra}'.split())
     
