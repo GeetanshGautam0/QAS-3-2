@@ -48,6 +48,10 @@ def _run_command(COM: str, *args, admin=False):
 
 
 if __name__ == "__main__":
+    lvl = ''
+    push = False
+    release = False
+
     subprocess.call('', shell=True)
     if os.name == 'nt':  # Only if we are running on Windows
         k = windll.kernel32
@@ -73,7 +77,7 @@ Select the type of build:
     while True:
         print(
 f"""Quizzing App - Build Manager
-Push changes to gihub? Answer below:
+Push changes to github? Answer below:
     ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
     ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
 """)
@@ -81,9 +85,20 @@ Push changes to gihub? Answer below:
         if _p.strip() in ('0', '1'):
             push = bool(int(_p.strip()))
             msg = input('\n\tGit: Commit message > ')
-            extra = input('\n\tGit: Add extra push flags > ')
             break
-    
+
+    while True:
+        print(
+f"""Quizzing App - Build Manager
+Release cahnges? Answer below:
+({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
+({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
+""")
+        _p = input("> ")
+        if _p.strip() in ('0', '1'):
+            release = bool(int(_p.strip()))
+            break
+
     BUILD_NUMBER = _build_number()
     
     if lvl == "alpha":
@@ -111,5 +126,11 @@ Push changes to gihub? Answer below:
     if push:
         _run_command(*f'git commit -a -m \"{msg}\"'.split())
         _run_command(*f'git commit -a -m \"dev::{BUILD_NAME_STR}\"'.split())
-        _run_command(*f'git push -f {extra}'.split())
-    
+        _run_command(*f'git push'.split())
+
+    if release:
+        _run_command(*'git pull origin release'.split())
+        _run_command(*'git checkout release'.split())
+        _run_command(*'git merge master'.split())
+        _run_command(*'git push -u origin release'.split())
+
