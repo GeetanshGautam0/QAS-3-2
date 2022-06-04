@@ -19,7 +19,7 @@ HTTP = urllib3.PoolManager(
     timeout=urllib3.Timeout(connect=1.0, read=1.5),
     retries=False
 )
-_THEME = {  # DEFAULT.DEFAULT.LIGHT
+_THEME: Dict[Any, Any] = {  # DEFAULT.DEFAULT.LIGHT
     "background":     "#FFFFFF",
     "foreground":     "#000000",
     "accent":         "#2db2e7",
@@ -42,10 +42,10 @@ _THEME = {  # DEFAULT.DEFAULT.LIGHT
     }
 }
 
-_COMMANDS: Dict[str, list] = {}
+_COMMANDS: Dict[str, List[Any]] = {}
 
 
-def load_commands() -> dict:
+def load_commands() -> Dict[str, Any]:
     global _COMMANDS
 
     with open('.config\\update_commands.json', 'r') as file2:
@@ -64,7 +64,7 @@ def load_commands() -> dict:
 
 
 class UpdaterUI(threading.Thread):
-    def __init__(self, downloads, *args, **kwargs):
+    def __init__(self, downloads: Any, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         super().__init__()
         self.thread = threading.Thread
         self.thread.__init__(self)
@@ -99,7 +99,7 @@ class UpdaterUI(threading.Thread):
         self.start()
         self.root.mainloop()
 
-    def err(self, *args, **kwargs):
+    def err(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         global _THEME
 
         self.okay_to_close = True
@@ -108,21 +108,21 @@ class UpdaterUI(threading.Thread):
 
         messagebox.showerror('QAUv2 | ERROR', f'Failed to update file: {traceback.format_exc()}')
 
-    def insert_item(self, text: str, bg=_THEME['background'], fg=_THEME['foreground'], sfg=_THEME['accent']):
+    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']) -> None:
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1
         self.activity_box.yview(tk.END)
         self.root.update()
 
-    def clear_lb(self):
+    def clear_lb(self) -> None:
         self.activity_acc = 0
         self.activity_box.delete(0, tk.END)
         self.activity_box.yview(tk.END)
 
         self.root.update()
 
-    def update_theme(self):
+    def update_theme(self) -> None:
         global _THEME
 
         self.root.config(bg=_THEME['background'])
@@ -154,7 +154,7 @@ class UpdaterUI(threading.Thread):
             selectforeground=_THEME['background']
         )
 
-    def close(self):
+    def close(self) -> None:
         if not self.okay_to_close:
             messagebox.showerror('Quizzing Application | Updater', 'Cannot close updater: update in progress.')
             return
@@ -162,7 +162,7 @@ class UpdaterUI(threading.Thread):
         self.root.quit()
         sys.exit(0)
 
-    def run(self):
+    def run(self) -> None:
         tk.Tk.report_callback_exception = self.err
 
         self.root.title("Quizzing App | Updater v2")
@@ -174,7 +174,7 @@ class UpdaterUI(threading.Thread):
         self.error_label.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.BOTTOM)
         self.frame_1.pack(fill=tk.BOTH, expand=True)
 
-        self.title_label.config(text=self.kwargs['title'], justify=tk.LEFT, anchor=tk.W)
+        self.title_label.config(text=cast(str, self.kwargs['title']), justify=tk.LEFT, anchor=tk.W)
         self.title_label.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
         self.activity_box.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
@@ -185,12 +185,10 @@ class UpdaterUI(threading.Thread):
         self.update_theme()
         self.load_commands()
 
-    def load_commands(self):
+    def load_commands(self) -> None:
         global _COMMANDS, HTTP
 
         if not self.kwargs['updateall']:
-            self.downloads: list
-
             for command in [*self.downloads]:
                 if command == 'ReadFlags':
                     self.insert_item('Looking for commands in NVF folder.')
@@ -272,7 +270,7 @@ class UpdaterUI(threading.Thread):
             self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
             self.close_button.config(text="CLOSE", command=self.close)
 
-    def start_downloads(self):
+    def start_downloads(self) -> None:
         global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE
         self.clear_lb()
         self.insert_item('Checking connection.')
@@ -374,12 +372,12 @@ class UpdaterUI(threading.Thread):
 
         return
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.thread.join(self, 0)
 
 
 class Install(threading.Thread):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.thread = threading.Thread
         self.thread.__init__(self)
@@ -417,28 +415,28 @@ class Install(threading.Thread):
         self.start()
         self.root.mainloop()
 
-    def err(self, *args, **kwargs):
+    def err(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         global _THEME
 
         self.okay_to_close = True
         self.close_button.config(state=tk.NORMAL)
         tr(self.insert_item, f'Failed to update file: {traceback.format_exc()}', _THEME['background'], _THEME['error'], _THEME['error'])
 
-    def insert_item(self, text: str, bg=_THEME['background'], fg=_THEME['foreground'], sfg=_THEME['accent']):
+    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']) -> None:
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1
         self.activity_box.yview(tk.END)
         self.root.update()
 
-    def clear_lb(self):
+    def clear_lb(self) -> None:
         self.activity_acc = 0
         self.activity_box.delete(0, tk.END)
         self.activity_box.yview(tk.END)
 
         self.root.update()
 
-    def update_theme(self):
+    def update_theme(self) -> None:
         global _THEME
 
         self.root.config(bg=_THEME['background'])
@@ -470,7 +468,7 @@ class Install(threading.Thread):
             selectforeground=_THEME['background']
         )
 
-    def close(self):
+    def close(self) -> None:
         if not self.okay_to_close:
             messagebox.showerror('Quizzing Application | Updater', 'Cannot close updater: update in progress.')
             return
@@ -478,7 +476,7 @@ class Install(threading.Thread):
         self.root.quit()
         sys.exit(0)
 
-    def run(self):
+    def run(self) -> None:
         tk.Tk.report_callback_exception = self.err
 
         self.root.title("Quizzing App | Updater v2")
@@ -501,7 +499,7 @@ class Install(threading.Thread):
         self.update_theme()
         self.load_commands()
 
-    def load_commands(self):
+    def load_commands(self) -> None:
         if len(self.downloads) >= 1:
             self.insert_item('Installing will run the following commands:')
             for coms in self.downloads.values():
@@ -511,7 +509,7 @@ class Install(threading.Thread):
             self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
             self.close_button.config(text="CLOSE", command=self.close)
 
-    def start_downloads(self):
+    def start_downloads(self) -> None:
         global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE
 
         self.clear_lb()
@@ -663,12 +661,12 @@ class Install(threading.Thread):
 
         return
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.thread.join(self, 0)
 
 
 class Addons(threading.Thread):
-    def __init__(self, addons):
+    def __init__(self, addons: Union[Tuple[str, ...], List[str]]) -> None:
         super().__init__()
         self.thread = threading.Thread
         self.thread.__init__(self)
@@ -678,7 +676,7 @@ class Addons(threading.Thread):
         self.okay_to_close = True
 
         self.root = tk.Tk()
-        self.downloads = set()
+        self.downloads: Set[str] = set()
         self.req_addons = addons
 
         self.window_size = [700, 450]
@@ -704,28 +702,28 @@ class Addons(threading.Thread):
         self.start()
         self.root.mainloop()
 
-    def err(self, *args, **kwargs):
+    def err(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         global _THEME
 
         self.okay_to_close = True
         self.close_button.config(state=tk.NORMAL)
         tr(self.insert_item, f'Failed to update file: {traceback.format_exc()}', _THEME['background'], _THEME['error'], _THEME['error'])
 
-    def insert_item(self, text: str, bg=_THEME['background'], fg=_THEME['foreground'], sfg=_THEME['accent']):
+    def insert_item(self, text: str, bg: str = _THEME['background'], fg: str = _THEME['foreground'], sfg: str = _THEME['accent']) -> None:
         self.activity_box.insert(tk.END, text)
         self.activity_box.itemconfig(self.activity_acc, bg=bg, foreground=fg, selectbackground=sfg, selectforeground=bg)
         self.activity_acc += 1
         self.activity_box.yview(tk.END)
         self.root.update()
 
-    def clear_lb(self):
+    def clear_lb(self) -> None:
         self.activity_acc = 0
         self.activity_box.delete(0, tk.END)
         self.activity_box.yview(tk.END)
 
         self.root.update()
 
-    def update_theme(self):
+    def update_theme(self) -> None:
         global _THEME
 
         self.root.config(bg=_THEME['background'])
@@ -757,7 +755,7 @@ class Addons(threading.Thread):
             selectforeground=_THEME['background']
         )
 
-    def close(self):
+    def close(self) -> None:
         if not self.okay_to_close:
             messagebox.showerror('Quizzing Application | Updater', 'Cannot close updater: update in progress.')
             return
@@ -765,7 +763,7 @@ class Addons(threading.Thread):
         self.root.quit()
         sys.exit(0)
 
-    def run(self):
+    def run(self) -> None:
         tk.Tk.report_callback_exception = self.err
 
         self.root.title("Quizzing App | Updater v2")
@@ -788,7 +786,7 @@ class Addons(threading.Thread):
         self.update_theme()
         self.load_commands()
 
-    def load_commands(self):
+    def load_commands(self) -> None:
         if len(self.req_addons) >= 1:
             self.insert_item('Installing will run the following commands:')
             for com in self.req_addons:
@@ -803,7 +801,7 @@ class Addons(threading.Thread):
             self.insert_item(f"No download commands found.", bg=_THEME['background'], fg=_THEME['error'], sfg=_THEME['error'])
             self.close_button.config(text="CLOSE", command=self.close)
 
-    def start_downloads(self):
+    def start_downloads(self) -> None:
         global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE, APPDATA
 
         self.clear_lb()
@@ -903,12 +901,12 @@ class Addons(threading.Thread):
 
         return
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.thread.join(self, 0)
 
 
 @click.group()
-def _cli_handler():
+def _cli_handler() -> None:
     pass
 
 
@@ -919,13 +917,13 @@ def _cli_handler():
 @click.option('--Title', help="title to be displayed on the UI", is_flag=False, default="Updating App")
 @click.option('--noAdmin', help='do not ask for UAC elevation', is_flag=True)
 @click.option('--UpdateAll', is_flag=True)
-def update(**kwargs):
+def update(**kwargs: Optional[Any]) -> None:
     if _is_admin() or kwargs['noadmin']:
         commands = []
         if kwargs.get('readflags'):
             commands = ['ReadFlags']
-        if len(kwargs.get('command')) > 0:
-            commands.extend([*kwargs['command']])
+        if len(cast(Sized, kwargs.get('command'))) > 0:
+            commands.extend([*cast(Iterable[str], kwargs['command'])])
 
         UpdaterUI(commands, **kwargs)
 
@@ -933,23 +931,23 @@ def update(**kwargs):
         argv = sys.argv
         argv.pop(0)
 
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(kwargs['console']))
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(cast(bool, kwargs['console'])))
 
 
 @_cli_handler.command()
 @click.option('-a', '--Addon', help="addon(s) to install", is_flag=False, multiple=True)
-def addon(*args, **kwargs):
-    if len(kwargs['addon']) <= 0:
+def addon(*args: Optional[Any], **kwargs: Optional[Any]) -> None:
+    if len(cast(Sized, kwargs['addon'])) <= 0:
         sys.stderr.write("Expected addon names; use --help for more info")
         sys.exit(-1)
 
-    Addons(kwargs['addon'])
+    Addons(cast(Tuple[str, ...], kwargs['addon']))
 
 
 @_cli_handler.command()
 @click.option('--console', help='show console', is_flag=True)
 @click.option('--noAdmin', help='do not ask for uac elevation', is_flag=True)
-def install(**kwargs):
+def install(**kwargs: Optional[Any]) -> None:
     global APPDATA
 
     if _is_admin() or kwargs['noadmin']:
@@ -970,31 +968,31 @@ def install(**kwargs):
         argv = sys.argv
         argv.pop(0)
 
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(kwargs['console']))
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(argv), None, int(cast(bool, kwargs['console'])))
 
 
 def _is_admin() -> bool:
     try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
+        return cast(bool, ctypes.windll.shell32.IsUserAnAdmin())
     except:
         return False
 
 
-def tr(command, *args, **kwargs):
+def tr(command: Any, *args: Optional[Any], **kwargs: Optional[Any]) -> Tuple[bool, Any]:
     try:
         return True, command(*args, **kwargs)
     except Exception as excep:
         return False, excep
 
 
-def nv_check_flag(script: str, name: str):
+def nv_check_flag(script: str, name: str) -> bool:
     global NV_ROOT, NV_DELIMITER
 
     name = name.replace(NV_DELIMITER, '__')
     return os.path.exists(f"{NV_ROOT}\\{script}{NV_DELIMITER}{name}")
 
 
-def nv_delete_flag(script: str, name: str):
+def nv_delete_flag(script: str, name: str) -> None:
     global NV_ROOT, NV_DELIMITER
 
     name = name.replace(NV_DELIMITER, '__')
@@ -1003,17 +1001,15 @@ def nv_delete_flag(script: str, name: str):
         os.remove(f"{NV_ROOT}\\{script}{NV_DELIMITER}{name}")
 
 
-def nv_yield_all_flags_as_list(script: str):
+def nv_yield_all_flags_as_list(script: str) -> List[str]:
     global NV_ROOT, NV_DELIMITER
 
     acc = []
 
     if os.path.isdir(NV_ROOT):
         for item in os.listdir(NV_ROOT):
-            if isinstance(script, type):
-                if script is any:
-                    acc.append(item.replace('__', NV_DELIMITER))
-
+            if script == 'any':
+                acc.append(item.replace('__', NV_DELIMITER))
                 continue
 
             if item.split(NV_DELIMITER)[0].lower().strip() == script.lower().strip():
@@ -1022,7 +1018,7 @@ def nv_yield_all_flags_as_list(script: str):
     return acc
 
 
-def nv_create_flag(script: str, name: str):
+def nv_create_flag(script: str, name: str) -> None:
     global NV_ROOT, NV_DELIMITER
 
     if not os.path.isdir(NV_ROOT):
@@ -1035,7 +1031,7 @@ def nv_create_flag(script: str, name: str):
             flag.close()
 
 
-def nv_clear_all_app_flags(script: str):
+def nv_clear_all_app_flags(script: str) -> None:
     global NV_ROOT, NV_DELIMITER
 
     if os.path.isdir(NV_ROOT):
@@ -1044,9 +1040,9 @@ def nv_clear_all_app_flags(script: str):
                 os.remove(f"{NV_ROOT}\\{item}")
 
 
-def load_manifest() -> dict:
+def load_manifest() -> Dict[str, Any]:
     with open('.config\\update_manifest.json', 'r') as manifest_file:
-        o = json.loads(manifest_file.read())
+        o: Dict[str, Any] = json.loads(manifest_file.read())
         manifest_file.close()
 
     return o

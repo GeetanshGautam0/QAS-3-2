@@ -99,7 +99,8 @@
     ".github/ISSUE_TEMPLATE/bug_report.md": ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/feature_request.md": ".github/ISSUE_TEMPLATE/feature_request.md",
     ".github/workflows/tests.yml": ".github/workflows/tests.yml",
-    "build_new_version.py": "build_new_version.py"
+    "build_new_version.py": "build_new_version.py",
+    "mypy_switches.txt": "mypy_switches.txt"
   },
   "APP_SCRIPTS": {
     "qa_ui/__init__.py": "qa_ui/__init__.py",

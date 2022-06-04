@@ -1,20 +1,23 @@
-import tkinter.ttk as ttk, qa_functions, PIL.Image, PIL.ImageTk, math, sys
-import tkinter as tk
+import tkinter.ttk as ttk, qa_functions, PIL.Image, PIL.ImageTk, math, sys, tkinter as tk
 from time import sleep
 from typing import *
+from qa_functions.qa_theme_loader import Load as LoadTheme
 
 
-theme = qa_functions.LoadTheme.auto_load_pref_theme()
+theme = LoadTheme.auto_load_pref_theme()
 
 
 class Splash(tk.Toplevel):
-    def __init__(self, master, title, img_src):
+    def __init__(self, master: tk.Toplevel, title: str, img_src: str, **kw) -> None:
+        super().__init__(master, **kw)
         global theme
+
         self.theme = theme
         self.destroyed = False
 
-        self.root, self.title_string, self.img_path = master, title, img_src
-        self.frame: tk.Frame = tk.Frame(self.root)
+        self.root: tk.Toplevel = master
+        self.title_string, self.img_path = title, img_src
+        self.frame: tk.Frame = tk.Frame(self.root)  # type: ignore
         self.img_size = (60, 60)
         self.img = None
 
@@ -35,7 +38,7 @@ class Splash(tk.Toplevel):
         self.ac_start = self.theme.foreground.color
         self.ac_end = self.theme.accent.color
         self.loadGrad = True
-        self.grad = [self.theme.foreground.color]
+        self.grad = (self.theme.foreground.color, )
         self.complete = False
 
         self.run()
@@ -98,9 +101,9 @@ class Splash(tk.Toplevel):
 
         self.img_path = img
         self.load_png()
-        self.imgLbl.configure(image=self.img)
-        self.imgLbl.image = self.img
-        self.imgLbl.update()
+        self.imgLbl.config(image=self.img)  # type: ignore
+        self.imgLbl.image = self.img        # type: ignore
+        self.imgLbl.update()                # type: ignore
 
     def setProgress(self, per: float) -> None:
         if self.destroyed:
@@ -113,7 +116,6 @@ class Splash(tk.Toplevel):
 
         if self.loadGrad:
             self.grad = qa_functions.ColorFunctions.fade(self.ac_start, self.ac_end)
-            print("Colour Gradient Values:", self.grad)
             self.loadGrad = False
 
         self.pbar.configure(style="Horizontal.TProgressbar")
@@ -227,6 +229,6 @@ def show(inst: Splash = None):
 
 
 def destroy(inst: Splash):
-    inst.root.destroyed = True
+    inst.destroyed = True
     inst.root.after(0, inst.root.destroy)
     return

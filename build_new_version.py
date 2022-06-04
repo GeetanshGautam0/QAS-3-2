@@ -58,8 +58,15 @@ if __name__ == "__main__":
     else:
         _run_command('clear', silent=True)
 
-    _run_command('mypy .')
-    _run_command('pytest -vv')
+    with open('mypy_switches.txt', 'r') as mp_switch:
+        mp_flags_str = mp_switch.read()
+        mp_switch.close()
+    mp_flags = mp_flags_str.replace('\n', ' ').split()
+    del mp_flags_str
+
+    _run_command('mypy', '.')
+    _run_command('mypy', *mp_flags, '.')
+    _run_command(f'pytest', '-vv')
 
     if input(f"""Do you want to continue with the build?
     ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
@@ -71,6 +78,7 @@ if __name__ == "__main__":
     lvl = ''
     push = False
     release = False
+    recompile= True
 
     while True:
         print(
@@ -114,6 +122,18 @@ Release changes? Answer below:
             release = bool(int(_p.strip()))
             break
 
+    while True:
+        print(
+            f"""Quizzing App - Build Manager
+Recompile installer?
+({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
+({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
+""")
+        _p = input("> ")
+        if _p.strip() in ('0', '1'):
+            recompile = bool(int(_p.strip()))
+            break
+
     BUILD_NUMBER = _build_number()
     
     if lvl == "alpha":
@@ -132,11 +152,20 @@ Release changes? Answer below:
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} New build name:          {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} {BUILD_NAME_STR} {ANSI.RESET}\n")
     
     _set_build_number(BUILD_NUMBER, BUILD_ID_STR, BUILD_NAME_STR)
-    
-    ISCC = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"'
-    COM = f"\"installer\\installer.iss\""
-    
-    _run_command(ISCC, COM)
+
+    if recompile:
+        with open('compile.bat', 'r') as compile_commands:
+            commands = compile_commands.readlines()
+            compile_commands.close()
+
+        for command in commands:
+            if 'rem' not in command and 'echo' not in command and len(command.strip()) > 0:
+                _run_command(*command.split())
+
+        ISCC = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"'
+        COM = f"\"installer\\installer.iss\""
+
+        _run_command(ISCC, COM)
     
     if push:
         _run_command(*f'git commit -a -m \"{msg}\"'.split())
