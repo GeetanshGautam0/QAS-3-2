@@ -121,7 +121,7 @@ Release changes? Answer below:
     ISCC = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"'
     COM = f"\"installer\\installer.iss\""
     
-    _run_command(ISCC, COM, admin=False)
+    _run_command(ISCC, COM)
     
     if push:
         _run_command(*f'git commit -a -m \"{msg}\"'.split())

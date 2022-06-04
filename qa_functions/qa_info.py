@@ -1,5 +1,7 @@
 import appdirs, json, os, sys, traceback, hashlib
-from .qa_err import *
+from . import qa_err
+from . import qa_enum
+from . import qa_custom
 
 
 class ConfigurationFile:
@@ -7,8 +9,8 @@ class ConfigurationFile:
     completed = False
 
     if not os.path.exists(name):
-        raise_error(FileNotFoundError, ("Main configuration file not found", ), ErrorLevels.FATAL)
-        sys.exit(ExitCodes.GENERAL_ERROR)
+        qa_err.raise_error(FileNotFoundError, ["Main configuration file not found"], qa_enum.ErrorLevels.FATAL)
+        sys.exit(qa_enum.ExitCodes.GENERAL_ERROR)
 
     try:
         with open(name, 'r') as file:
@@ -17,8 +19,8 @@ class ConfigurationFile:
         json_data = json.loads(d)
 
     except Exception as E:
-        raise_error(E.__class__, (str(E), ), ErrorLevels.FATAL, traceback.format_exc())
-        sys.exit(ExitCodes.GENERAL_ERROR)
+        qa_err.raise_error(E.__class__, [str(E)], qa_enum.ErrorLevels.FATAL, traceback.format_exc())
+        sys.exit(qa_enum.ExitCodes.GENERAL_ERROR)
 
     completed = True
 
@@ -93,6 +95,7 @@ class Files:
     AT_png = f"{pngRoot}\\admin_tools.png"
     QF_png = f"{pngRoot}\\quizzing_tool.png"
     RU_png = f"{pngRoot}\\ftsra.png"
+
 
 class Encryption:
     default_key: bytes = b"oyJeLcbVk6_w9tbKJArWCZLSBjS8ZfK9M-cAygf6SRQ="

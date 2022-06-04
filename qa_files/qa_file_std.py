@@ -1,32 +1,40 @@
-import qa_functions, traceback, hashlib
+import traceback, hashlib
 from typing import *
 from .qa_files_ltbl import *
 from tkinter import messagebox
+from qa_functions.qa_std import data_type_converter
+from qa_functions.qa_custom import ConverterFunctionArgs
+from qa_functions.qa_enum import FileType
+from qa_functions.qa_file_handler import _Crypt
 
 
-_ft_map: Dict[qa_functions.qa_enum.FileType, Tuple[str, bytes]] = {
-    qa_functions.qa_enum.FileType.QA_FILE: (qa_file_extn, qa_file_enck),
-    qa_functions.qa_enum.FileType.QA_ENC: (qa_enc_extn, qa_enc_enck),
-    qa_functions.qa_enum.FileType.QA_EXPORT: (qa_export_extn, qa_export_enck),
-    qa_functions.qa_enum.FileType.QA_QUIZ: (qa_quiz_extn, qa_quiz_enck),
+_ft_map: Dict[FileType, Tuple[str, bytes]] = {
+    FileType.QA_FILE: (qa_file_extn, qa_file_enck),
+    FileType.QA_ENC: (qa_enc_extn, qa_enc_enck),
+    FileType.QA_EXPORT: (qa_export_extn, qa_export_enck),
+    FileType.QA_QUIZ: (qa_quiz_extn, qa_quiz_enck),
 }
 
 
-def generate_file(file_type: qa_functions.qa_enum.FileType, raw_data: Union[bytes, str]):
+def generate_file(file_type: FileType, raw_data: Union[bytes, str]) -> Union[
+    None,
+    Tuple[bytes, str],
+    bytes
+]:
     global _ft_map
 
     try:
         if file_type not in _ft_map:
-            return qa_functions.data_type_converter(raw_data, bytes, qa_functions.ConverterFunctionArgs()).strip()
+            return cast(bytes, data_type_converter(raw_data, bytes, ConverterFunctionArgs()).strip())
 
         EXTN, KEY = _ft_map[file_type]
-        new_data = qa_functions.qa_file_handler._Crypt.encrypt(raw_data, KEY, qa_functions.ConverterFunctionArgs())
-        d_hash = qa_functions.data_type_converter(hashlib.sha3_512(new_data).hexdigest(), bytes, qa_functions.ConverterFunctionArgs())
+        new_data = cast(bytes, _Crypt.encrypt(raw_data, KEY, ConverterFunctionArgs()))
+        d_hash = data_type_converter(hashlib.sha3_512(new_data).hexdigest(), bytes, ConverterFunctionArgs())
 
         return d_hash+new_data+d_hash, EXTN
 
     except Exception as E:
-        E_hash = hashlib.md5(qa_functions.data_type_converter(str(E), bytes, qa_functions.ConverterFunctionArgs())).hexdigest()
+        E_hash = hashlib.md5(cast(bytes, data_type_converter(str(E), bytes, ConverterFunctionArgs()))).hexdigest()
         error_info = f"""Failed to generate required file data;
 Exception Code: {E_hash}
 Error String: {str(E)}
@@ -37,13 +45,13 @@ Technical Information: {traceback.format_exc()}"""
         return None
 
 
-def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Union[None, Tuple[bytes, str]]:
+def load_file(file_type: FileType, raw_data: bytes) -> Union[None, Tuple[bytes, str]]:
     global _ft_map
 
     try:
         assert isinstance(raw_data, bytes), 'Expected type \'bytes\' for raw_data input'
         if file_type not in _ft_map:
-            return raw_data, qa_functions.data_type_converter(raw_data, str, qa_functions.ConverterFunctionArgs())
+            return raw_data, data_type_converter(raw_data, str, ConverterFunctionArgs())
 
         raw_data = raw_data.strip()
 
@@ -59,15 +67,15 @@ def load_file(file_type: qa_functions.qa_enum.FileType, raw_data: bytes) -> Unio
         enc_d = raw_data.replace(h_hash, b'', 1)
         enc_d = enc_d[::-1].replace(f_hash[::-1], b'', 1)[::-1]
 
-        uenc_d = qa_functions.qa_file_handler._Crypt.decrypt(enc_d, KEY, qa_functions.ConverterFunctionArgs())
+        unencrypted_data = cast(bytes, _Crypt.decrypt(enc_d, KEY, ConverterFunctionArgs()))
         del enc_d, h_hash, f_hash, KEY, _, raw_data, file_type
 
         try:
-            string = qa_functions.data_type_converter(uenc_d, str, qa_functions.ConverterFunctionArgs())
-        except:
+            string = cast(str, data_type_converter(unencrypted_data, str, ConverterFunctionArgs()))
+        except Exception:
             string = ''
 
-        return uenc_d, string
+        return unencrypted_data, string
 
     except Exception as E:
         E_hash = hashlib.md5(str(E).encode()).hexdigest()

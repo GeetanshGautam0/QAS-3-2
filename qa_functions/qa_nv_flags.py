@@ -1,5 +1,6 @@
 import os, sys
 from .qa_info import App
+from typing import *
 
 
 if __name__ == "__main__":
@@ -10,7 +11,7 @@ ROOT = f"{App.appdata_dir}\\.nvf"
 DELIMITER = "=="
 
 
-def create_flag(script: str, name: str):
+def create_flag(script: str, name: str) -> None:
     global ROOT, DELIMITER
 
     if not os.path.isdir(ROOT):
@@ -23,7 +24,7 @@ def create_flag(script: str, name: str):
             flag.close()
 
 
-def delete_flag(script: str, name: str):
+def delete_flag(script: str, name: str) -> None:
     global ROOT, DELIMITER
 
     name = name.replace(DELIMITER, '__')
@@ -32,7 +33,7 @@ def delete_flag(script: str, name: str):
         os.remove(f"{ROOT}\\{script}{DELIMITER}{name}")
 
 
-def check_flag(script: str, name: str):
+def check_flag(script: str, name: str) -> bool:
     global ROOT, DELIMITER
 
     name = name.replace(DELIMITER, '__')
@@ -40,7 +41,7 @@ def check_flag(script: str, name: str):
     return os.path.exists(f"{ROOT}\\{script}{DELIMITER}{name}")
 
 
-def clear_all_app_flags(script: str):
+def clear_all_app_flags(script: str) -> None:
     global ROOT, DELIMITER
 
     if os.path.isdir(ROOT):
@@ -49,7 +50,7 @@ def clear_all_app_flags(script: str):
                 os.remove(f"{ROOT}\\{item}")
 
 
-def clear_all_flags():
+def clear_all_flags() -> None:
     global ROOT
 
     if os.path.isdir(ROOT):
@@ -57,33 +58,28 @@ def clear_all_flags():
             os.remove(f"{ROOT}\\{item}")
 
 
-def yield_all_flags(script: str):
+def yield_all_flags(script: str) -> Generator[str, Any, None]:
     global ROOT, DELIMITER
 
     if os.path.isdir(ROOT):
         for item in os.listdir(ROOT):
-            if isinstance(script, type):
-                if script is any:
-                    yield item.replace('__', DELIMITER)
-
+            if script == 'any':
+                yield item.replace('__', DELIMITER)
                 continue
 
             if item.split(DELIMITER)[0].lower().strip() == script.lower().strip():
                 yield item.split(DELIMITER)[1].replace('__', DELIMITER)
 
 
-def yield_all_flags_as_list(script: str):
+def yield_all_flags_as_list(script: str) -> List[str]:
     global ROOT, DELIMITER
 
-    acc = []
+    acc: List[str] = []
 
     if os.path.isdir(ROOT):
         for item in os.listdir(ROOT):
-            if isinstance(script, type):
-                if script is any:
-                    acc.append(item.replace('__', DELIMITER))
-
-                continue
+            if script == 'any':
+                acc.append(item.replace('__', DELIMITER))
 
             if item.split(DELIMITER)[0].lower().strip() == script.lower().strip():
                 acc.append(item.split(DELIMITER)[1].replace('__', DELIMITER))

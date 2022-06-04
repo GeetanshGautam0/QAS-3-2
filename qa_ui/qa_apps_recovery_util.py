@@ -474,8 +474,9 @@ class _UI(Thread):
                 pass_acc += 1
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
-                        self.insert_into_lb(f"    {st}")
-                        log(LoggingLevel.INFO, f'[PASS] [MESSAGE]\t\t{st}')
+                        if st is not None:
+                            self.insert_into_lb(f"    {st}")
+                            log(LoggingLevel.INFO, f'[PASS] [MESSAGE]\t\t{st}')
 
             else:
                 self.insert_into_lb('FAILED', fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
@@ -484,8 +485,9 @@ class _UI(Thread):
 
                 if len(f_s_strs) > 0:
                     for st in f_s_strs:
-                        self.insert_into_lb(f"    Failure: {st}")
-                        log(LoggingLevel.INFO, f'[FAIL] [FAILURE]\t\t{st}')
+                        if st is not None:
+                            self.insert_into_lb(f"    Failure: {st}")
+                            log(LoggingLevel.INFO, f'[FAIL] [FAILURE]\t\t{st}')
 
                 if fix_command in qa_functions.qa_diagnostics._UC_FUNC:
                     if fix_command in qa_functions.qa_diagnostics._REQ_RESTART:

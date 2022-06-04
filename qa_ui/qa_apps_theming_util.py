@@ -130,7 +130,7 @@ class _UI(Thread):
         self.export_theme_button = ttk.Button(self.export_button_panel, command=self.export_theme)
         self.save_theme_button = ttk.Button(self.export_button_panel, command=self.save_custom_theme)
         self.reset_theme_button = ttk.Button(self.export_button_panel, command=self.reset_theme, style='Contrast.TButton')
-        self.preview_button = ttk.Button(self.export_button_panel, command=self.preview_change)
+        self.preview_button = ttk.Button(self.export_button_panel, command=cast(Callable[[Any, Any], Any], self.preview_change))
 
         self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
         self.space_filler_2 = tk.Label(self.install_new_frame)
@@ -139,36 +139,37 @@ class _UI(Thread):
         self.start()
         self.root.mainloop()
 
-    def close(self):
+    def close(self) -> None:
         sys.stdout.write("tu - _UI.close")
         self.ic.shell = self.ds
         self.ic.shell_ready = False
 
         self.root.quit()
 
-    def update_ui(self, theme=None):
+    def update_ui(self, theme=None) -> None:
         self.load_theme(theme)
 
-        def tr(com) -> Tuple[bool, str]:
+        def tr(com: Callable[..., Any]) -> Tuple[bool, str]:
             try:
                 com()
                 return True, '<no errors>'
             except Exception as E:
                 return False, str(E)
 
-        def log_error(com: str, el, reason: str, ind: int):
+        def log_error(com: str, el, reason: str, ind: int) -> None:
             log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-        def log_norm(com: str, el):
+        def log_norm(com: str, el) -> None:
             log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
         for elID, (element, command, args) in self.update_requests.items():
-            lCommand = [False]
+            lCommand = [False, '', 0]
             cargs = []
+
             for index, arg in enumerate(args):
                 cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
 
-                if isinstance(cargs[index], qa_functions.HexColor):
+                if isinstance(cargs[index], qa_functions.qa_custom.HexColor):
                     cargs[index] = cargs[index].color
 
             if command == ThemeUpdateCommands.BG:  # Background
@@ -489,7 +490,7 @@ class _UI(Thread):
             )
         ]
 
-    def load_theme(self, theme=None):
+    def load_theme(self, theme=None) -> None:
         if theme is None and (gen_cmp_theme_dict(self.tmp_theme) == self.theme or self.rst_theme):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
             self.rst_theme = False
@@ -531,7 +532,7 @@ class _UI(Thread):
         self.title_box.pack(fill=tk.X, expand=False, pady=50)
         self.title_label.config(text="Theming Utility", anchor=tk.W)
         self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
-        self.title_icon.config(image=self.img)
+        self.title_icon.config(image=cast(Optional[Any], self.img))
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX/8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX/8), pady=self.padY, side=tk.LEFT)
 
@@ -796,9 +797,9 @@ class _UI(Thread):
             return
 
         try:
-            File = qa_functions.File(tmp_file_path)
-            raw = qa_functions.OpenFile.load_file(File, qa_functions.OpenFunctionArgs(bytes))
-            _, raw2 = qa_files.load_file(qa_functions.FileType.QA_THEME, raw)
+            file = qa_functions.qa_custom.File(tmp_file_path)
+            raw = qa_functions.qa_file_handler.Open.load_file(file, qa_functions.qa_custom.OpenFunctionArgs(bytes))
+            _, raw2 = qa_files.qa_file_std.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
             self.install_new_theme((tmp_file_path, ))
             os.remove(tmp_file_path)
 
@@ -810,7 +811,7 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
-    def install_new_theme(self, files=None):
+    def install_new_theme(self, files: Union[None, Tuple[Any]] = None) -> None:
         self.disable_all_inputs()
 
         req_files = filedialog.askopenfilenames(
@@ -916,11 +917,13 @@ Technical Information:
         if not os.path.isdir(install_dir):
             os.makedirs(install_dir)
 
-        for filename, themes in to_install.items():
-            themes: Tuple[qa_functions.Theme]
+        for filename, _t in to_install.items():
+            themes: Tuple[qa_functions.Theme] = cast(Tuple[qa_functions.qa_custom.Theme], _t)
 
             if len(themes) <= 0:
                 continue
+
+            assert len(theme) > 0  # For compiler
 
             theme_data_dict = {
                 'file_info':
@@ -975,7 +978,7 @@ Technical Information:
     def uninstall(self):
         self.disable_all_inputs()
 
-        all_themes = qa_functions.LoadTheme.auto_load_all(False)
+        all_themes = qa_functions.qa_theme_loader.Load.auto_load_all(False)
         ls = {f"{(*v.values(),)[0].theme_file_display_name}: {(*v.values(),)[0].theme_display_name}": (*v.values(),)[0] for v in all_themes.values()}
 
         if len(all_themes) <= 0:
@@ -983,16 +986,15 @@ Technical Information:
             self.enable_all_inputs()
             return
 
-        s_mem = qa_functions.SMem()
+        s_mem = qa_functions.qa_std.SMem()
         qa_prompts.InputPrompts.OptionPrompt(s_mem, set(ls), "Select a theme to uninstall")
         selection = s_mem.get()
         if selection == "0":
             self.enable_all_inputs()
             return
 
-        ot = ls[selection]
-        ot: qa_functions.Theme
-        of = qa_functions.File(ot.theme_file_path)
+        ot: qa_functions.qa_custom.Theme = ls[selection]
+        of = qa_functions.qa_custom.File(ot.theme_file_path)
 
         if os.path.isfile(of.file_path):
             try:
@@ -1035,7 +1037,7 @@ Technical Information:
         self.update_theme_selector_options()
         self.enable_all_inputs()
 
-    def disable_all_inputs(self):
+    def disable_all_inputs(self) -> None:
         self.install_new_button.config(state=tk.DISABLED)
         self.online_theme_button.config(state=tk.DISABLED)
         self.theme_selector_dropdown.config(state=tk.DISABLED)
@@ -1051,7 +1053,7 @@ Technical Information:
         self.save_theme_button.config(state=tk.DISABLED)
         self.showcase_border_color.config(state=tk.DISABLED)
 
-    def enable_all_inputs(self):
+    def enable_all_inputs(self) -> None:
         self.install_new_button.config(state=tk.NORMAL)
         self.online_theme_button.config(state=tk.NORMAL)
         self.theme_selector_dropdown.config(state=tk.NORMAL)
@@ -1084,7 +1086,7 @@ Technical Information:
             new_file_name = new_file_name.replace('/', '\\')
 
             try:
-                s_mem = qa_functions.SMem()
+                s_mem = qa_functions.qa_std.SMem()
                 sep = ">>%QuizzingApp.ICManager.sep1%2>>"
 
                 qa_prompts.InputPrompts.DEntryPrompt(s_mem, sep, ['File Display Name', 'Theme Display Name'])
@@ -1098,10 +1100,10 @@ Technical Information:
                 self.load_theme()           # "Save" sets the custom theme as the default theme; use it.
                 ct = clone_theme(self.theme)
 
-                fdp_toks, fdp_clean = fdp.split(' '), []
-                for tok in fdp_toks:
-                    fdp_clean.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
-                fdp_clean = ' '.join(i for i in fdp_clean)
+                fdp_tokens, fdp_list = fdp.split(' '), []
+                for tok in fdp_tokens:
+                    fdp_list.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
+                fdp_clean = ' '.join(fdp_list)
 
                 tdp_toks, tdp_clean = tdn.split(' '), []
                 for tok in tdp_toks:
@@ -1193,35 +1195,35 @@ Technical Information:
 
         self.enable_all_inputs()
 
-    def onBGClick(self):
+    def onBGClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.BG)
 
-    def onFGClick(self):
+    def onFGClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.FG)
 
-    def onAccentClick(self):
+    def onAccentClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.ACCENT)
 
-    def onErrorClick(self):
+    def onErrorClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.ERROR)
 
-    def onOkayClick(self):
+    def onOkayClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.OKAY)
 
-    def onWarningClick(self):
+    def onWarningClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.WARNING)
 
-    def onGrayClick(self):
+    def onGrayClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.GRAY)
 
-    def onBCClick(self):
+    def onBCClick(self) -> None:
         self.on_prev_click('color', ThemeUpdateVars.BORDER_COLOR)
 
-    def reset_theme(self):
+    def reset_theme(self) -> None:
         self.rst_theme = True
         self.update_ui()
 
-    def save_custom_theme(self, internal_call=False, _bypass_changes_check=False):
+    def save_custom_theme(self, internal_call=False, _bypass_changes_check=False) -> bool:
         self.disable_all_inputs()
         pr_theme_full = qa_functions.LoadTheme.auto_load_pref_theme()
         pr_theme = gen_cmp_theme_dict(pr_theme_full)

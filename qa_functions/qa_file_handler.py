@@ -1,31 +1,18 @@
-"""
-Quizzing Application 3
-Module Name: File IO Handler (Version 1)
-
-Geetansh Gautam
-February 28, 2022
-
-Official Website: geetanshgautam.wixsite.com/home
-Source Code: geetanshgautam0.github.io/QAS3-2
-"""
-
-
-from .qa_custom import *
-from .qa_err import raise_error
 import os, random, hashlib, time, shutil, traceback, sys
 from cryptography.fernet import Fernet, InvalidToken
-
-from .qa_info import Extensions
-from .qa_info import Files
-from .qa_info import App
-
+from typing import *
+from .qa_info import Extensions, Files, App
 from .qa_std import data_type_converter
-
 from .qa_svh import create_script_version_hash
 from .qa_svh import check_hash
+from .qa_enum import ErrorLevels
+from .qa_err import raise_error
+from .qa_custom import File, CannotCreateBackup, CannotSave, SaveFunctionArgs, OpenFunctionArgs, \
+    ConverterFunctionArgs, EncryptionError
+
 
 FILE_IO_HANDLER_SCRIPT_VERSION_HASH = create_script_version_hash(os.path.abspath(__file__), True)
-print(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}")
+sys.stdout.write(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}\n")
 
 try:
     check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
@@ -35,7 +22,7 @@ except AssertionError:
 
 class Open:
     @staticmethod
-    def load_file(file_obj: File, ofa: OpenFunctionArgs) -> Union[str, bytes]:
+    def load_file(file_obj: File, ofa: OpenFunctionArgs) -> Any:
         assert os.path.isfile(file_obj.file_path), f"File '{file_obj.file_path}' does not exist."
         assert ofa.d_type in (str, bytes), "Invalid data type requested."
 
@@ -46,7 +33,7 @@ class Open:
         return o
 
     @staticmethod
-    def read_file(file_obj: File, ofa: OpenFunctionArgs, enc_key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> Union[str, bytes]:
+    def read_file(file_obj: File, ofa: OpenFunctionArgs, enc_key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs()) -> Any:
         assert isinstance(enc_key, bytes)
         assert len(enc_key) in [44, 0]
 
@@ -116,7 +103,7 @@ class Save:
                     del hash1, hash2, bd, od
 
             except Exception:
-                raise_error(CannotCreateBackup, (file_obj.file_path, traceback.format_exc()), ErrorLevels.NON_FATAL)
+                raise_error(CannotCreateBackup, [file_obj.file_path, traceback.format_exc()], ErrorLevels.NON_FATAL)
                 return False
 
         # Step 2: Save
@@ -136,7 +123,7 @@ class Save:
                 if os.path.exists(file_obj.file_path):
                     os.remove(file_obj.file_path)
 
-                raise_error(CannotSave, ("Failed to save data to requested file",), ErrorLevels.NON_FATAL, traceback.format_exc())
+                raise_error(CannotSave, ["Failed to save data to requested file"], ErrorLevels.NON_FATAL, traceback.format_exc())
 
             else:
                 # Restore backup
@@ -171,7 +158,7 @@ class Save:
 
                 except:
                     raise_error(
-                        CannotSave, ("Failed to save data to file AND failed to restore backup",), ErrorLevels.NON_FATAL, traceback.format_exc()
+                        CannotSave, ["Failed to save data to file AND failed to restore backup"], ErrorLevels.NON_FATAL, traceback.format_exc()
                     )
 
         # 2(b) --> Step 3: Delete backup if requested
@@ -244,11 +231,11 @@ class Save:
             if len(original_data.strip()) > 0:
                 new_data = _Crypt.save_sr_append_data(original_data, new_data, separator, args.encryption_key, cfa)
 
-            d2s = _Crypt.encrypt(new_data, args.encryption_key, cfa)
+            d2s = cast(Union[str, bytes], _Crypt.encrypt(new_data, args.encryption_key, cfa))
 
         else:
-            d2s = cast(Union[str, bytes], (
-                    cast(str, original_data) + cast(str, separator) + cast(str, new_data)).replace(
+            d2s = cast(Union[str, bytes],
+                       (cast(str, original_data) + cast(str, separator) + cast(str, new_data)).replace(
                             cast(str, dtc('\r\n', output_type, cfa)),
                             cast(str, dtc('\n', output_type, cfa))
                         ).strip()
@@ -261,14 +248,14 @@ class Save:
 
 class _Crypt:
     @staticmethod
-    def _make_fernet(key: bytes):  # Run any desired checks
+    def _make_fernet(key: bytes) -> Fernet:  # Run any desired checks
         assert isinstance(key, bytes)
         assert len(key) == 44
 
         return Fernet(key)
 
     @staticmethod
-    def encrypt(data: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
+    def encrypt(data: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent: bool = False) -> Union[bool, bytes]:
         fer = _Crypt._make_fernet(key)
         b_data: bytes = dtc(data, bytes, cfa)
 
@@ -276,11 +263,11 @@ class _Crypt:
             return fer.encrypt(b_data)
         except Exception as E:
             if not silent:
-                raise_error(EncryptionError, (f"Failed to encrypt data; {str(E)}", ), ErrorLevels.NON_FATAL, traceback.format_exc())
+                raise_error(EncryptionError, [f"Failed to encrypt data; {str(E)}"], ErrorLevels.NON_FATAL, traceback.format_exc())
             return False
 
     @staticmethod
-    def decrypt(data: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent=False):
+    def decrypt(data: Any, key: bytes, cfa: ConverterFunctionArgs = ConverterFunctionArgs(), silent: bool = False) -> Union[bool, bytes]:
         fer = _Crypt._make_fernet(key)
         b_data: bytes = dtc(data, bytes, cfa)
 
@@ -288,7 +275,7 @@ class _Crypt:
             return fer.decrypt(b_data)
         except InvalidToken:
             if not silent:
-                raise_error(EncryptionError, ("Failed to decrypt data; InvalidToken exception", ), ErrorLevels.NON_FATAL)
+                raise_error(EncryptionError, ["Failed to decrypt data; InvalidToken exception"], ErrorLevels.NON_FATAL)
             return False
 
     @staticmethod
@@ -297,31 +284,35 @@ class _Crypt:
         nd = dtc(new_data, bytes, cfa)
         sd = dtc(sep,      bytes, cfa)
 
-        nod: bytes = b""
-        nnd: bytes = b""
-        nsd: bytes = b""
+        nod: Union[bool, bytes] = b""
+        nnd: Union[bool, bytes] = b""
+        nsd: Union[bool, bytes] = b""
 
         try:
             nod = _Crypt.decrypt(od, key, cfa, True)
         except Exception as E:
-            raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL, traceback.format_exc())
+            raise_error(E.__class__, [str(E)], ErrorLevels.NON_FATAL, traceback.format_exc())
 
         try:
             nnd = _Crypt.decrypt(nd, key, cfa, True)
         except Exception as E:
-            raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL)
+            raise_error(E.__class__, [str(E)], ErrorLevels.NON_FATAL)
 
         try:
             nsd = _Crypt.decrypt(sd, key, cfa, True)
         except Exception as E:
-            raise_error(E.__class__, (str(E), ), ErrorLevels.NON_FATAL)
+            raise_error(E.__class__, [str(E)], ErrorLevels.NON_FATAL)
 
-        nod = nod if nod is not False else od
-        nnd = nnd if nnd is not False else nd
-        nsd = nsd if nsd is not False else sd
+        nod = cast(bytes, (nod if nod is not False else od))
+        nnd = cast(bytes, (nnd if nnd is not False else nd))
+        nsd = cast(bytes, (nsd if nsd is not False else sd))
 
         return nod + nsd + nnd
 
 
-def dtc(od, tp, cfa):
-    return data_type_converter(od, tp, cfa)
+def dtc(
+        original: Union[str, bytes, List[Any], Tuple[Any, ...], Set[Any], Dict[Any, Any], int, float],
+        output_type: type,
+        cfa: ConverterFunctionArgs
+) -> Union[Any]:
+    return data_type_converter(original, output_type, cfa)

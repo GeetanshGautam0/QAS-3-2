@@ -15,7 +15,7 @@ DEBUG_NORM = False
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds, **kwargs):
+    def __init__(self, root, ic, ds, **kwargs) -> None:
         super().__init__()
         Thread.__init__(self)
 

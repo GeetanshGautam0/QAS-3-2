@@ -6,33 +6,33 @@ from .qa_custom import HexColor
 
 class Convert:
     @staticmethod
-    def HexToRGB(color: str):
+    def HexToRGB(color: str) -> Tuple[int, ...]:
         return tuple(int("".join(i for i in re.findall(r"\w", color))[j:j + 2], 16) for j in (0, 2, 4))
 
     @staticmethod
-    def RGBToInt(rgb: tuple):
+    def RGBToInt(rgb: Tuple[int, ...]) -> int:
         return rgb[0] << 16 | rgb[1] << 8 | rgb[2]
 
     @staticmethod
-    def IntToRGB(i_rgb: int):
+    def IntToRGB(i_rgb: int) -> Tuple[int, ...]:
         return i_rgb // 256 // 256 % 256, i_rgb // 256 % 256 // i_rgb // 256
 
     @staticmethod
-    def RGBToHex(rgb: tuple) -> str:
+    def RGBToHex(rgb: Tuple[int, ...]) -> str:
         return "#%02x%02x%02x" % rgb
 
     @staticmethod
-    def HexToInt(color: str):
+    def HexToInt(color: str) -> int:
         return Convert.RGBToInt(Convert.HexToRGB("".join(i for i in re.findall(r"\w", color))))
 
     @staticmethod
-    def IntToHex(val: int):
+    def IntToHex(val: int) -> str:
         return Convert.RGBToHex(Convert.IntToRGB(val))
 
 
 class Functions:
     @staticmethod
-    def fade(start: str, end: str):
+    def fade(start: str, end: str) -> Tuple[str]:
         stRGB = Convert.HexToRGB(start)
         edRGB = Convert.HexToRGB(end)
 
@@ -53,7 +53,7 @@ class Functions:
         return o
 
     @staticmethod
-    def calculate_more_contrast(one: HexColor, two: HexColor, color: HexColor):
+    def calculate_more_contrast(one: HexColor, two: HexColor, color: HexColor) -> HexColor:
         f, g = one, two
 
         if not check_hex_contrast(f, color)[0]:

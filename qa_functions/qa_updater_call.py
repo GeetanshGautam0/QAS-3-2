@@ -1,13 +1,13 @@
 import os
 
 
-def RunUpdater(cli="--ReadFlags", path=".qa_update\\"):
+def RunUpdater(cli: str = "--ReadFlags", path: str = ".qa_update\\") -> None:
     os.system(f"{path}qa_update_app.exe update {cli}")
 
 
-def UpdateSuite():
+def UpdateSuite() -> None:
     RunUpdater('--UpdateAll')
 
 
-def InstallThemeAddons():
+def InstallThemeAddons() -> None:
     RunUpdater('addons -a ADDONS_THEME')

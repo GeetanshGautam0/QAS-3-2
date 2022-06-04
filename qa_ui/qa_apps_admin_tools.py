@@ -34,7 +34,7 @@ class Message:
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds, **kwargs):
+    def __init__(self, root, ic, ds, **kwargs) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
@@ -61,7 +61,7 @@ class _UI(Thread):
             int(self.screen_dim[1] / 2 - self.window_size_2[1] / 2)
         ]
 
-        self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
+        self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
         self.theme_update_map = {}
 
         self.padX = 20

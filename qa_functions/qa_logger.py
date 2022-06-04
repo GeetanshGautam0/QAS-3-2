@@ -1,10 +1,9 @@
-from .qa_svh import *
-from .qa_std import *
-from .qa_file_handler import Save
-from .qa_info import App
-from .qa_info import Files
-from .qa_info import Extensions
 import qa_files, threading, time, sys, os
+from .qa_svh import create_script_version_hash, check_hash, EXPECTED
+from .qa_file_handler import Save
+from .qa_info import App, Files, Extensions
+from .qa_custom import LoggingPackage, File, SaveFunctionArgs
+from typing import *
 
 
 # Version Checking
@@ -26,16 +25,15 @@ DEBUGGING_ENABLED = False
 
 
 class _MultiThreadingLogger(threading.Thread):
-    def __init__(self, package: LoggingPackage):
+    def __init__(self, package: LoggingPackage) -> None:
         threading.Thread.__init__(self)
 
-        self.file = \
-            File(f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{qa_files.qa_log_extn}")
+        self.file = File(f"{App.appdata_dir}\\{Files.logs_folder}\\{package.file_name}.{qa_files.qa_files_ltbl.qa_log_extn}")
         self.data = package.data.strip()
         self.level = package.logging_level
         self.s_name = package.script_name
 
-    def run(self):
+    def run(self) -> None:
         global DEBUGGING_ENABLED
 
         if self.data.strip() != '':
@@ -101,7 +99,7 @@ def normal_logger(logging_package: List[LoggingPackage]) -> None:
     return
 
 
-def clear_logs(ignore_list: tuple = ()) -> bool:
+def clear_logs(ignore_list: Tuple[Any, ...] = ()) -> bool:
     """
     **CLEAR_LOGS**
 

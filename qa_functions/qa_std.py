@@ -1,10 +1,11 @@
+import wcag_contrast_ratio, tkinter as tk, time, random, hashlib, re
 from tkinter import messagebox
-import wcag_contrast_ratio, tkinter as tk
-import time, random, hashlib
 from shared_memory_dict import SharedMemoryDict
-from .qa_custom import *
+from .qa_custom import HexColor, File, ConverterFunctionArgs, UnexpectedEdgeCase
+from .qa_enum import ErrorLevels
 from .qa_err import raise_error
 from .qa_info import App
+from typing import *
 
 
 HTTP_HEADERS_NO_CACHE = {'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'}
@@ -46,8 +47,8 @@ def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple
     :return: (Passes AA, Passes AAA)
     """
 
-    err_str_1 = lambda name: f"Invalid color `{name}`; expected {HexColor}"
-    err_str_2 = lambda name: f"Color `{name}` is not a valid hex color"
+    err_str_1: Callable[[str], str] = lambda name: f"Invalid color `{name}`; expected {HexColor}"
+    err_str_2: Callable[[str], str] = lambda name: f"Color `{name}` is not a valid hex color"
 
     assert isinstance(bg, HexColor), err_str_1('bg')
     assert bg.check(), err_str_2('bg')
@@ -73,7 +74,7 @@ def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple
     return AA_res, AAA_res
 
 
-def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, Any]:
+def data_at_dict_path(path: str, dictionary: Dict[Any, Any]) -> Tuple[bool, Any]:
     """
     **DATA_AT_DICT_PATH**
 
@@ -93,11 +94,11 @@ def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, Any]:
     found = True
     data = {**dictionary}
 
-    def tr(com, *args):
+    def tr(com: Callable[[Any, Any], Any], *args: Any) -> Tuple[bool, Any]:
         try:
             return True, com(*args)
-        except:
-            return False, None
+        except Exception as E:
+            return False, E
 
     for index, token in enumerate(path_tokens):
         if token == "root" and index == 0:
@@ -124,7 +125,7 @@ def data_at_dict_path(path: str, dictionary: dict) -> Tuple[bool, Any]:
     return found, data
 
 
-def show_bl_err(title, message) -> None:
+def show_bl_err(title: str, message: str) -> None:
     """
     **SHOW_BL_ERR**
 
@@ -163,7 +164,7 @@ def split_filename_direc(file_path: str) -> Tuple[str, str]:
     return File.split_file_path(file_path)
 
 
-def dict_check_redundant_data_inter_dict(dic: dict, dic2: dict, root_name: str = '<root>') -> tuple:
+def dict_check_redundant_data_inter_dict(dic: Dict[Any, Any], dic2: Dict[Any, Any], root_name: str = '<root>') -> Tuple[bool, Set[str]]:
     """
     Checks for redundant data between two dictionaries
     """
@@ -172,13 +173,13 @@ def dict_check_redundant_data_inter_dict(dic: dict, dic2: dict, root_name: str =
     assert isinstance(dic2, dict)
     assert isinstance(root_name, str)
 
-    def rec_add(d, d2, root='<root>') -> tuple:
+    def rec_add(d: Dict[Any, Any], d2: Dict[Any, Any], root: str = '<root>') -> Tuple[bool, Dict[str, Tuple[str, ...]], Set[str]]:
         assert isinstance(d, dict)
         assert isinstance(d2, dict)
         assert isinstance(root, str)
 
         b = True
-        oc: Dict[str, Tuple] = {}
+        oc: Dict[str, Tuple[str, ...]] = {}
         fnc: Set[str] = set()
 
         for k, v in d2.items():
@@ -209,7 +210,7 @@ def dict_check_redundant_data_inter_dict(dic: dict, dic2: dict, root_name: str =
     return not c, f
 
 
-def dict_check_redundant_data(dic: dict, root_name: str = '<root>') -> tuple:
+def dict_check_redundant_data(dic: Dict[Any, Any], root_name: str = '<root>') -> Tuple[bool, Set[str]]:
     """
     Checks for redundant data within a dictionary
     """
@@ -217,12 +218,12 @@ def dict_check_redundant_data(dic: dict, root_name: str = '<root>') -> tuple:
     assert isinstance(dic, dict)
     assert isinstance(root_name, str)
 
-    def rec_add(d, root='<root>') -> tuple:
+    def rec_add(d: Dict[Any, Any], root: str = '<root>') -> Tuple[bool, Dict[str, Tuple[str, ...]], Set[str]]:
         assert isinstance(d, dict)
         assert isinstance(root, str)
 
         b = True
-        oc: Dict[str, Tuple] = {}
+        oc: Dict[str, Tuple[str, ...]] = {}
         fnc: Set[str] = set()
 
         for k, v in d.items():
@@ -252,7 +253,7 @@ def dict_check_redundant_data(dic: dict, root_name: str = '<root>') -> tuple:
     return not c, f
 
 
-def copy_to_clipboard(text: str, shell: Union[tk.Tk, tk.Toplevel], clear_old: bool = True):
+def copy_to_clipboard(text: str, shell: Union[tk.Tk, tk.Toplevel], clear_old: bool = True) -> None:
     """
     **COPY_TO_CLIPBOARD**
 
@@ -276,7 +277,7 @@ def copy_to_clipboard(text: str, shell: Union[tk.Tk, tk.Toplevel], clear_old: bo
     shell.update()
 
 
-def brute_force_decoding(data: bytes, excluded_encodings: tuple, extra_encodings_to_try: tuple = ()) -> Tuple[str, str]:
+def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str, ...], extra_encodings_to_try: Tuple[str, ...] = ()) -> Tuple[str, str]:
     """
 
     **BRUTE_FORCE_DECODING**
@@ -311,7 +312,7 @@ def brute_force_decoding(data: bytes, excluded_encodings: tuple, extra_encodings
 
 
 def data_type_converter(
-        original: Union[str, bytes, list, tuple, set, dict, int, float],
+        original: Union[str, bytes, List[Any], Tuple[Any, ...], Set[Any], Dict[Any, Any], int, float],
         output_type: type,
         cfa: ConverterFunctionArgs
 ) -> Union[Any]:
@@ -355,7 +356,7 @@ def data_type_converter(
 
                 except:
                     raise_error(
-                        UnicodeEncodeError, ("Encoding for given bytes data not known", ), ErrorLevels.NON_FATAL
+                        UnicodeEncodeError, ["Encoding for given bytes data not known"], ErrorLevels.NON_FATAL
                     )
 
         else:
@@ -366,8 +367,8 @@ def data_type_converter(
 
     original_type = type(original)
 
-    def RE(e):
-        raise_error(TypeError, (f"Failed to convert from {original_type} to {output_type} for given data: {str(e)}",), ErrorLevels.NON_FATAL)
+    def RE(e: Any) -> None:
+        raise_error(TypeError, [f"Failed to convert from {original_type} to {output_type} for given data: {str(e)}"], ErrorLevels.NON_FATAL)
 
     multi = (list, tuple, set, dict)
     single = (str, bytes, int, float)
@@ -402,7 +403,7 @@ def data_type_converter(
                 return oa1
 
             else:
-                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
         elif output_type in single:  # DONE
             if output_type in (int, float) and original_type is str:  # DONE ?
@@ -426,7 +427,7 @@ def data_type_converter(
 
                 if s is not None:
                     try:
-                        return output_type(cast(str, s))
+                        return output_type(s)
                     except Exception as E:
                         RE(E)
 
@@ -453,19 +454,18 @@ def data_type_converter(
                 return output_type(original)
 
             else:
-                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
         else:
-            raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+            raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
     elif original_type in multi:
         if output_type in multi:
-            if original_type in (tuple, list, set):  # DONE
-                # original: Union[list, tuple, set] = cast(Union[list, tuple, set], original)
+            if isinstance(original, (list, tuple, set)):  # DONE
                 if output_type is dict:  # DONE
                     of: Dict[str, str] = {}
 
-                    for item_b in cast(Union[list, tuple, set], original):
+                    for item_b in original:
                         n_item: str = cast(str, data_type_converter(item_b, str, cfa))  # (Recursive)
                         assert isinstance(n_item, str)
 
@@ -476,11 +476,17 @@ def data_type_converter(
 
                     return of
 
-                elif output_type in (tuple, list, set):  # DONE
-                    return output_type([*cast(Union[tuple, list, set], original)])
+                elif output_type is list:
+                    return [*original]
+
+                elif output_type is tuple:
+                    return (*original, )
+
+                elif output_type is set:
+                    return {*original}
 
                 else:
-                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                    raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
             elif original_type is dict:  # DONE
                 if output_type in (list, tuple, set):  # DONE ?
@@ -492,7 +498,7 @@ def data_type_converter(
 
                     o = []
 
-                    for ok, ov in cast(dict, original).items():
+                    for ok, ov in cast(Dict[Any, Any], original).items():
                         k, v = \
                             data_type_converter(ok, str, cfa), \
                             data_type_converter(ov, str, cfa)
@@ -502,10 +508,10 @@ def data_type_converter(
                     return output_type(o)  # Cast to appropriate type
 
                 else:
-                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                    raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
             else:
-                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
         elif output_type in single:
             if original_type in (list, tuple, set):
@@ -522,7 +528,7 @@ def data_type_converter(
 
                 elif output_type in (str, bytes):
                     o1 = ""
-                    for item_f in cast(Union[list, tuple, set], original):
+                    for item_f in cast(Union[List[Any], Set[Any], Tuple[Any, ...]], original):
                         i2 = cast(str, data_type_converter(item_f, str, cfa))
                         o1 += f"{i2}{cast(str, data_type_converter(cfa.list_line_sep, str, cfa))}"
 
@@ -531,19 +537,19 @@ def data_type_converter(
                     elif output_type is bytes:
                         return o1.encode(App.ENCODING)
                     else:
-                        raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                        raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
                 else:
-                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                    raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
-            elif original_type is dict:
+            if isinstance(original, dict):
                 if output_type in (float, int):
-                    return output_type(sum(list(cast(dict, original).values())))
+                    return output_type(sum(list(cast(Dict[Any, Union[int, float]], original).values())))
 
                 elif output_type in (str, bytes):
                     o1 = ""
 
-                    for key, val in cast(dict, original).items():
+                    for key, val in original.items():
                         k2, v2 = \
                             cast(str, data_type_converter(key, str, cfa)), \
                             cast(str, data_type_converter(val, str, cfa))
@@ -555,19 +561,19 @@ def data_type_converter(
                     elif output_type is bytes:
                         return o1.encode(App.ENCODING)
                     else:
-                        raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                        raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
                 else:
-                    raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                    raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
             else:
-                raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+                raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
         else:
-            raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+            raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
     else:
-        raise_error(UnexpectedEdgeCase, (), ErrorLevels.NON_FATAL)
+        raise_error(UnexpectedEdgeCase, [f'{original_type} -> {output_type}'], ErrorLevels.NON_FATAL)
 
     return None
 
@@ -589,27 +595,25 @@ def gen_short_uid(prefix: str = "qa") -> str:
 
 
 class SMem:
-    def __init__(self):
+    def __init__(self, size: int = 2048) -> None:
         self.r1 = random.randint(10, 99)
         self.r2 = random.randint(10, 99)
         self.r3 = random.randint(10, 99)
         self.r4 = random.randint(10, 99)
         self.r5 = int(random.randint(10000, 99999))
         name = "%s%s%s%s" % (self.r4, self.r3, self.r1, self.r2)
-        self.mem = SharedMemoryDict(name=name, size=SMem._pro_000_s_mem_addr_0_size())
+        self.mem = SharedMemoryDict(name=name, size=size)
 
-    def set(self, data: str, add=0):
+    def set(self, data: str, add: int = 0) -> None:
+        assert isinstance(add, int)
         self.mem[str(self.r5 + add)] = data
 
-    def get(self, add=0):
-        return self.mem.get(str(self.r5 + add))
-
-    @staticmethod
-    def _pro_000_s_mem_addr_0_size():
-        return 2048
+    def get(self, add: int = 0) -> Union[None, str]:
+        assert isinstance(add, int)
+        return cast(Union[None, str], self.mem.get(str(self.r5 + add)))
 
 
-def clamp(minimum: int, actual: int, maximum: int) -> int:
+def clamp(minimum: Union[int, float], actual: Union[int, float], maximum: Union[int, float]) -> Union[int, float]:
     return minimum if (actual < minimum) else (maximum if (actual > maximum) else actual)
 
 
@@ -665,7 +669,7 @@ class AppLogColors:
     EXTRA = f"{ANSI.UNDERLINE}{ANSI.BOLD}{ANSI.REVERSED}"
 
 
-def flatten_list(ls: Iterable, *additional_functions) -> List:
+def flatten_list(ls: Union[List[Any], Tuple[Any, ...], Set[Any]], *additional_functions: Callable[[Any], Any]) -> List[Any]:
     """
     Flattens iterable objects; example: ([1, 2, 3], [4], {5, 6}) --> [1, 2, 3, 4, 5, 6]
     :param ls: Input (iterable)
@@ -682,12 +686,12 @@ def flatten_list(ls: Iterable, *additional_functions) -> List:
 
     else:
         fls = flatten_list(ls)
-        nfls = []
+        new_fls = []
         for item in fls:
             i = None
             for function in additional_functions:
                 i = function(item)
 
-            nfls.append(i)
+            new_fls.append(i)
 
-        return nfls
+        return new_fls
