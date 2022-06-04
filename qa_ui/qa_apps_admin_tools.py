@@ -3,6 +3,7 @@ from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel, FileType
 from qa_functions.qa_std import ANSI, AppLogColors
+from qa_functions.qa_custom import HexColor
 from threading import Thread
 from tkinter import ttk, filedialog
 from svglib.svglib import svg2rlg
@@ -64,7 +65,7 @@ class _UI(Thread):
         ]
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-        self.theme_update_map = {}
+        self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor]] = {}
 
         self.padX = 20
         self.padY = 10
@@ -73,9 +74,14 @@ class _UI(Thread):
         self._job = None
 
         self.load_theme()
-        self.update_requests = {}
-        self.late_update_requests = {}
-        self.data = {}
+        tmp = tk.Label(self.root)
+        self.update_requests: Dict[str, List[Any]] = {'': []}
+        self.late_update_requests: Dict[tk.Widget, List[Any]] = {tmp: []}
+        self.data: Dict[Any, Any] = {}
+
+        self.update_requests.pop('')
+        self.late_update_requests.pop(tmp)
+        del tmp
 
         self.img_path = qa_functions.Files.AT_png
         self.img_size = (75, 75)
@@ -1591,7 +1597,11 @@ class _UI(Thread):
             if s_mem.get() is None:
                 return
 
-        if s_mem.get().strip() == 'y' or _do_not_prompt:
+        r = s_mem.get()
+        if r is None:
+            return
+
+        if cast(str, r).strip() == 'y' or _do_not_prompt:
             new = json.dumps(self.data[self.EDIT_PAGE]['db'])
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
             new, _ = cast(Tuple, qa_files.generate_file(FileType.QA_FILE, new))
@@ -1852,13 +1862,16 @@ Technical Information: {traceback.format_exc()}"""))
                     self.proc_exit(self.SELECT_PAGE)
                     return
 
-                if s_mem.get().strip() == '':
-                    del s_mem
+                r = s_mem.get()
+                if r is None:
+                    return
 
+                if cast(str, r).strip()  == '':
+                    del s_mem
                     self.proc_exit(self.SELECT_PAGE)
                     return
 
-                if hashlib.sha3_512(s_mem.get().encode()).hexdigest() != data['DB']['psw'][1]:
+                if hashlib.sha3_512(r.encode()).hexdigest() != data['DB']['psw'][1]:
                     s_mem.set('')
                     qa_prompts.InputPrompts.ButtonPrompt(
                         s_mem, 'Security', ('Retry', 'rt'), ('Exit', 'ex'), default='?',

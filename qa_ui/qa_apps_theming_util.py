@@ -257,7 +257,7 @@ class _UI(Thread):
                     lCommand = [True, 'Invalid args provided', 2]
 
             if lCommand[0] is True:
-                log_error(command.name, element, lCommand[1], lCommand[2])
+                log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
             elif DEBUG_NORM:
                 log_norm(command.name, element)
 
@@ -821,11 +821,15 @@ class _UI(Thread):
             filetypes=[('Quizzing Application Theme', qa_files.qa_theme_extn)]
         ) if not isinstance(files, tuple) else files
 
-        to_install = {}
+        to_install: Dict[str, Tuple[qa_functions.Theme, ...]] = {
+            '><><><><><><.,.,<><><>,.<.,>,.<>,>.,>,': ()
+        }
 
-        if len(req_files) <= 0 and len(to_install) <= 0:
+        if len(req_files) <= 0:
             self.enable_all_inputs()
-            return
+            return None
+
+        to_install.pop('><><><><><><.,.,<><><>,.<.,>,.<>,>.,>,')
 
         e1 = {**qa_functions.LoadTheme.auto_load_all()}
         e2, e3, e4 = [], [], []
@@ -862,7 +866,14 @@ class _UI(Thread):
 
                 file_inst = qa_functions.File(file)
                 raw = qa_functions.OpenFile.load_file(file_inst, qa_functions.OpenFunctionArgs(bytes, False))
-                _, json_string = qa_files.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
+                js = qa_files.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
+
+                # For MyPy
+                assert isinstance(js, tuple)
+                assert len(js) == 2
+                _, json_string = js
+                del js
+
                 theme_json = json.loads(json_string)
                 assert fn not in (qa_functions.Files.ThemePrefFile, qa_functions.Files.ThemeCustomFile), f"Filename '{fn}' is not allowed (system reserved)"
                 assert 'file_info' in theme_json, 'File info unavailable'
@@ -878,8 +889,7 @@ class _UI(Thread):
                 it, ins = [], []
 
                 for _, td in all_theme_data.items():
-                    theme_name, theme_data = (*td.keys(),)[0], (*td.values(),)[0]
-                    theme_data: qa_functions.Theme
+                    theme_name, theme_data = cast(Tuple[str, qa_functions.Theme], ((*td.keys(),)[0], (*td.values(),)[0]))
 
                     comp_theme_dict = gen_cmp_theme_dict(theme_data)
 
@@ -927,7 +937,7 @@ Technical Information:
 
             assert len(themes) > 0  # For compiler
 
-            theme_data_dict = {
+            theme_data_dict: Dict[Any, Any] = {
                 'file_info':
                     {
                         'name': themes[0].theme_file_name,
@@ -939,7 +949,9 @@ Technical Information:
             }
 
             for theme in themes:
-                theme_data_dict['file_info']['avail_themes'][theme.theme_display_name] = theme.theme_code
+                theme_data_dict['file_info']['avail_themes'][theme.theme_display_name] = \
+                    cast(str, theme.theme_code)
+
                 nt = {
                     'display_name': theme.theme_display_name,
                     'background': theme.background.color,
@@ -1260,7 +1272,8 @@ Technical Information:
             }
         }
 
-        passed, failures, warnings = qa_functions.TestTheme.check_theme('UserGen', nt, True)
+        passed, failures, warnings = \
+            cast(Tuple[bool, List[str], List[str]], qa_functions.TestTheme.check_theme('UserGen', nt, True))
 
         if not passed:
             string = f"In the following message, an \"AA Contrast\" error means that there is insufficient contrast between the state color and the background color.\n\nCouldn't save your theme as it failed {len(failures)} checks:\n\t*%s\n\nTo reset the theme, click 'Reset Theme'" % "\n\t*".join(failure for failure in failures)

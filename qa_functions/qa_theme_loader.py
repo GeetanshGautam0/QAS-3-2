@@ -618,7 +618,7 @@ class TTK:
         return style
 
     @staticmethod
-    def configure_entry_style(style: ttk.Style, theme: qa_custom.Theme, font_size: int = -1, pref: str = 'My') -> ttk.Style:
+    def configure_entry_style(style: ttk.Style, theme: qa_custom.Theme, font_size: Union[float, int] = -1, pref: str = 'My') -> ttk.Style:
         style.configure(
             f'{pref}.TEntry',
             background=theme.background.color,

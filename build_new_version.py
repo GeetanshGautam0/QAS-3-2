@@ -33,7 +33,7 @@ def _set_build_number(build_number, build_id, build_name):
         sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to save new configuration to inst_config\n")
 
 
-def _run_command(COM: str, *args, admin=False):
+def _run_command(COM: str, *args, admin=False, silent=False):
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} {' '.join([COM, *args]).strip()} {ANSI.RESET} (UAC_ELEVATION: {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD}{admin}{ANSI.RESET})\n")
     try:
         if admin:
@@ -43,19 +43,34 @@ def _run_command(COM: str, *args, admin=False):
     except Exception as E:
         sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to run command:   {ANSI.FG_BRIGHT_RED}{ANSI.REVERSED}{ANSI.BOLD} {E.__class__.__name__}({E}) {ANSI.RESET}\n")
         return
-    
-    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Command Status:          {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
+
+    if not silent:
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Command Status:          {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
 
 
 if __name__ == "__main__":
-    lvl = ''
-    push = False
-    release = False
-
     subprocess.call('', shell=True)
     if os.name == 'nt':  # Only if we are running on Windows
         k = windll.kernel32
         k.SetConsoleMode(k.GetStdHandle(-11), 7)
+        _run_command('cls', silent=True)
+
+    else:
+        _run_command('clear', silent=True)
+
+    _run_command('mypy .')
+    _run_command('pytest -vv')
+
+    if input(f"""Do you want to continue with the build?
+    ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
+    ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
+> """) != '1':
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_RED}EXITING{ANSI.RESET}")
+        sys.exit(0)
+
+    lvl = ''
+    push = False
+    release = False
 
     while True:
         print(
