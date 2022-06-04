@@ -1,7 +1,8 @@
 from threading import Thread
 import tkinter as tk, sys, qa_functions, subprocess, os
 from typing import *
-from qa_functions.qa_std import *
+from qa_functions.qa_std import ANSI, AppLogColors
+from qa_functions.qa_enum import LoggingLevel
 from . import qa_prompts
 from ctypes import windll
 

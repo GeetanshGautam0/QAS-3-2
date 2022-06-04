@@ -29,7 +29,7 @@ def _reset_pref() -> None:
         pref_file.close()
 
 
-def _set_pref(file: str, theme: str, display_name: str) -> None:
+def set_pref(file: str, theme: str, display_name: str) -> None:
     file = _save_prep_path(file)
 
     direc = f"{qa_info.App.appdata_dir}\\{qa_info.Files.ad_theme_folder}"
@@ -103,14 +103,14 @@ def _load_pref_data() -> List[str]:
         theme = (*theme_and_data.values(),)[0]
         if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
             if dd != ddp:
-                _set_pref(dd['file'], dd['theme'], dd['display_name'])
+                set_pref(dd['file'], dd['theme'], dd['display_name'])
                 del ddp
                 return [*dd.values()]
 
             return [*dd.values(), ]
 
     log(qa_enum.LoggingLevel.DEVELOPER, 'No match; DEFAULTING')
-    _set_pref(qa_info.Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}')
+    set_pref(qa_info.Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}')
 
     del dd
 
@@ -183,12 +183,12 @@ class Load:
             theme = (*theme_and_data.values(), )[0]
 
             if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
-                if dd != ddp: _set_pref(dd['file'], dd['theme'], dd['display_name'])
+                if dd != ddp: set_pref(dd['file'], dd['theme'], dd['display_name'])
                 del dd
                 return theme
 
         log(qa_enum.LoggingLevel.ERROR, 'No match; DEFAULTING')
-        _set_pref(qa_info.Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}')
+        set_pref(qa_info.Files.default_theme_file_code, list(default.values())[0].theme_code, f'{list(default.values())[0].theme_file_display_name}: {list(default.keys())[0]}')
 
         del dd
 

@@ -1,9 +1,10 @@
-import sys, qa_functions, qa_files, os, traceback, PIL, json, copy, subprocess
+import sys, qa_functions, qa_files, os, traceback, PIL, json, copy, subprocess, tkinter as tk, re, hashlib, random
 from . import qa_prompts
+from .qa_prompts import gsuid, configure_scrollbar_style
+from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel, FileType
+from qa_functions.qa_std import ANSI, AppLogColors
 from threading import Thread
 from tkinter import ttk, filedialog
-from qa_functions.qa_std import *
-from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
@@ -11,6 +12,7 @@ from io import BytesIO
 from dataclasses import dataclass
 from enum import Enum
 from ctypes import windll
+from typing import *
 
 script_name = "APP_AT"
 APP_TITLE = "Quizzing Application | Admin Tools"
@@ -1382,7 +1384,7 @@ class _UI(Thread):
                 if file_name.split('.')[-1] != 'aspx':
                     file = qa_functions.File(file_name)
                     raw = qa_functions.OpenFile.load_file(file, qa_functions.OpenFunctionArgs())
-                    read, _ = qa_files.load_file(qa_functions.FileType.QA_FILE, raw)
+                    read, _ = qa_files.load_file(FileType.QA_FILE, raw)
                     self.open(file_name, json.loads(read), False)
 
         except Exception as E:

@@ -3,8 +3,7 @@ from typing import *
 from .qa_colors import Convert as ConvertColor, Functions as ColorFunctions
 from .qa_custom import HexColor, Theme, LoggingPackage, SaveFunctionArgs, ConverterFunctionArgs, OpenFunctionArgs, File, \
     CannotSave, CannotCreateBackup, UnexpectedEdgeCase, EncryptionError, InvalidCLIArgument
-from .qa_enum import LoggingLevel as ENUM_LoggingLevel, ScriptLevelID as ENUM_ScriptLevelID, ExitCodes as ENUM_ExitCodes, \
-    CLI as ENUM_CLI, ErrorLevels as ENUM_ErrorLevels, Application as ENUM_Application
+from .qa_enum import LoggingLevel, ScriptLevelID, ExitCodes, CLI, ErrorLevels, Application, FileType
 from .qa_err import raise_error as _re
 from .qa_file_handler import Open as OpenFile, Save as SaveFile
 from .qa_info import ConfigurationFile, App, Extensions, Files, Encryption, OnlineFiles
@@ -20,7 +19,7 @@ from .qa_diagnostics import Diagnostics, Fix
 from .qa_updater_call import RunUpdater, UpdateSuite, InstallThemeAddons
 
 
-def RaiseError(error_type: Type[Exception], error_params: List[Any], error_level: ENUM_ErrorLevels, tb: Optional[str] = "") -> None:
+def RaiseError(error_type: Type[Exception], error_params: List[Any], error_level: ErrorLevels, tb: Optional[str] = "") -> None:
     _re(error_type, error_params, error_level, tb)
 
 

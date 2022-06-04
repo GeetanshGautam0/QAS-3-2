@@ -1,14 +1,14 @@
-import threading, traceback, tkinter as tk, qa_functions, sys, os, shutil, re, urllib3, subprocess, PIL.Image, hashlib
+import threading, traceback, tkinter as tk, qa_functions, sys, os, re, urllib3, PIL.Image, hashlib
 from tkinter import messagebox, ttk
-from qa_functions.qa_enum import *
-from qa_functions.qa_std import *
 from typing import *
 from dataclasses import dataclass
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
-from ctypes import windll
+from qa_functions.qa_enum import LoggingLevel, ThemeUpdateVars, ThemeUpdateCommands
+from qa_functions.qa_std import ANSI, AppLogColors
+
 
 LOGGER_AVAIL = False
 LOGGER_FUNC = qa_functions.NormalLogger

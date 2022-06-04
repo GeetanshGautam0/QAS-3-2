@@ -1,14 +1,14 @@
-import tkinter as tk, sys, os, qa_functions, traceback, subprocess
+import tkinter as tk, sys, os, qa_functions, traceback, subprocess, random
 from threading import Thread
 from tkinter import ttk
 from typing import *
 from qa_functions.qa_diagnostics import RunTest, Diagnostics
 from .qa_prompts import configure_scrollbar_style, gsuid
-from qa_functions.qa_enum import *
-from qa_functions.qa_std import *
 from . import qa_prompts
 from PIL import ImageTk, Image
 from ctypes import windll
+from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
+from qa_functions.qa_std import ANSI, AppLogColors
 
 
 script_name = "APP_RU"

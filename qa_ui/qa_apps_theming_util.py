@@ -1,13 +1,13 @@
 import tkinter as tk, sys, qa_functions, qa_files, os, traceback, hashlib, json, random, subprocess
 from threading import Thread
 from . import qa_prompts
-from typing import *
 from tkinter import ttk, filedialog, colorchooser, font
-from qa_functions.qa_enum import *
-from qa_functions.qa_std import *
 from .qa_prompts import gsuid, configure_scrollbar_style
 from PIL import Image, ImageTk
 from ctypes import windll
+from typing import *
+from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel, FileType
+from qa_functions.qa_std import ANSI, AppLogColors
 
 
 script_name = "APP_TU"
@@ -762,13 +762,15 @@ class _UI(Thread):
 
         if self.prev_theme_selection != self.theme_selector_s_var.get():
             self.prev_theme_selection = self.theme_selector_s_var.get()
-            new_theme: qa_functions.Theme = self.theme_selector_options.get(self.theme_selector_s_var.get())
-            if not isinstance(new_theme, qa_functions.Theme):
+            nt = self.theme_selector_options.get(self.theme_selector_s_var.get())
+            if not isinstance(nt, qa_functions.Theme):
                 nope()
-            elif not os.path.exists(new_theme.theme_file_path):
+
+            new_theme = cast(qa_functions.Theme, nt)
+            if not os.path.exists(new_theme.theme_file_path):
                 nope()
             else:
-                qa_functions.qa_theme_loader._set_pref(
+                qa_functions.qa_theme_loader.set_pref(
                     new_theme.theme_file_path, new_theme.theme_code, f'{new_theme.theme_file_display_name}: {new_theme.theme_display_name}'
                 )
                 self.rst_theme = True
@@ -811,7 +813,7 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
-    def install_new_theme(self, files: Union[None, Tuple[Any]] = None) -> None:
+    def install_new_theme(self, files: Union[None, Tuple[Any]] = None) -> Union[None, List[str]]:
         self.disable_all_inputs()
 
         req_files = filedialog.askopenfilenames(
@@ -923,7 +925,7 @@ Technical Information:
             if len(themes) <= 0:
                 continue
 
-            assert len(theme) > 0  # For compiler
+            assert len(themes) > 0  # For compiler
 
             theme_data_dict = {
                 'file_info':
@@ -999,7 +1001,7 @@ Technical Information:
         if os.path.isfile(of.file_path):
             try:
                 raw = qa_functions.OpenFile.load_file(of, qa_functions.OpenFunctionArgs(bytes))
-                _, r2 = qa_files.load_file(qa_functions.FileType.QA_THEME, raw)
+                _, r2 = qa_files.load_file(FileType.QA_THEME, raw)
                 theme_json = json.loads(r2)
                 assert qa_functions.TestTheme.check_file(theme_json), 'invalid file'
                 os.remove(of.file_path)
@@ -1023,7 +1025,7 @@ Technical Information:
 
                 if ok:
                     nt = json.dumps(theme_json, indent=4)
-                    prp = qa_files.generate_file(qa_functions.FileType.QA_THEME, nt)
+                    prp = qa_files.generate_file(FileType.QA_THEME, nt)
                     qa_functions.SaveFile.secure(of, prp, qa_functions.SaveFunctionArgs(False, save_data_type=bytes))
 
                 qa_prompts.MessagePrompts.show_info(
@@ -1153,12 +1155,12 @@ Technical Information:
                     }
                 }
 
-                file_bytes = qa_files.generate_file(qa_functions.FileType.QA_THEME, json.dumps(file_data, indent=4))
+                file_bytes = qa_files.generate_file(FileType.QA_THEME, json.dumps(file_data, indent=4))
                 file = qa_functions.File(new_file_name)
                 assert qa_functions.SaveFile.secure(file, file_bytes, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)), "SaveError"
 
                 nf = self.install_new_theme((new_file_name,))[0]
-                qa_functions.qa_theme_loader._set_pref(nf, ct.theme_code, f'{ct.theme_file_display_name}: {ct.theme_display_name}')
+                qa_functions.qa_theme_loader.set_pref(nf, ct.theme_code, f'{ct.theme_file_display_name}: {ct.theme_display_name}')
 
                 qa_prompts.MessagePrompts.show_info(
                     qa_prompts.InfoPacket(
@@ -1285,7 +1287,7 @@ Technical Information:
                 }
             }
 
-            file_bytes = qa_files.generate_file(qa_functions.FileType.QA_THEME, json.dumps(file_data, indent=4))
+            file_bytes = qa_files.generate_file(FileType.QA_THEME, json.dumps(file_data, indent=4))
             file = qa_functions.File(f"{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}\\{qa_functions.Files.ThemeCustomFile}".replace('/', '\\'))
             assert qa_functions.SaveFile.secure(file, file_bytes, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)), "SaveError"
 
@@ -1305,7 +1307,7 @@ Technical Information:
             return False
 
         # Set as preferred (=> current) theme
-        qa_functions.qa_theme_loader._set_pref(
+        qa_functions.qa_theme_loader.set_pref(
             f"{qa_functions.App.appdata_dir}\\{qa_functions.Files.ad_theme_folder}\\{qa_functions.Files.ThemeCustomFile}".replace('/', '\\'),
             'User.Custom.Theme',
             'User Generated: Custom Theme'
