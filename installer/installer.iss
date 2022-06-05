@@ -70,6 +70,7 @@ Type: filesandordirs; Name: "{app}\requirements.txt"
 Type: filesandordirs; Name: "{app}\qa_ui"
 Type: filesandordirs; Name: "{app}\TEST_ALL.bat"
 Type: filesandordirs; Name: "{app}\qa_auto_tests"
+Type: filesandordirs; Name: "{app}\mypy_switches.txt"
 
 ; <test::uninstaller> stop_here
 

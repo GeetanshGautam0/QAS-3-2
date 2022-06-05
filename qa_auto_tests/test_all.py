@@ -456,9 +456,12 @@ def test_installer_iss() -> None:
             assert False, "Invalid start and end points in iss_data."
     else:
         assert False, "Start and end points not found in iss_data."
-    
+
+    fail = False
     for name in req:
         extn = name.split('.')[-1]
         if extn not in extn_del and name not in item_del:
             sys.stdout.write(f"{ANSI.FG_BRIGHT_YELLOW}{ANSI.BOLD}[WARNING] [INSTALLER] Item \"{name}\" not covered by deletion commands.{ANSI.RESET}\n")
-    
+            fail = True
+
+    assert not fail, "Potential failure in uninstaller (see warnings)."
