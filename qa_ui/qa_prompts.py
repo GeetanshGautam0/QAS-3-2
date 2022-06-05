@@ -15,6 +15,7 @@ LOGGER_FUNC = qa_functions.NormalLogger
 LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = 'QA_PROMPTS'
 DEBUG_NORM = False
+DEBUG_DEV_FLAG = False
 
 TTK_THEME = 'clam'
 _SVG_COLOR_REPL_ROOT = "<<<PYTHON__INSERT__COLOR__HERE>>>"
@@ -45,18 +46,19 @@ class DownloadPacket:
 class MessagePrompts:
     # Info Prompt
     @staticmethod
-    def show_info(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel] = None, qoc: bool = False):
+    def show_info(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel, None] = None, qoc: bool = False) -> None:
         try:
             if root is None:
                 root = tk.Toplevel()
             MessagePrompts._CInfo(root, msg, qoc)
         except Exception as E:
-            print(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
+            log(LoggingLevel.ERROR, f"Failed to use custom prompt: {E} {traceback.format_exc()}")
             messagebox.showinfo(msg.title, msg.msg)
-            if qoc: sys.exit('show_error fallback')
+            if qoc:
+                sys.exit('show_info fallback')
 
     class _CInfo(threading.Thread):
-        def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool):
+        def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool) -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -64,7 +66,8 @@ class MessagePrompts:
             self.root, self.msg, self.qoc = root, msg, quit_on_close
 
             self.msg.long = len(self.msg.msg) > 70
-            if self.msg.title is None: self.msg.title = "Info"
+            if self.msg.title is None:
+                self.msg.title = "Info"
 
             self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
             ratio = (4 if not self.msg.long else 10) / 9
@@ -86,7 +89,7 @@ class MessagePrompts:
             self.load_theme()
             self.update_requests: Dict[
                 str,
-                List[Union[None, tk.Widget, tk.BaseWidget, ThemeUpdateCommands, List]]
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
             ] = {}
 
             self.svg_size = (50, 50)
@@ -109,7 +112,7 @@ class MessagePrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             if self.qoc:
                 sys.exit()
             else:
@@ -118,25 +121,29 @@ class MessagePrompts:
                 self.root.withdraw()
                 self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_el, _command, _args) in self.update_requests.items():
+                element = cast(tk.Label, _el)
+                command = cast(ThemeUpdateCommands, _command)
+                args = cast(List[Any], _args)
+                lCommand = [False, '', -1]
                 cargs = []
+
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
 
@@ -181,7 +188,7 @@ class MessagePrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -229,7 +236,7 @@ class MessagePrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -238,7 +245,7 @@ class MessagePrompts:
             self.update_svg()
             self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
 
-        def svg_set_path(self):
+        def svg_set_path(self) -> None:
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
             dst_file = self.svg_path
 
@@ -251,12 +258,12 @@ class MessagePrompts:
             File = qa_functions.File(dst_file)
             qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
 
-        def update_svg(self):
+        def update_svg(self) -> None:
             self.svg_set_path()
             self.img = get_svg(self.svg_path, self.theme.background.color, self.svg_size)
-            self.svg_label.config(image=self.img)
+            self.svg_label.config(image=cast(str, self.img))
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -271,7 +278,7 @@ class MessagePrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -281,7 +288,7 @@ class MessagePrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -302,7 +309,7 @@ class MessagePrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title("Quizzing Application | Info")
@@ -317,7 +324,7 @@ class MessagePrompts:
             self.svg_label.config(justify=tk.CENTER, anchor=tk.CENTER, width=self.svg_size[0], height=self.svg_size[1])
             self.label_formatter(self.svg_label)
 
-            self.title_label.config(text=self.msg.title, justify=tk.LEFT, anchor=tk.W)
+            self.title_label.config(text=cast(str, self.msg.title), justify=tk.LEFT, anchor=tk.W)
             self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX/8, self.padX), pady=self.padY, side=tk.RIGHT)
 
             self.title_frame.pack(fill=tk.X, expand=True)
@@ -347,12 +354,12 @@ class MessagePrompts:
 
             self.update_ui()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
     # Warning Prompt
     @staticmethod
-    def show_warning(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel] = None, qoc: bool = False):
+    def show_warning(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel, None] = None, qoc: bool = False) -> None:
         try:
             if root is None:
                 root = tk.Toplevel()
@@ -361,10 +368,11 @@ class MessagePrompts:
         except Exception as E:
             sys.stderr.write(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
             messagebox.showwarning(msg.title, msg.msg)
-            if qoc: sys.exit('show_error fallback')
+            if qoc:
+                sys.exit('show_warning fallback')
 
     class _CWarning(threading.Thread):
-        def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool):
+        def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool) -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -392,7 +400,10 @@ class MessagePrompts:
             self.padY = 10
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.warning_svg'
@@ -414,7 +425,7 @@ class MessagePrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             if self.qoc:
                 sys.exit()
             else:
@@ -423,24 +434,28 @@ class MessagePrompts:
                 self.root.withdraw()
                 self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -486,7 +501,7 @@ class MessagePrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -534,7 +549,7 @@ class MessagePrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -543,7 +558,7 @@ class MessagePrompts:
             self.update_svg()
             self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.warning.color, 'Prompts')
 
-        def svg_set_path(self):
+        def svg_set_path(self) -> None:
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
             dst_file = self.svg_path
 
@@ -556,12 +571,12 @@ class MessagePrompts:
             File = qa_functions.File(dst_file)
             qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
 
-        def update_svg(self):
+        def update_svg(self) -> None:
             self.svg_set_path()
             self.img = get_svg(self.svg_path, self.theme.background.color, self.svg_size)
-            self.svg_label.config(image=self.img)
+            self.svg_label.config(image=cast(str, self.img))
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -576,7 +591,7 @@ class MessagePrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -586,7 +601,7 @@ class MessagePrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -607,7 +622,7 @@ class MessagePrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title("Quizzing Application | Warning")
@@ -622,7 +637,7 @@ class MessagePrompts:
             self.svg_label.config(justify=tk.CENTER, anchor=tk.CENTER, width=self.svg_size[0], height=self.svg_size[1])
             self.label_formatter(self.svg_label)
 
-            self.title_label.config(text=self.msg.title, justify=tk.LEFT, anchor=tk.W)
+            self.title_label.config(text=cast(str, self.msg.title), justify=tk.LEFT, anchor=tk.W)
             self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
 
             self.title_frame.pack(fill=tk.X, expand=True)
@@ -652,12 +667,12 @@ class MessagePrompts:
 
             self.update_ui()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
     # Error Prompt
     @staticmethod
-    def show_error(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel] = None, qoc: bool = False):
+    def show_error(msg: InfoPacket, root: Union[tk.Tk, tk.Toplevel, None] = None, qoc: bool = False) -> None:
         try:
             if root is None:
                 root = tk.Toplevel()
@@ -667,10 +682,11 @@ class MessagePrompts:
         except Exception as E:
             sys.stderr.write(f"Failed to use custom prompt: {E} {traceback.format_exc()}")
             messagebox.showerror(msg.title, msg.msg)
-            if qoc: sys.exit('show_error fallback')
+            if qoc:
+                sys.exit('show_error fallback')
 
     class _CError(threading.Thread):
-        def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool):
+        def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool) -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -698,7 +714,10 @@ class MessagePrompts:
             self.padY = 10
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.svg_size = (50, 50)
             self.appdata_svg_base = '.error_svg'
@@ -720,7 +739,7 @@ class MessagePrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             if self.qoc:
                 sys.exit()
             else:
@@ -729,24 +748,28 @@ class MessagePrompts:
                 self.root.withdraw()
                 self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -792,7 +815,7 @@ class MessagePrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -839,7 +862,7 @@ class MessagePrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -848,7 +871,7 @@ class MessagePrompts:
             self.update_svg()
             self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.error.color, 'Prompts')
 
-        def svg_set_path(self):
+        def svg_set_path(self) -> None:
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
             dst_file = self.svg_path
 
@@ -861,12 +884,12 @@ class MessagePrompts:
             File = qa_functions.File(dst_file)
             qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
 
-        def update_svg(self):
+        def update_svg(self) -> None:
             self.svg_set_path()
             self.img = get_svg(self.svg_path, self.theme.background.color, self.svg_size)
-            self.svg_label.config(image=self.img)
+            self.svg_label.config(image=cast(str, self.img))
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -881,7 +904,7 @@ class MessagePrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -891,7 +914,7 @@ class MessagePrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -912,7 +935,7 @@ class MessagePrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
             self.root.protocol("WM_DELETE_WINDOW", self.close)
             self.root.title("Quizzing Application | Error")
@@ -927,7 +950,7 @@ class MessagePrompts:
             self.svg_label.config(justify=tk.CENTER, anchor=tk.CENTER, width=self.svg_size[0], height=self.svg_size[1])
             self.label_formatter(self.svg_label)
 
-            self.title_label.config(text=self.msg.title, justify=tk.LEFT, anchor=tk.W)
+            self.title_label.config(text=cast(str, self.msg.title), justify=tk.LEFT, anchor=tk.W)
             self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
 
             self.title_frame.pack(fill=tk.X, expand=True)
@@ -957,13 +980,13 @@ class MessagePrompts:
 
             self.update_ui()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
 
 class InputPrompts:
     class DownloadFile(threading.Thread):
-        def __init__(self, data: DownloadPacket, url=None):
+        def __init__(self, data: DownloadPacket, url: Union[None, str] = None) -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -989,7 +1012,10 @@ class InputPrompts:
             self.download_queued = False
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.svg_size = (20, 20)
             self.appdata_svg_base = '.prog_svg'
@@ -1054,7 +1080,7 @@ class InputPrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             if self.downloading:
                 return
 
@@ -1066,24 +1092,28 @@ class InputPrompts:
                 self.root.title('Quizzing Application | Closed Prompt')
             except: pass
 
-        def update_ui(self):
+        def update_ui(self) -> None:
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -1135,7 +1165,7 @@ class InputPrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -1183,7 +1213,7 @@ class InputPrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -1200,7 +1230,7 @@ class InputPrompts:
             if self.success:
                 self.title_label.config(fg=self.theme.okay.color)
 
-        def svg_set_path(self):
+        def svg_set_path(self) -> None:
             dst = os.path.join(qa_functions.App.appdata_dir, '.tmp/.icon_setup', self.appdata_svg_base).replace('\\', '/')
             ok_fn = self.ok_svg_src.split('\\')[-1]
             err_fn = self.error_svg_src.split('\\')[-1]
@@ -1245,7 +1275,7 @@ class InputPrompts:
 
             del File
 
-        def update_svg(self):
+        def update_svg(self) -> None:
             self.svg_set_path()
 
             ok_fn = self.ok_svg_src.split('\\')[-1]
@@ -1263,15 +1293,15 @@ class InputPrompts:
             self.title_img = get_svg(file_ttl, self.theme.background.color, self.title_img_size)
 
             for label in self.ok_icon_reqs:
-                label.config(image=self.img_ok)
+                label.config(image=cast(str, self.img_ok))
             for label in self.error_icon_reqs:
-                label.config(image=self.img_error)
+                label.config(image=cast(str, self.img_error))
             for label in self.blank_icon_reqs:
-                label.config(image=self.img_blank)
+                label.config(image=cast(str, self.img_blank))
 
-            self.svg_label.config(image=self.title_img)
+            self.svg_label.config(image=cast(str, self.title_img))
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -1286,7 +1316,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -1296,7 +1326,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -1317,7 +1347,7 @@ class InputPrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
@@ -1393,7 +1423,7 @@ class InputPrompts:
 
             self.update_ui()
 
-        def start_download(self):
+        def start_download(self) -> bool:
             self.download_queued = False
 
             if self.downloading:
@@ -1422,13 +1452,15 @@ class InputPrompts:
             self.load_file()
             if not self.success and os.path.isfile(self.data.output_file):
                 os.remove(self.data.output_file)
-                return False
 
-        def load_file(self):
-            def tr(com, *args):
-                try: return True, com(*args)
+            return self.success and os.path.isfile(self.data.output_file)
+
+        def load_file(self) -> None:
+            def tr(com: Any, *args: Optional[Any]) -> Tuple[bool, Any]:
+                try:
+                    return True, com(*args)
                 except Exception as E:
-                    print(traceback.format_exc())
+                    log(LoggingLevel.ERROR, traceback.format_exc())
                     return False, str(E)
 
             url = self.url_entry.get().strip() if not isinstance(self.url, str) else self.url.strip()
@@ -1499,7 +1531,6 @@ class InputPrompts:
                 self.blank_icon_reqs.pop(self.blank_icon_reqs.index(self.loading_step3_I))
             p, r3 = tr(qa_functions.File, self.data.output_file)
             if p:
-                r3: qa_functions.File
                 p, r3 = tr(qa_functions.SaveFile.secure, r3, r2, qa_functions.SaveFunctionArgs(False, save_data_type=bytes))
                 if isinstance(r3, bool):
                     p &= r3
@@ -1556,15 +1587,15 @@ class InputPrompts:
             else:
                 return
 
-        def exit_download(self):
+        def exit_download(self) -> None:
             self.downloading = False
             self.close()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
     class OptionPrompt(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, options: set, title: str, msg: str = ""):
+        def __init__(self, s_mem: qa_functions.SMem, options: Set[str], title: str, msg: str = "") -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -1590,7 +1621,10 @@ class InputPrompts:
             self.padY = 10
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -1617,30 +1651,36 @@ class InputPrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             self.thread.join(self, 0)
             self.root.after(0, self.root.quit)
             self.root.withdraw()
             self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
+            global DEBUG_NORM
+
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -1692,7 +1732,7 @@ class InputPrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -1740,7 +1780,7 @@ class InputPrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -1766,7 +1806,7 @@ class InputPrompts:
                 arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
             )
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -1781,7 +1821,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -1791,7 +1831,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -1812,7 +1852,7 @@ class InputPrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
@@ -1851,7 +1891,7 @@ class InputPrompts:
 
             self.update_ui()
 
-        def select(self):
+        def select(self) -> None:
             self.select_button.config(state=tk.DISABLED)
             self.close_button.config(state=tk.DISABLED)
             self.dropdown.config(state=tk.DISABLED)
@@ -1869,15 +1909,15 @@ class InputPrompts:
             self.s_mem.set(self.drpd_var.get())
             self.close()
 
-        def exit(self):
+        def exit(self) -> None:
             self.s_mem.set(str(0))
             self.close()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
     class DEntryPrompt(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, ans_sep: str, labels_text: List[str]):
+        def __init__(self, s_mem: qa_functions.SMem, ans_sep: str, labels_text: List[str]) -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -1903,7 +1943,10 @@ class InputPrompts:
             self.padY = 10
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -1926,30 +1969,34 @@ class InputPrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             self.thread.join(self, 0)
             self.root.after(0, self.root.quit)
             self.root.withdraw()
             self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -2001,7 +2048,7 @@ class InputPrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2049,7 +2096,7 @@ class InputPrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -2075,7 +2122,7 @@ class InputPrompts:
                 arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
             )
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -2090,7 +2137,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -2100,7 +2147,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -2121,7 +2168,7 @@ class InputPrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
@@ -2168,7 +2215,7 @@ class InputPrompts:
 
             self.update_ui()
 
-        def select(self):
+        def select(self) -> None:
             self.select_button.config(state=tk.DISABLED)
             self.close_button.config(state=tk.DISABLED)
             self.entry1.config(state=tk.DISABLED)
@@ -2188,15 +2235,15 @@ class InputPrompts:
             self.s_mem.set(f"{self.entry1.get().strip()}{self.ans_sep}{self.entry2.get().strip()}")
             self.close()
 
-        def exit(self):
+        def exit(self) -> None:
             self.s_mem.set(str(0))
             self.close()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
     class SEntryPrompt(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, label_text: str, default: str):
+        def __init__(self, s_mem: qa_functions.SMem, label_text: str, default: str) -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -2222,7 +2269,10 @@ class InputPrompts:
             self.padY = 10
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -2243,30 +2293,34 @@ class InputPrompts:
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             self.thread.join(self, 0)
             self.root.after(0, self.root.quit)
             self.root.withdraw()
             self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -2318,7 +2372,7 @@ class InputPrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2366,7 +2420,7 @@ class InputPrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -2392,7 +2446,7 @@ class InputPrompts:
                 arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
             )
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -2407,7 +2461,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -2417,7 +2471,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -2438,7 +2492,7 @@ class InputPrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
@@ -2478,7 +2532,7 @@ class InputPrompts:
 
             self.update_ui()
 
-        def select(self):
+        def select(self)-> None:
             self.select_button.config(state=tk.DISABLED)
             self.close_button.config(state=tk.DISABLED)
             self.entry1.config(state=tk.DISABLED)
@@ -2496,15 +2550,15 @@ class InputPrompts:
             self.s_mem.set(self.entry1.get().strip())
             self.close()
 
-        def exit(self):
+        def exit(self) -> None:
             self.s_mem.set(self.default)
             self.close()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
     class ButtonPrompt(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, title, *buttons, default='<default>', message=""):
+        def __init__(self, s_mem: qa_functions.SMem, title: str, *buttons: Optional[Tuple[str, str]], default: str = '<default>', message: str = "") -> None:
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -2532,7 +2586,10 @@ class InputPrompts:
             self.padY = 10
 
             self.load_theme()
-            self.update_requests: Dict[str, List[Union[None, ThemeUpdateCommands, List, tk.Widget, tk.BaseWidget]]] = {}
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
             self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
@@ -2547,35 +2604,41 @@ class InputPrompts:
 
             self.err_acc = 0
 
-            self.button_dict: Dict[str, List[Union[tk.Button, str]]] = {}
+            self.button_dict: Dict[str, List[Union[tk.Button, ttk.Button, str]]] = {}
 
             self.start()
             self.root.mainloop()
 
-        def close(self):
+        def close(self) -> None:
             self.thread.join(self, 0)
             self.root.after(0, self.root.quit)
             self.root.withdraw()
             self.root.title('Quizzing Application | Closed Prompt')
 
-        def update_ui(self):
+        def update_ui(self) -> None:
+            global DEBUG_NORM
+
             self.load_theme()
 
-            def tr(com) -> Tuple[bool, str]:
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
                 try:
                     com()
                     return True, '<no errors>'
                 except Exception as E:
                     return False, str(E)
 
-            def log_error(com: str, el, reason: str, ind: int):
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
                 log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-            def log_norm(com: str, el):
+            def log_norm(com: str, el: tk.Widget) -> None:
                 log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-            for elID, (element, command, args) in self.update_requests.items():
-                lCommand = [False]
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
                 cargs = []
                 for index, arg in enumerate(args):
                     cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
@@ -2627,7 +2690,7 @@ class InputPrompts:
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                     if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2675,7 +2738,7 @@ class InputPrompts:
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
@@ -2701,7 +2764,7 @@ class InputPrompts:
                 arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
             )
 
-        def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None):
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -2716,7 +2779,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def label_formatter(self, label: tk.Widget, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None):
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
             if padding is None:
                 padding = self.padX
 
@@ -2726,7 +2789,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
             self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
 
-        def load_theme(self):
+        def load_theme(self) -> None:
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
 
             self.theme_update_map = {
@@ -2747,7 +2810,7 @@ class InputPrompts:
                 ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
             }
 
-        def run(self):
+        def run(self) -> None:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
             self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
@@ -2777,7 +2840,7 @@ class InputPrompts:
             self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
             self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
 
-            for text, code in self.buttons:
+            for text, code in cast(Iterable[Tuple[str, str]], self.buttons):
                 uid = gsuid('qa_prompts')
                 btn = ttk.Button(self.button_panel, text=text)
                 btn.pack(side=tk.LEFT)
@@ -2786,30 +2849,31 @@ class InputPrompts:
 
             self.update_ui()
 
-        def conf(self, btn, uid, code):
+        def conf(self, btn: Union[ttk.Button, tk.Button], uid: str, code: str) -> None:
             self.button_dict[uid] = [btn, code]
             btn.config(command=lambda: self.clicked(uid))
 
-        def clicked(self, uid):
+        def clicked(self, uid: str) -> None:
             self.close_button.config(state=tk.DISABLED)
             for btn in self.button_dict.values():
-                btn: List[ttk.Button, str]
-                btn[0].config(state=tk.DISABLED)
+                cast(tk.Button, btn[0]).config(state=tk.DISABLED)
 
-            self.s_mem.set(self.button_dict[uid][1])
+            self.s_mem.set(cast(str, self.button_dict[uid][1]))
             self.close()
 
-        def exit(self):
+        def exit(self) -> None:
             self.s_mem.set(self.default)
             self.close()
 
-        def __del__(self):
+        def __del__(self) -> None:
             self.thread.join(self, 0)
 
 
-def get_svg(svg_file, background, size=None):
-    if isinstance(background, str):
-        background = int(background.replace("#", '0x'), 0)
+def get_svg(svg_file: str, bg: str, size: Union[Tuple[int, int], None] = None) -> ImageTk.PhotoImage:
+    if isinstance(bg, str):
+        background = int(bg.replace("#", '0x'), 0)
+    else:
+        background = bg
 
     drawing = svg2rlg(svg_file)
     bytes_png = BytesIO()
@@ -2823,21 +2887,21 @@ def get_svg(svg_file, background, size=None):
     return p_img
 
 
-def check_url_regex(url):
+def check_url_regex(url: str) -> List[str]:
     # yes, I copied the regex.
     # no, i don't have any regrets.
 
     regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-    url = re.findall(regex, url)
-    return [x[0] for x in url]
+    urls = re.findall(regex, url)
+    return [x[0] for x in urls]
 
 
-def gsuid(arg1: str = 'elForm'):
+def gsuid(arg1: str = 'elForm') -> str:
     return qa_functions.gen_short_uid(arg1)
 
 
-def log(level: LoggingLevel, data: str):
-    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM
+def log(level: LoggingLevel, data: str) -> None:
+    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
     if level == LoggingLevel.ERROR:
@@ -2857,7 +2921,7 @@ def log(level: LoggingLevel, data: str):
 
     if level == LoggingLevel.DEBUG and not DEBUG_NORM:
         return
-    elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
+    elif level == LoggingLevel.DEVELOPER and (not (qa_functions.App.DEV_MODE and DEBUG_DEV_FLAG) or not DEBUG_NORM):
         return
 
     if level == LoggingLevel.ERROR:

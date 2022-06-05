@@ -8,8 +8,7 @@ theme = LoadTheme.auto_load_pref_theme()
 
 
 class Splash(tk.Toplevel):
-    def __init__(self, master: tk.Toplevel, title: str, img_src: str, **kw) -> None:
-        super().__init__(master, **kw)
+    def __init__(self, master: tk.Toplevel, title: str, img_src: str, **kw: Optional[Any]) -> None:
         global theme
 
         self.theme = theme
@@ -44,7 +43,7 @@ class Splash(tk.Toplevel):
         self.run()
         self.root.update()
 
-    def update_loading_lbl(self):
+    def update_loading_lbl(self) -> None:
         if self.complete:
             self.loading_label.config(text=f'Done Loading\nGeetansh Gautam\nPress\"ALT + F4\" to exit')
         else:
@@ -54,7 +53,7 @@ class Splash(tk.Toplevel):
             self.root.update()
             self.root.after(500, self.update_loading_lbl)
 
-    def run(self):
+    def run(self) -> None:
         self.root.overrideredirect(True)
         self.root.protocol("WM_DELETE_WINDOW", lambda: sys.exit(0))
         self.root.wm_attributes('-topmost', 1)
@@ -95,7 +94,7 @@ class Splash(tk.Toplevel):
 
         self.update_ui()
 
-    def setImg(self, img) -> None:
+    def setImg(self, img: str) -> None:
         if self.destroyed:
             return
 
@@ -133,7 +132,7 @@ class Splash(tk.Toplevel):
 
         self.root.update()
 
-    def setInfo(self, string) -> None:
+    def setInfo(self, string: str) -> None:
         if self.destroyed:
             return
 
@@ -172,7 +171,7 @@ class Splash(tk.Toplevel):
 
         self.root.update()
 
-    def load_png(self):
+    def load_png(self) -> None:
         if self.destroyed:
             return
 
@@ -181,7 +180,7 @@ class Splash(tk.Toplevel):
         self.img = PIL.ImageTk.PhotoImage(i)
 
 
-def update_step(inst: Splash, ind: int, steps: Union[list, tuple, Dict[int, Any]], resolution=100):
+def update_step(inst: Splash, ind: int, steps: Union[List[Any], Tuple[Any, ...], Dict[int, Any]], resolution: int = 100) -> None:
     inst.setInfo(steps[ind])
 
     ind -= 1  # 0 >> Max
@@ -194,21 +193,21 @@ def update_step(inst: Splash, ind: int, steps: Union[list, tuple, Dict[int, Any]
         inst.setProgress((i / len(steps)) / (resolution / 100))
 
 
-def show_completion(inst: Splash, steps: Union[list, tuple, dict, set], resolution=100):
-    ind = len(steps) - 1
+def show_completion(inst: Splash, steps: Union[Iterable[Any], Dict[int, Any]], resolution: int = 100) -> None:
+    ind = len(cast(Sized, steps)) - 1
 
     inst.showCompletion()
-    for i in range(ind * resolution, len(steps) * resolution):
+    for i in range(ind * resolution, len(cast(Sized, steps)) * resolution):
         for j in range(20):
             pass  # < 0.01 sec delay
 
-        inst.setProgress((i / len(steps)) / (resolution / 100))
+        inst.setProgress((i / len(cast(Sized, steps))) / (resolution / 100))
 
     sleep(.1)
     destroy(inst)
 
 
-def hide(inst: Splash):
+def hide(inst: Splash) -> None:
     inst.root.overrideredirect(False)
     inst.root.wm_attributes("-topmost", 0)
     inst.root.iconify()
@@ -217,7 +216,7 @@ def hide(inst: Splash):
     return
 
 
-def show(inst: Splash = None):
+def show(inst: Union[None, Splash] = None) -> Splash:
     if inst is None:
         inst = Splash(tk.Toplevel(), 'Quizzing Application', qa_functions.Files.QF_ico)
 
@@ -228,7 +227,7 @@ def show(inst: Splash = None):
     return inst
 
 
-def destroy(inst: Splash):
+def destroy(inst: Splash) -> None:
     inst.destroyed = True
     inst.root.after(0, inst.root.destroy)
     return

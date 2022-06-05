@@ -1,0 +1,33 @@
+{
+    "file_info": {
+        "name": "QuizzingApp.Community.OfficialAddons",
+        "display_name": "Official Addons",
+        "avail_themes": {
+            "num_themes": 1,
+            "ugen_exp": "Themes.Custom.QuizzingAppV2(dark)"
+        }
+    },
+    "Themes.Custom.QuizzingAppV2(dark)": {
+        "display_name": "Quizzing App V2 (dark)",
+        "background": "#141414",
+        "foreground": "#FFFFFF",
+        "accent": "#008888",
+        "error": "#E01A00",
+        "warning": "#D6A630",
+        "ok": "#138811",
+        "gray": "#C0C0C0",
+        "font": {
+            "font_face": "Montserrat",
+            "alt_font_face": "Century Gothic",
+            "size_small": 10,
+            "size_main": 13,
+            "size_subtitle": 20,
+            "size_title": 28,
+            "size_xl_title": 40
+        },
+        "border": {
+            "size": 0,
+            "colour": "#FFFFFF"
+        }
+    }
+}

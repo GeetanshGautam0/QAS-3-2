@@ -1,5 +1,6 @@
 import sys, traceback, click, datetime, qa_functions, subprocess, os
 from qa_functions.qa_std import *
+from qa_functions.qa_custom import InvalidCLIArgument
 from tkinter import messagebox
 from qa_ui import *
 from threading import Thread
@@ -33,7 +34,8 @@ class _Run(Thread):
 
         self._run_acc = 0
 
-    def close(self, *_0, **_1):
+    @staticmethod
+    def close(*_0, **_1):
         global SPLASH
         try:
             if isinstance(SPLASH, qa_splash.Splash):
@@ -104,7 +106,6 @@ class _ApplicationInstanceManager:
         try:
             if self.name not in _application_map:
                 raise InvalidCLIArgument("ApplicationName", f'{self.name}', "")
-                sys.exit(-1)
 
             if isinstance(SPLASH, qa_splash.Splash):
                 title, img = _title_map[self.name]
@@ -112,9 +113,10 @@ class _ApplicationInstanceManager:
                 SPLASH.setImg(img)
                 qa_splash.update_step(SPLASH, 4, BOOT_STEPS)
 
-            if self.tokens['debug'] or self.tokens['debug_all']:
+            if self.tokens['debug'] or self.tokens['debug_all'] or self.tokens['debug_dev']:
                 for Script in (AdminTools, QuizzingForm, RecoveryUtils, ThemingUtil):
-                    Script.DEBUG_NORM = self.tokens['debug_all']
+                    Script.DEBUG_DEV_FLAG = self.tokens['debug_dev']
+                    Script.DEBUG_NORM = self.tokens['debug_all'] or self.tokens['debug_dev']
                     Script.LOGGER_AVAIL = True
                     Script.LOGGER_FUNC = qa_functions.NormalLogger
                     Script.LOGGING_FILE_NAME = datetime.datetime.now().strftime('%b %d, %Y %H-%M-%S')
@@ -210,11 +212,12 @@ def _CLIHandler():
 @click.option('--open_file', help="open qa_files that is supplied in args", is_flag=True)
 @click.option('--file_path', help="path of qa_files to open", default=None)
 @click.option('--ttk_theme', help="TTK theme to use (default = clam)", default='clam')
-@click.option('--debug', help='enable debugging', is_flag=True)
-@click.option('--debug_all', help='enable debugging (ALL LEVELS)', is_flag=True)
+@click.option('--debug', help='save console output', is_flag=True)
+@click.option('--debug_all', help='enable (+save) debugging (ALL LEVELS)', is_flag=True)
+@click.option('--debug_dev', help='enable (+save) [DEVELOPER] debug messages (also needs to be enabled in config file.)', is_flag=True)
 @click.option('--weakHandling', help='weak error handling', is_flag=True)
 def start_app(**kwargs):
-    global BOOT_STEPS; SPLASH
+    global BOOT_STEPS, SPLASH
 
     default_cli_handling(**kwargs)
 

@@ -23,4 +23,5 @@ def log(data: str) -> None:
 
     if not LOGGER_AVAIL or not isinstance(LOGGER_FILE, str):
         return
+
     LOGGER_FUNCTION(qa_custom.LoggingPackage(qa_enum.LoggingLevel.ERROR, data, LOGGER_FILE))

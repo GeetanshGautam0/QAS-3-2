@@ -117,7 +117,8 @@
     "additional_themes/high_contrast.qaTheme":  ".themes",
     "additional_themes/retro_theme.qaTheme":  ".themes",
     "additional_themes/theme_addons.qaTheme": ".themes",
-    "additional_themes/qas_2_original.qaTheme": ".themes"
+    "additional_themes/qas_2_original.qaTheme": ".themes",
+    "additional_themes/qas_2_original_dark.qaTheme": ".themes"
   }
 
 }

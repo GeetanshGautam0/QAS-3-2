@@ -3,9 +3,7 @@
 --check-untyped-defs
 --no-implicit-optional
 --warn-redundant-casts
---warn-unused-ignores
 --warn-return-any
---warn-unreachable
 --disallow-untyped-globals
 --allow-redefinition
 --show-error-context

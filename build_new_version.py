@@ -2,13 +2,14 @@ import os, sys, json, subprocess
 from qa_functions import ANSI, File, SaveFunctionArgs, SaveFile
 from datetime import datetime
 from ctypes import windll
+from typing import Optional, cast, Iterable
 
 
-def _build_number():
+def _build_number() -> float:
     return float(datetime.now().strftime('%y%m%j.%H%M%S%f'))
 
 
-def _set_build_number(build_number, build_id, build_name):
+def _set_build_number(build_number: float, build_id: str, build_name: str) -> None:
     with open('.config\\main_config.json', 'r') as mc_file:
         mc_json = json.loads(mc_file.read())
         mc_file.close()
@@ -33,13 +34,13 @@ def _set_build_number(build_number, build_id, build_name):
         sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to save new configuration to inst_config\n")
 
 
-def _run_command(COM: str, *args, admin=False, silent=False):
-    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} {' '.join([COM, *args]).strip()} {ANSI.RESET} (UAC_ELEVATION: {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD}{admin}{ANSI.RESET})\n")
+def _run_command(com: str, *args: Optional[str], admin: bool = False, silent: bool = False) -> None:
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} {' '.join(cast(Iterable[str], [com, *args])).strip()} {ANSI.RESET} (UAC_ELEVATION: {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD}{admin}{ANSI.RESET})\n")
     try:
         if admin:
-            windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(args), None, True)
+            windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(cast(Iterable[str], args)), None, True)
         else:
-            subprocess.call(" ".join([COM, *args]), shell=True)
+            subprocess.call(" ".join(cast(Iterable[str], [com, *args])), shell=True)
     except Exception as E:
         sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to run command:   {ANSI.FG_BRIGHT_RED}{ANSI.REVERSED}{ANSI.BOLD} {E.__class__.__name__}({E}) {ANSI.RESET}\n")
         return
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     mp_flags = mp_flags_str.replace('\n', ' ').split()
     del mp_flags_str
 
-    _run_command('mypy', '.')
+    _run_command('mypy', '--pretty', '.')
     _run_command('mypy', *mp_flags, '.')
     _run_command(f'pytest', '-vv')
 

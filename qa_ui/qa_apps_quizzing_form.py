@@ -13,6 +13,7 @@ LOGGER_FUNC = qa_functions.NormalLogger
 LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = script_name
 DEBUG_NORM = False
+DEBUG_DEV_FLAG = False
 
 
 class _UI(Thread):
@@ -37,7 +38,7 @@ class _UI(Thread):
 
 
 def log(level: LoggingLevel, data: str):
-    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM
+    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
     if level == LoggingLevel.ERROR:
@@ -57,7 +58,7 @@ def log(level: LoggingLevel, data: str):
 
     if level == LoggingLevel.DEBUG and not DEBUG_NORM:
         return
-    elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
+    elif level == LoggingLevel.DEVELOPER and (not (qa_functions.App.DEV_MODE and DEBUG_DEV_FLAG) or not DEBUG_NORM):
         return
 
     if level == LoggingLevel.ERROR:
@@ -77,6 +78,8 @@ def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **k
     qa_prompts.LOGGER_FUNC = LOGGER_FUNC
     qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME
     qa_prompts.DEBUG_NORM = DEBUG_NORM
+    qa_prompts.DEBUG_DEV_FLAG = DEBUG_DEV_FLAG
+    qa_functions.qa_theme_loader.THEME_LOADER_ENABLE_DEV_DEBUGGING = DEBUG_DEV_FLAG
 
     subprocess.call('', shell=True)
     if os.name == 'nt':  # Only if we are running on Windows

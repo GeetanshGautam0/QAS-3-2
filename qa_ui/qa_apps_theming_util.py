@@ -8,6 +8,7 @@ from ctypes import windll
 from typing import *
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel, FileType
 from qa_functions.qa_std import ANSI, AppLogColors
+from qa_functions.qa_custom import Theme
 
 
 script_name = "APP_TU"
@@ -19,10 +20,11 @@ LOGGER_FUNC = qa_functions.NormalLogger
 LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = script_name
 DEBUG_NORM = False
+DEBUG_DEV_FLAG = False
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds, **kwargs):
+    def __init__(self, root: Union[tk.Toplevel, tk.Tk], ic: Any, ds: Any, **kwargs: Optional[Dict[str, Any]]) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
@@ -42,22 +44,25 @@ class _UI(Thread):
         ]
 
         self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-        self.theme_update_map = {}
-        self.tmp_theme = clone_theme(self.theme)
+        self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
+        self.tmp_theme: Theme = clone_theme(self.theme)
         self.rst_theme = True
 
         self.padX = 20
         self.padY = 10
 
         self.load_theme()
-        self.update_requests = {}
+        self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+        ] = {}
 
         self.img_path = f"{qa_functions.Files.icoRoot}\\.png\\themer.png"
         self.img_size = (75, 75)
         self.img = None
         self.load_png()
 
-        self.ttk_theme = self.kwargs['ttk_theme']
+        self.ttk_theme = cast(str, self.kwargs['ttk_theme'])
 
         self.ttk_style = ttk.Style()
         self.ttk_style.theme_use(self.ttk_theme)
@@ -68,10 +73,10 @@ class _UI(Thread):
         self.title_icon = tk.Label(self.title_box)
 
         self.theme_selector_panel = tk.LabelFrame(self.root)
-        self.theme_pref = qa_functions.qa_theme_loader._load_pref_data()
+        self.theme_pref = qa_functions.qa_theme_loader.load_pref_data()
         self.select_theme_button = tk.Button(self.theme_selector_panel)
         self.theme_selector_s_var = tk.StringVar(self.root)
-        self.theme_selector_options = {'No themes loaded; click \'Refresh\' to load themes': ''}
+        self.theme_selector_options: Dict[str, Union[str, Theme]] = {'No themes loaded; click \'Refresh\' to load themes': ''}
         self.theme_pre_installed_frame = tk.Frame(self.theme_selector_panel)
         self.theme_pre_installed_lbl = tk.Label(self.theme_pre_installed_frame)
         self.theme_selector_dropdown = ttk.OptionMenu(self.theme_pre_installed_frame, self.theme_selector_s_var, *self.theme_selector_options.keys())
@@ -130,7 +135,7 @@ class _UI(Thread):
         self.export_theme_button = ttk.Button(self.export_button_panel, command=self.export_theme)
         self.save_theme_button = ttk.Button(self.export_button_panel, command=self.save_custom_theme)
         self.reset_theme_button = ttk.Button(self.export_button_panel, command=self.reset_theme, style='Contrast.TButton')
-        self.preview_button = ttk.Button(self.export_button_panel, command=cast(Callable[[Any, Any], Any], self.preview_change))
+        self.preview_button = ttk.Button(self.export_button_panel, command=cast(Callable[[], Any], self.preview_change))
 
         self.space_filler_1 = tk.Label(self.theme_pre_installed_frame)
         self.space_filler_2 = tk.Label(self.install_new_frame)
@@ -149,7 +154,7 @@ class _UI(Thread):
     def update_ui(self, theme=None) -> None:
         self.load_theme(theme)
 
-        def tr(com: Callable[..., Any]) -> Tuple[bool, str]:
+        def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
             try:
                 com()
                 return True, '<no errors>'
@@ -162,7 +167,11 @@ class _UI(Thread):
         def log_norm(com: str, el) -> None:
             log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-        for elID, (element, command, args) in self.update_requests.items():
+        for elID, (_e, _c, _a) in self.update_requests.items():
+            element = cast(tk.Button, _e)
+            command = cast(ThemeUpdateCommands, _c)
+            args = cast(List[Any], _a)
+
             lCommand = [False, '', 0]
             cargs = []
 
@@ -210,7 +219,7 @@ class _UI(Thread):
 
             elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                 if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -424,7 +433,7 @@ class _UI(Thread):
         # External Update Calls
         self.update_theme_selector_options()
 
-    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid=None):
+    def button_formatter(self, button: tk.Button, accent: bool = False, font_face: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -457,12 +466,12 @@ class _UI(Thread):
                 (fg if not accent else ThemeUpdateVars.BG),
                 (abg if not accent else ThemeUpdateVars.BG),
                 (afg if not accent else ThemeUpdateVars.ACCENT),
-                font, size,
+                font_face, size,
                 self.window_size[0] - 2 * padding
             ]
         ]
 
-    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font_face: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[int, None] = None, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -479,18 +488,18 @@ class _UI(Thread):
             ThemeUpdateCommands.CUSTOM,
             [
                 lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=self.window_size[0] - 2 * args[4]),
-                bg, fg, font, size, padding
+                bg, fg, font_face, size, padding
             ] if isinstance(label, tk.Label) else (
                 [
                     lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
-                    bg, fg, font, size, padding
+                    bg, fg, font_face, size, padding
                 ] if isinstance(label, tk.LabelFrame) else [
                     lambda *args: None
                 ]
             )
         ]
 
-    def load_theme(self, theme=None) -> None:
+    def load_theme(self, theme: Theme = None) -> None:
         if theme is None and (gen_cmp_theme_dict(self.tmp_theme) == self.theme or self.rst_theme):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
             self.rst_theme = False
@@ -519,7 +528,7 @@ class _UI(Thread):
             ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
         }
 
-    def run(self):
+    def run(self) -> None:
         global DEBUG_NORM, APP_TITLE
         qa_prompts.DEBUG_NORM = DEBUG_NORM
         qa_prompts.TTK_THEME = self.ttk_theme
@@ -532,7 +541,7 @@ class _UI(Thread):
         self.title_box.pack(fill=tk.X, expand=False, pady=50)
         self.title_label.config(text="Theming Utility", anchor=tk.W)
         self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
-        self.title_icon.config(image=cast(Optional[Any], self.img))
+        self.title_icon.config(image=cast(str, self.img))
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX/8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX/8), pady=self.padY, side=tk.LEFT)
 
@@ -695,19 +704,14 @@ class _UI(Thread):
         self.button_formatter(self.showcase_fp_3, size=TUV.FONT_SIZE_LARGE)
         self.button_formatter(self.showcase_fp_4, size=TUV.FONT_SIZE_TITLE)
         self.button_formatter(self.showcase_fp_5, size=TUV.FONT_SIZE_XL_TITLE)
-        self.button_formatter(self.showcase_ap_1, size=TUV.FONT_SIZE_SMALL, font=TUV.ALT_FONT_FACE)
-        self.button_formatter(self.showcase_ap_2, size=TUV.FONT_SIZE_MAIN, font=TUV.ALT_FONT_FACE)
-        self.button_formatter(self.showcase_ap_3, size=TUV.FONT_SIZE_LARGE, font=TUV.ALT_FONT_FACE)
-        self.button_formatter(self.showcase_ap_4, size=TUV.FONT_SIZE_TITLE, font=TUV.ALT_FONT_FACE)
-        self.button_formatter(self.showcase_ap_5, size=TUV.FONT_SIZE_XL_TITLE, font=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_1, size=TUV.FONT_SIZE_SMALL, font_face=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_2, size=TUV.FONT_SIZE_MAIN, font_face=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_3, size=TUV.FONT_SIZE_LARGE, font_face=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_4, size=TUV.FONT_SIZE_TITLE, font_face=TUV.ALT_FONT_FACE)
+        self.button_formatter(self.showcase_ap_5, size=TUV.FONT_SIZE_XL_TITLE, font_face=TUV.ALT_FONT_FACE)
 
         # Final things
-        self.showcase_canvas.create_window(
-            (0, 0),
-            window=self.showcase_frame,
-            anchor="nw",
-            tags="self.showcase_frame"
-        )
+        self.showcase_canvas.create_window(0.0, 0.0, window=self.showcase_frame, anchor="nw", tags="self.showcase_frame")
 
         self.showcase_frame.update()
         self.showcase_frame.bind("<Configure>", self.onFrameConfig)
@@ -718,7 +722,7 @@ class _UI(Thread):
         self.root.deiconify()
         self.root.focus_get()
 
-    def _on_mousewheel(self, event):
+    def _on_mousewheel(self, event: Any) -> None:
         """
         Straight out of stackoverflow
         Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
@@ -726,15 +730,15 @@ class _UI(Thread):
         """
         self.showcase_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-    def onFrameConfig(self, event):
+    def onFrameConfig(self, event: Any):
         self.showcase_canvas.configure(scrollregion=self.showcase_canvas.bbox("all"))
 
-    def load_png(self):
+    def load_png(self) -> None:
         i = Image.open(self.img_path)
         i = i.resize(self.img_size, Image.ANTIALIAS)
         self.img = ImageTk.PhotoImage(i)
 
-    def update_theme_selector_options(self):
+    def update_theme_selector_options(self) -> None:
         og = {**self.theme_selector_options}
         self.theme_selector_options = {}
         for code, tad in qa_functions.LoadTheme.auto_load_all().items():
@@ -744,7 +748,7 @@ class _UI(Thread):
             self.theme_selector_options[f'{file_name}: {name}'] = theme
 
         if og != self.theme_selector_options:
-            self.theme_pref = qa_functions.qa_theme_loader._load_pref_data()
+            self.theme_pref = qa_functions.qa_theme_loader.load_pref_data()
             self.theme_selector_s_var.set(self.theme_pref[2])
             self.theme_selector_dropdown['menu'].delete(0, tk.END)
             for option in self.theme_selector_options:
@@ -752,8 +756,8 @@ class _UI(Thread):
                     label=option, command=tk._setit(self.theme_selector_s_var, option)
                 )
 
-    def on_theme_drop_change(self, *args, **kwargs):
-        def nope():
+    def on_theme_drop_change(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+        def nope() -> None:
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket("The requested theme wasn't found; refreshing list."),
                 qoc=False
@@ -776,7 +780,7 @@ class _UI(Thread):
                 self.rst_theme = True
                 self.update_ui()
 
-    def online_download(self):
+    def online_download(self) -> None:
         self.disable_all_inputs()
 
         tmp_dir = f"{qa_functions.App.appdata_dir}\\.tmp\\.downloads".replace('/', '\\')
@@ -801,7 +805,7 @@ class _UI(Thread):
         try:
             file = qa_functions.qa_custom.File(tmp_file_path)
             raw = qa_functions.qa_file_handler.Open.load_file(file, qa_functions.qa_custom.OpenFunctionArgs(bytes))
-            _, raw2 = qa_files.qa_file_std.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw)
+            _, raw2 = cast(Tuple[bytes, str], qa_files.qa_file_std.load_file(qa_functions.qa_enum.FileType.QA_THEME, raw))
             self.install_new_theme((tmp_file_path, ))
             os.remove(tmp_file_path)
 
@@ -899,7 +903,7 @@ class _UI(Thread):
                         ins.append(dn)
 
                     elif comp_theme_dict in e2:
-                        it.append((f"{fn}: {theme_data.theme_code}", e3[e2.index(comp_theme_dict)][0]))
+                        it.append((f"{fn}: {theme_data.theme_code}", e3[e2.index(cast(Dict[str, object], comp_theme_dict))][0]))
 
                     else:
                         if fn not in to_install:
@@ -989,44 +993,44 @@ Technical Information:
         self.enable_all_inputs()
         return installed
 
-    def uninstall(self):
+    def uninstall(self) -> None:
         self.disable_all_inputs()
 
         all_themes = qa_functions.qa_theme_loader.Load.auto_load_all(False)
-        ls = {f"{(*v.values(),)[0].theme_file_display_name}: {(*v.values(),)[0].theme_display_name}": (*v.values(),)[0] for v in all_themes.values()}
-
         if len(all_themes) <= 0:
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('No installed themes found'))
             self.enable_all_inputs()
             return
 
+        ls: Dict[str, Theme] = {f"{(*v.values(),)[0].theme_file_display_name}: {(*v.values(),)[0].theme_display_name}": (*v.values(),)[0] for v in all_themes.values()}
         s_mem = qa_functions.qa_std.SMem()
         qa_prompts.InputPrompts.OptionPrompt(s_mem, set(ls), "Select a theme to uninstall")
         selection = s_mem.get()
-        if selection == "0":
+
+        if selection in ['0', None]:
             self.enable_all_inputs()
             return
 
-        ot: qa_functions.qa_custom.Theme = ls[selection]
-        of = qa_functions.qa_custom.File(ot.theme_file_path)
+        chosen_theme: Theme = ls[cast(str, selection)]
+        chosen_theme_file = qa_functions.qa_custom.File(chosen_theme.theme_file_path)
 
-        if os.path.isfile(of.file_path):
+        if os.path.isfile(chosen_theme_file.file_path):
             try:
-                raw = qa_functions.OpenFile.load_file(of, qa_functions.OpenFunctionArgs(bytes))
-                _, r2 = qa_files.load_file(FileType.QA_THEME, raw)
+                raw = qa_functions.OpenFile.load_file(chosen_theme_file, qa_functions.OpenFunctionArgs(bytes))
+                _, r2 = cast(Tuple[bytes, str], qa_files.load_file(FileType.QA_THEME, raw))
                 theme_json = json.loads(r2)
                 assert qa_functions.TestTheme.check_file(theme_json), 'invalid file'
-                os.remove(of.file_path)
+                os.remove(chosen_theme_file.file_path)
 
                 theme_json['file_info']['avail_themes']['num_themes'] -= 1
-                theme_json.pop(ot.theme_code)
+                theme_json.pop(chosen_theme.theme_code)
                 theme_json['file_info']['avail_themes'].pop(
                     [*theme_json['file_info']['avail_themes'].keys()][
-                        [*theme_json['file_info']['avail_themes'].values()].index(ot.theme_code)
+                        [*theme_json['file_info']['avail_themes'].values()].index(chosen_theme.theme_code)
                     ]
                 )
 
-                fn = of.file_name
+                fn = chosen_theme_file.file_name
 
                 ok = fn not in (qa_functions.Files.ThemePrefFile, qa_functions.Files.ThemeCustomFile)
                 ok &= 'file_info' in theme_json
@@ -1038,7 +1042,7 @@ Technical Information:
                 if ok:
                     nt = json.dumps(theme_json, indent=4)
                     prp = qa_files.generate_file(FileType.QA_THEME, nt)
-                    qa_functions.SaveFile.secure(of, prp, qa_functions.SaveFunctionArgs(False, save_data_type=bytes))
+                    qa_functions.SaveFile.secure(chosen_theme_file, prp, qa_functions.SaveFunctionArgs(False, save_data_type=bytes))
 
                 qa_prompts.MessagePrompts.show_info(
                     qa_prompts.InfoPacket(f'Successfully uninstalled theme "{selection}"')
@@ -1046,7 +1050,7 @@ Technical Information:
 
             except Exception as E:
                 sys.stderr.write(f"{traceback.format_exc()}\n")
-                os.remove(of.file_path)
+                os.remove(chosen_theme_file.file_path)
 
         self.update_theme_selector_options()
         self.enable_all_inputs()
@@ -1084,7 +1088,7 @@ Technical Information:
         self.showcase_border_color.config(state=tk.NORMAL)
         self.update_ui()
 
-    def export_theme(self):
+    def export_theme(self) -> None:
         self.disable_all_inputs()
         saved = self.save_custom_theme(True, True)
 
@@ -1105,12 +1109,12 @@ Technical Information:
 
                 qa_prompts.InputPrompts.DEntryPrompt(s_mem, sep, ['File Display Name', 'Theme Display Name'])
                 raw = s_mem.get()
+                assert isinstance(raw, str)
                 if raw.strip() == '0' or sep not in raw:
                     self.enable_all_inputs()
                     return
 
                 fdp, tdn = raw.split(sep)
-
                 self.load_theme()           # "Save" sets the custom theme as the default theme; use it.
                 ct = clone_theme(self.theme)
 
@@ -1118,16 +1122,16 @@ Technical Information:
                 for tok in fdp_tokens:
                     fdp_list.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
                 fdp_clean = ' '.join(fdp_list)
-
-                tdp_toks, tdp_clean = tdn.split(' '), []
-                for tok in tdp_toks:
-                    tdp_clean.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
-                tdp_clean = ' '.join(i for i in tdp_clean)
+                tdp_tokens, tdp_clean_list = tdn.split(' '), []
+                for tok in tdp_tokens:
+                    tdp_clean_list.append(f"{tok[0].upper()}" + f"{tok[1::].lower() if len(tok) > 1 else ''}")
+                tdp_clean_str = ' '.join(i for i in tdp_clean_list)
+                del tdp_clean_list
 
                 ct.theme_file_display_name = fdp_clean
-                ct.theme_display_name = tdp_clean
+                ct.theme_display_name = tdp_clean_str
                 ct.theme_file_name = f"QuizzingApp.Community.{fdp_clean.replace(' ', '')}"
-                ct.theme_code = f"Themes.Custom.{tdp_clean.replace(' ', '')}"
+                ct.theme_code = f"Themes.Custom.{tdp_clean_str.replace(' ', '')}"
                 ct.theme_file_path = new_file_name
 
                 nt = {
@@ -1171,7 +1175,7 @@ Technical Information:
                 file = qa_functions.File(new_file_name)
                 assert qa_functions.SaveFile.secure(file, file_bytes, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)), "SaveError"
 
-                nf = self.install_new_theme((new_file_name,))[0]
+                nf = cast(List[str], self.install_new_theme((new_file_name,)))[0]
                 qa_functions.qa_theme_loader.set_pref(nf, ct.theme_code, f'{ct.theme_file_display_name}: {ct.theme_display_name}')
 
                 qa_prompts.MessagePrompts.show_info(
@@ -1197,15 +1201,17 @@ Technical Information:
         self.enable_all_inputs()
         return
 
-    def on_prev_click(self, tp, exs):
+    def on_prev_click(self, tp, exs) -> None:
         self.disable_all_inputs()
 
         if tp == 'color':
-            ncolor = colorchooser.askcolor(self.theme_update_map[exs].color)
-            if None in ncolor:
+            new_color = colorchooser.askcolor(cast(qa_functions.HexColor, self.theme_update_map[exs]).color)
+            if None in new_color:
                 self.enable_all_inputs()
                 return
-            self.preview_change(exs, qa_functions.HexColor(ncolor[1]))
+
+            assert isinstance(new_color[1], str)
+            self.preview_change(exs, qa_functions.HexColor((new_color[1])))
 
         self.enable_all_inputs()
 
@@ -1237,7 +1243,7 @@ Technical Information:
         self.rst_theme = True
         self.update_ui()
 
-    def save_custom_theme(self, internal_call=False, _bypass_changes_check=False) -> bool:
+    def save_custom_theme(self, internal_call: bool = False, _bypass_changes_check: bool = False) -> bool:
         self.disable_all_inputs()
         pr_theme_full = qa_functions.LoadTheme.auto_load_pref_theme()
         pr_theme = gen_cmp_theme_dict(pr_theme_full)
@@ -1337,118 +1343,122 @@ Technical Information:
         self.enable_all_inputs()
         return True
 
-    def preview_change(self, change_key, change):
+    def preview_change(self, change_key: ThemeUpdateVars, change: Union[qa_functions.HexColor, int, float, str]):
         self.disable_all_inputs()
         TUV = ThemeUpdateVars
 
-        ntheme = clone_theme(self.theme)
+        new_theme = clone_theme(self.theme)
 
         if isinstance(change, qa_functions.HexColor):
             if change_key == TUV.BG:
-                ntheme.background = change
+                new_theme.background = change
             elif change_key == TUV.FG:
-                ntheme.foreground = change
+                new_theme.foreground = change
             elif change_key == TUV.ACCENT:
-                ntheme.accent = change
+                new_theme.accent = change
             elif change_key == TUV.GRAY:
-                ntheme.gray = change
+                new_theme.gray = change
             elif change_key == TUV.ERROR:
-                ntheme.error = change
+                new_theme.error = change
             elif change_key == TUV.WARNING:
-                ntheme.warning = change
+                new_theme.warning = change
             elif change_key == TUV.OKAY:
-                ntheme.okay = change
+                new_theme.okay = change
             elif change_key == TUV.BORDER_COLOR:
-                ntheme.border_color = change
+                new_theme.border_color = change
         elif type(change) in (int, float):
             if change_key == TUV.FONT_SIZE_SMALL:
-                ntheme.font_small_size = change
+                new_theme.font_small_size = cast(Union[float, int], change)
             elif change_key == TUV.FONT_SIZE_MAIN:
-                ntheme.font_main_size = change
+                new_theme.font_main_size = cast(Union[float, int], change)
             elif change_key == TUV.FONT_SIZE_LARGE:
-                ntheme.font_large_size = change
+                new_theme.font_large_size = cast(Union[float, int], change)
             elif change_key == TUV.FONT_SIZE_TITLE:
-                ntheme.title = change
+                new_theme.font_title_size = cast(Union[float, int], change)
             elif change_key == TUV.FONT_SIZE_XL_TITLE:
-                ntheme.font_xl_title_size = change
+                new_theme.font_xl_title_size = cast(Union[float, int], change)
             elif change_key == TUV.BORDER_SIZE:
-                ntheme.border_size = change
+                new_theme.border_size = cast(Union[float, int], change)
         elif isinstance(change, str):
             if change_key == TUV.DEFAULT_FONT_FACE:
-                ntheme.font_face = change
+                new_theme.font_face = change
             elif change_key == TUV.ALT_FONT_FACE:
-                ntheme.font_alt_face = change
+                new_theme.font_alt_face = change
 
-        if gen_cmp_theme_dict(ntheme) != gen_cmp_theme_dict(self.theme):
-            self.update_ui(ntheme)
+        if gen_cmp_theme_dict(new_theme) != gen_cmp_theme_dict(self.theme):
+            self.update_ui(new_theme)
         else:
             sys.stdout.write("no changes in theme\n")
 
         self.enable_all_inputs()
 
-    def font_picker(self):
+    def font_picker(self) -> Union[None, str]:
         self.disable_all_inputs()
 
         s_mem = qa_functions.SMem()
-        qa_prompts.InputPrompts.OptionPrompt(s_mem, font.families(), "Pick a font")
+        qa_prompts.InputPrompts.OptionPrompt(s_mem, {*font.families()}, "Pick a font")
         self.enable_all_inputs()
 
-        if s_mem.get().strip() == '0':
-            return None
-        else:
-            return s_mem.get()
+        raw = s_mem.get()
+        assert isinstance(raw, str)
+        return None if raw.strip() == '0' else raw
 
-    def prim_font(self):
+    def prim_font(self) -> None:
         new_font = self.font_picker()
         if isinstance(new_font, str):
             self.preview_change(ThemeUpdateVars.DEFAULT_FONT_FACE, new_font)
 
-    def alt_font(self):
+    def alt_font(self) -> None:
         new_font = self.font_picker()
         if isinstance(new_font, str):
             self.preview_change(ThemeUpdateVars.ALT_FONT_FACE, new_font)
 
-    def font_size_picker(self, current, var, name):
+    def font_size_picker(self, current: Union[int, float], var: ThemeUpdateVars, name: str) -> None:
         self.disable_all_inputs()
 
         s_mem = qa_functions.SMem()
         qa_prompts.InputPrompts.SEntryPrompt(s_mem, f'New size for \'{name}\':', str(current).strip())
         self.enable_all_inputs()
 
-        if s_mem.get().strip() == str(current).strip():
+        raw = s_mem.get()
+        assert isinstance(raw, str)
+
+        if raw.strip() == str(current).strip():
             return None
         else:
             try:
-                f = int(s_mem.get())
-                if var == ThemeUpdateVars.BORDER_SIZE: assert f <= 10, "Border size must be smaller than 10"
-                else: assert 60 >= f >= 3, "Font size must be between size 3 and size 60"
+                f = int(raw)
+                if var == ThemeUpdateVars.BORDER_SIZE:
+                    assert f <= 10, "Border size must be smaller than 10"
+                else:
+                    assert 60 >= f >= 3, "Font size must be between size 3 and size 60"
                 self.preview_change(var, f)
             except Exception as E:
                 qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(f'Invalid font size provided: {E}'))
 
-    def font_size_small(self):
+    def font_size_small(self) -> None:
         self.font_size_picker(self.theme.font_small_size, ThemeUpdateVars.FONT_SIZE_SMALL, 'small')
 
-    def font_size_medium(self):
+    def font_size_medium(self) -> None:
         self.font_size_picker(self.theme.font_main_size, ThemeUpdateVars.FONT_SIZE_MAIN, 'primary')
 
-    def font_size_large(self):
+    def font_size_large(self) -> None:
         self.font_size_picker(self.theme.font_large_size, ThemeUpdateVars.FONT_SIZE_LARGE, 'large')
 
-    def font_size_title(self):
+    def font_size_title(self) -> None:
         self.font_size_picker(self.theme.font_title_size, ThemeUpdateVars.FONT_SIZE_TITLE, 'title')
 
-    def font_size_xl(self):
+    def font_size_xl(self) -> None:
         self.font_size_picker(self.theme.font_xl_title_size, ThemeUpdateVars.FONT_SIZE_XL_TITLE, 'XL')
 
-    def border_size(self):
+    def border_size(self) -> None:
         self.font_size_picker(self.theme.border_size, ThemeUpdateVars.BORDER_SIZE, 'border size')
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.thread.join(self, 0)
 
 
-def clone_theme(theme_data: qa_functions.Theme):
+def clone_theme(theme_data: qa_functions.Theme) -> qa_functions.Theme:
     return qa_functions.Theme(
         theme_data.theme_file_name, theme_data.theme_file_display_name, theme_data.theme_display_name, theme_data.theme_code,
         theme_file_path=theme_data.theme_file_path,
@@ -1460,7 +1470,7 @@ def clone_theme(theme_data: qa_functions.Theme):
     )
 
 
-def gen_cmp_theme_dict(theme_data: qa_functions.Theme) -> dict:
+def gen_cmp_theme_dict(theme_data: qa_functions.Theme) -> Dict[str, Union[int, float, str]]:
     return {
         'background': theme_data.background.color.upper(),
         'foreground': theme_data.foreground.color.upper(),
@@ -1481,8 +1491,8 @@ def gen_cmp_theme_dict(theme_data: qa_functions.Theme) -> dict:
     }
 
 
-def log(level: LoggingLevel, data: str):
-    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM
+def log(level: LoggingLevel, data: str) -> None:
+    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
     if level == LoggingLevel.ERROR:
@@ -1502,7 +1512,7 @@ def log(level: LoggingLevel, data: str):
 
     if level == LoggingLevel.DEBUG and not DEBUG_NORM:
         return
-    elif level == LoggingLevel.DEVELOPER and (not qa_functions.App.DEV_MODE or not DEBUG_NORM):
+    elif level == LoggingLevel.DEVELOPER and (not (qa_functions.App.DEV_MODE and DEBUG_DEV_FLAG) or not DEBUG_NORM):
         return
 
     if level == LoggingLevel.ERROR:
@@ -1517,11 +1527,13 @@ def log(level: LoggingLevel, data: str):
         )])
 
 
-def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs: Optional[Any]) -> tk.Toplevel:
     qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
     qa_prompts.LOGGER_FUNC = LOGGER_FUNC
     qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME
     qa_prompts.DEBUG_NORM = DEBUG_NORM
+    qa_prompts.DEBUG_DEV_FLAG = DEBUG_DEV_FLAG
+    qa_functions.qa_theme_loader.THEME_LOADER_ENABLE_DEV_DEBUGGING = DEBUG_DEV_FLAG
 
     subprocess.call('', shell=True)
     if os.name == 'nt':  # Only if we are running on Windows

@@ -9,6 +9,9 @@ from . import qa_info
 from typing import *
 
 
+THEME_LOADER_ENABLE_DEV_DEBUGGING = False
+
+
 def _reset_pref() -> None:
     direc = f"{qa_info.App.appdata_dir}\\{qa_info.Files.ad_theme_folder}"
     fp = f"{direc}\\{qa_info.Files.ThemePrefFile}"
@@ -57,7 +60,7 @@ def set_pref(file: str, theme: str, display_name: str) -> None:
         pref_file.close()
 
 
-def _load_pref_data() -> List[str]:
+def load_pref_data() -> List[str]:
     direc = f"{qa_info.App.appdata_dir}\\{qa_info.Files.ad_theme_folder}"
     fp = f"{direc}\\{qa_info.Files.ThemePrefFile}"
 
@@ -85,7 +88,7 @@ def _load_pref_data() -> List[str]:
 
     if not df:
         _reset_pref()
-        return _load_pref_data()
+        return load_pref_data()
 
     dd['file'] = _load_path_prep(dd['file'])
     dd['theme'] = _load_path_prep(dd['theme'])
@@ -449,17 +452,17 @@ class Test:
             n_acc += abs(int(e) - 1)
 
             if not e:
-                acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` not found")
+                acc.append(f"`{theme_name}` - Error #{n_acc}: Data for `{item_name}` not found")
 
             if item_type is qa_custom.HexColor:
                 if not isinstance(d, str):
                     n_acc += 1
-                    acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
+                    acc.append(f"`{theme_name}` - Error #{n_acc}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
 
                 else:
                     if not qa_custom.HexColor(d).check():
                         n_acc += 1
-                        acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (HexColor Check.)")
+                        acc.append(f"`{theme_name}` - Error #{n_acc}: Data for `{item_name}` has invalid/corrupted data (HexColor Check.)")
 
                         if item_name == "background":
                             bg_okay = True
@@ -467,14 +470,14 @@ class Test:
             elif not isinstance(d, item_type):
                 if not (item_type is int and isinstance(d, float)):
                     n_acc += 1
-                    acc.append(f"`{theme_name}` - Error #{acc[0]}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
+                    acc.append(f"`{theme_name}` - Error #{n_acc}: Data for `{item_name}` has invalid/corrupted data (data type not supported.)")
 
             f1 = n_acc == f1
             if f1 and "border" not in item_name:
                 if item_type is int:
                     if d <= 0:
                         n_acc += 1
-                        acc.append(f"{theme_name}` - Error #{acc[0]}: Value for `{item_name}` must have a value of at least 1.")
+                        acc.append(f"{theme_name}` - Error #{n_acc}: Value for `{item_name}` must have a value of at least 1.")
 
                     if d < 6:
                         warnings.append(f"{theme_name}` - Warning: Value for `{item_name}` must has a value of {d}; if value relates to font, the size may be too small.")
@@ -482,7 +485,7 @@ class Test:
                 if item_type is str:
                     if len(d) <= 0:
                         n_acc += 1
-                        acc.append(f'`{theme_name}` - Error #{acc[0]}: Empty string provided for `{item_name}`')
+                        acc.append(f'`{theme_name}` - Error #{n_acc}: Empty string provided for `{item_name}`')
 
                 if item_type is qa_custom.HexColor:
                     if item_name != "background":
@@ -491,14 +494,14 @@ class Test:
 
                             if not AA:
                                 n_acc += 1
-                                acc.append(f"`{theme_name}` - Error #{acc[0]}: Color value for `{item_name}` fails AA contrast check.")
+                                acc.append(f"`{theme_name}` - Error #{n_acc}: Color value for `{item_name}` fails AA contrast check.")
 
                             if not AAA:
                                 warnings.append(f"`{theme_name}` - Warning: Colour value for `{item_name}` does not pass AAA contrast check (non-fatal.)")
 
                         else:
                             n_acc += 1
-                            acc.append(f"`{theme_name}` - Error #{acc[0]}: No background colour to compare to; contrast for color `{item_name}` unknown.")
+                            acc.append(f"`{theme_name}` - Error #{n_acc}: No background colour to compare to; contrast for color `{item_name}` unknown.")
 
         failures.extend(acc)
 
@@ -642,7 +645,11 @@ class TTK:
 
 
 def log(level: qa_enum.LoggingLevel, data: str) -> None:
+    global THEME_LOADER_ENABLE_DEV_DEBUGGING
     assert isinstance(data, str)
+
+    if level == qa_enum.LoggingLevel.DEVELOPER and not THEME_LOADER_ENABLE_DEV_DEBUGGING:
+        return
 
     if level == qa_enum.LoggingLevel.ERROR:
         data = f'{qa_std.ANSI.FG_BRIGHT_RED}{qa_std.ANSI.BOLD}[{level.name.upper()}] {data}{qa_std.ANSI.RESET}\n'
