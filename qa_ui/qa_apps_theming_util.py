@@ -8,7 +8,7 @@ from ctypes import windll
 from typing import *
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel, FileType
 from qa_functions.qa_std import ANSI, AppLogColors
-from qa_functions.qa_custom import Theme
+from qa_functions.qa_custom import Theme, UnexpectedEdgeCase
 
 
 script_name = "APP_TU"
@@ -151,7 +151,7 @@ class _UI(Thread):
 
         self.root.quit()
 
-    def update_ui(self, theme=None) -> None:
+    def update_ui(self, theme: Union[None, Theme] = None) -> None:
         self.load_theme(theme)
 
         def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
@@ -161,10 +161,10 @@ class _UI(Thread):
             except Exception as E:
                 return False, str(E)
 
-        def log_error(com: str, el, reason: str, ind: int) -> None:
+        def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
             log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-        def log_norm(com: str, el) -> None:
+        def log_norm(com: str, el: tk.Widget) -> None:
             log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
         for elID, (_e, _c, _a) in self.update_requests.items():
@@ -433,7 +433,8 @@ class _UI(Thread):
         # External Update Calls
         self.update_theme_selector_options()
 
-    def button_formatter(self, button: tk.Button, accent: bool = False, font_face: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
+    def button_formatter(self, button: tk.Button, accent: bool = False, font_face: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None,
+                         bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -499,7 +500,7 @@ class _UI(Thread):
             )
         ]
 
-    def load_theme(self, theme: Theme = None) -> None:
+    def load_theme(self, theme: Union[Theme, None] = None) -> None:
         if theme is None and (gen_cmp_theme_dict(self.tmp_theme) == self.theme or self.rst_theme):
             self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
             self.rst_theme = False
@@ -730,7 +731,7 @@ class _UI(Thread):
         """
         self.showcase_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-    def onFrameConfig(self, event: Any):
+    def onFrameConfig(self, event: Any) -> None:
         self.showcase_canvas.configure(scrollregion=self.showcase_canvas.bbox("all"))
 
     def load_png(self) -> None:
@@ -893,7 +894,7 @@ class _UI(Thread):
                 it, ins = [], []
 
                 for _, td in all_theme_data.items():
-                    theme_name, theme_data = cast(Tuple[str, qa_functions.Theme], ((*td.keys(),)[0], (*td.values(),)[0]))
+                    theme_name, theme_data = ((*td.keys(),)[0], (*td.values(),)[0])
 
                     comp_theme_dict = gen_cmp_theme_dict(theme_data)
 
@@ -953,8 +954,7 @@ Technical Information:
             }
 
             for theme in themes:
-                theme_data_dict['file_info']['avail_themes'][theme.theme_display_name] = \
-                    cast(str, theme.theme_code)
+                theme_data_dict['file_info']['avail_themes'][theme.theme_display_name] = theme.theme_code
 
                 nt = {
                     'display_name': theme.theme_display_name,
@@ -1201,7 +1201,7 @@ Technical Information:
         self.enable_all_inputs()
         return
 
-    def on_prev_click(self, tp, exs) -> None:
+    def on_prev_click(self, tp: str, exs: ThemeUpdateVars) -> None:
         self.disable_all_inputs()
 
         if tp == 'color':
@@ -1343,7 +1343,7 @@ Technical Information:
         self.enable_all_inputs()
         return True
 
-    def preview_change(self, change_key: ThemeUpdateVars, change: Union[qa_functions.HexColor, int, float, str]):
+    def preview_change(self, change_key: ThemeUpdateVars, change: Union[qa_functions.HexColor, int, float, str]) -> None:
         self.disable_all_inputs()
         TUV = ThemeUpdateVars
 
@@ -1384,6 +1384,8 @@ Technical Information:
                 new_theme.font_face = change
             elif change_key == TUV.ALT_FONT_FACE:
                 new_theme.font_alt_face = change
+        else:
+            raise UnexpectedEdgeCase
 
         if gen_cmp_theme_dict(new_theme) != gen_cmp_theme_dict(self.theme):
             self.update_ui(new_theme)
@@ -1470,7 +1472,7 @@ def clone_theme(theme_data: qa_functions.Theme) -> qa_functions.Theme:
     )
 
 
-def gen_cmp_theme_dict(theme_data: qa_functions.Theme) -> Dict[str, Union[int, float, str]]:
+def gen_cmp_theme_dict(theme_data: Theme) -> Dict[str, Union[int, float, str]]:
     return {
         'background': theme_data.background.color.upper(),
         'foreground': theme_data.foreground.color.upper(),

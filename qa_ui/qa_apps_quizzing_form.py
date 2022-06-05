@@ -17,7 +17,7 @@ DEBUG_DEV_FLAG = False
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds, **kwargs) -> None:
+    def __init__(self, root: Union[tk.Toplevel, tk.Tk], ic: Any, ds: Any, **kwargs: Optional[Any]) -> None:
         super().__init__()
         Thread.__init__(self)
 
@@ -26,18 +26,18 @@ class _UI(Thread):
         self.start()
         self.root.mainloop()
 
-    def close(self):
+    def close(self) -> None:
         sys.stdout.write("qf - _UI.close")
         self.ic.shell = self.ds
         self.ic.shell_ready = False
 
         self.root.after(0, self.root.quit)
 
-    def run(self):
+    def run(self) -> None:
         self.root.protocol('WM_DELETE_WINDOW', self.close)
 
 
-def log(level: LoggingLevel, data: str):
+def log(level: LoggingLevel, data: str) -> None:
     global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
@@ -73,7 +73,7 @@ def log(level: LoggingLevel, data: str):
         )])
 
 
-def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs: Optional[Any]) -> tk.Toplevel:
     qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
     qa_prompts.LOGGER_FUNC = LOGGER_FUNC
     qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME

@@ -59,6 +59,8 @@ class MessagePrompts:
 
     class _CInfo(threading.Thread):
         def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool) -> None:
+            global TTK_THEME
+
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -98,7 +100,9 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
 
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
@@ -373,6 +377,7 @@ class MessagePrompts:
 
     class _CWarning(threading.Thread):
         def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool) -> None:
+            global TTK_THEME
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -411,7 +416,9 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.warning.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.warning.color, 'Prompts')
 
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
@@ -687,6 +694,8 @@ class MessagePrompts:
 
     class _CError(threading.Thread):
         def __init__(self, root: Union[tk.Tk, tk.Toplevel], msg: InfoPacket, quit_on_close: bool) -> None:
+            global TTK_THEME
+
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -700,8 +709,8 @@ class MessagePrompts:
             ratio = (4 if not self.msg.long else 10) / 9
             wd_w = 500 if self.msg.long else 450
             wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-            lwdw = 700 if 700 <= self.screen_dim[0] else self.screen_dim[0]
-            self.window_size = [lwdw if self.msg.long else wd_w, int(ratio * wd_w)]
+            large_wd_w = 700 if 700 <= self.screen_dim[0] else self.screen_dim[0]
+            self.window_size = [large_wd_w if self.msg.long else wd_w, int(ratio * wd_w)]
             self.screen_pos = [
                 int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
                 int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -725,7 +734,9 @@ class MessagePrompts:
             self.svg_path = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup\\{self.appdata_svg_base}\\svg.svg".replace('/', '\\')
             self.img = None
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.error.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.error.color, 'Prompts')
 
             self.title_frame = tk.Frame(self.root)
             self.title_label = tk.Label(self.title_frame)
@@ -987,6 +998,8 @@ class MessagePrompts:
 class InputPrompts:
     class DownloadFile(threading.Thread):
         def __init__(self, data: DownloadPacket, url: Union[None, str] = None) -> None:
+            global TTK_THEME
+
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -1030,7 +1043,9 @@ class InputPrompts:
             self.title_img = None
             self.title_img_size = (50, 50)
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1046,7 +1061,7 @@ class InputPrompts:
             self.close_button = ttk.Button(self.button_panel, command=self.close)
             self.url_entry_frame = tk.Frame(self.page_input)
             self.url_entry_lbl = tk.Label(self.url_entry_frame)
-            self.url_entry = ttk.Entry(self.url_entry_frame)
+            self.url_entry = ttk.Entry(self.url_entry_frame, style='My.TEntry')
             self.err_acc = 0
             self.error_label = tk.Label(self.root)
 
@@ -1596,6 +1611,8 @@ class InputPrompts:
 
     class OptionPrompt(threading.Thread):
         def __init__(self, s_mem: qa_functions.SMem, options: Set[str], title: str, msg: str = "") -> None:
+            global TTK_THEME
+
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -1626,7 +1643,9 @@ class InputPrompts:
                 List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
             ] = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1918,6 +1937,8 @@ class InputPrompts:
 
     class DEntryPrompt(threading.Thread):
         def __init__(self, s_mem: qa_functions.SMem, ans_sep: str, labels_text: List[str]) -> None:
+            global TTK_THEME
+
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -1948,7 +1969,9 @@ class InputPrompts:
                 List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
             ] = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -1961,8 +1984,8 @@ class InputPrompts:
             self.close_button = ttk.Button(self.button_panel, command=self.close)
             self.error_label = tk.Label(self.root)
 
-            self.entry1 = ttk.Entry(self.root)
-            self.entry2 = ttk.Entry(self.root)
+            self.entry1 = ttk.Entry(self.root, style='My.TEntry')
+            self.entry2 = ttk.Entry(self.root, style='My.TEntry')
 
             self.err_acc = 0
 
@@ -2244,6 +2267,8 @@ class InputPrompts:
 
     class SEntryPrompt(threading.Thread):
         def __init__(self, s_mem: qa_functions.SMem, label_text: str, default: str) -> None:
+            global TTK_THEME
+
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -2274,7 +2299,9 @@ class InputPrompts:
                 List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
             ] = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 
@@ -2286,7 +2313,7 @@ class InputPrompts:
             self.close_button = ttk.Button(self.button_panel, command=self.close)
             self.error_label = tk.Label(self.root)
 
-            self.entry1 = ttk.Entry(self.root)
+            self.entry1 = ttk.Entry(self.root, style='My.TEntry')
 
             self.err_acc = 0
 
@@ -2559,6 +2586,7 @@ class InputPrompts:
 
     class ButtonPrompt(threading.Thread):
         def __init__(self, s_mem: qa_functions.SMem, title: str, *buttons: Optional[Tuple[str, str]], default: str = '<default>', message: str = "") -> None:
+            global TTK_THEME
             super().__init__()
             self.thread = threading.Thread
             self.thread.__init__(self)
@@ -2591,7 +2619,9 @@ class InputPrompts:
                 List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
             ] = {}
 
-            self.ttk_style = configure_scrollbar_style(ttk.Style(), self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
             self.ttk_style = configure_button_style(self.ttk_style, self.theme)
             self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
 

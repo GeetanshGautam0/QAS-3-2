@@ -2,13 +2,14 @@ import tkinter as tk, sys, os, qa_functions, traceback, subprocess, random
 from threading import Thread
 from tkinter import ttk
 from typing import *
-from qa_functions.qa_diagnostics import RunTest, Diagnostics
-from .qa_prompts import configure_scrollbar_style, gsuid
 from . import qa_prompts
 from PIL import ImageTk, Image
 from ctypes import windll
+from .qa_prompts import configure_scrollbar_style, gsuid
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
+from qa_functions.qa_diagnostics import RunTest, Diagnostics
 from qa_functions.qa_std import ANSI, AppLogColors
+from qa_functions.qa_custom import HexColor
 
 
 script_name = "APP_RU"
@@ -22,7 +23,7 @@ APP_TITLE = "Quizzing Application | Recovery Utilities"
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds, **kwargs):
+    def __init__(self, root: Union[tk.Toplevel, tk.Tk], ic: Any, ds: Any, **kwargs: Any) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
@@ -41,13 +42,16 @@ class _UI(Thread):
         ]
 
         self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-        self.theme_update_map = {}
+        self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, HexColor, float]] = {}
 
         self.padX = 20
         self.padY = 10
 
         self.load_theme()
-        self.update_requests = {}
+        self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
 
         self.img_path = f"{qa_functions.Files.icoRoot}\\.png\\ftsra.png"
         self.img_size = (75, 75)
@@ -70,8 +74,8 @@ class _UI(Thread):
 
         self.activity_container = tk.LabelFrame(self.root, text="Activity")
         self.activity_box = tk.Listbox(self.activity_container)
-        self.activity = []
-        self.activity_gsuid = {}
+        self.activity: List[str] = []
+        self.activity_gsuid: Dict[str, int] = {}
 
         self.x_sc_bar = ttk.Scrollbar(self.activity_container, orient=tk.HORIZONTAL, style="MyHoriz.TScrollbar")
         self.y_sc_bar = ttk.Scrollbar(self.activity_container, orient=tk.VERTICAL, style="My.TScrollbar")
@@ -79,14 +83,14 @@ class _UI(Thread):
         self.start()
         self.root.mainloop()
 
-    def close(self):
+    def close(self) -> None:
         sys.stdout.write("ru - _UI.close")
         self.ic.shell = self.ds
         self.ic.shell_ready = False
 
         self.root.quit()
 
-    def run(self):
+    def run(self) -> None:
         global DEBUG_NORM, APP_TITLE
         qa_prompts.DEBUG_NORM = DEBUG_NORM
         qa_prompts.TTK_THEME = self.ttk_theme
@@ -99,7 +103,7 @@ class _UI(Thread):
         self.title_box.pack(fill=tk.X, expand=False, pady=50)
         self.title_label.config(text="Recovery Utilities", anchor=tk.W)
         self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
-        self.title_icon.config(image=self.img)
+        self.title_icon.config(image=cast(str, self.img))
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX / 8), pady=self.padY, side=tk.LEFT)
 
@@ -134,36 +138,40 @@ class _UI(Thread):
 
         self.update_ui()
 
-    def disable_all_inputs(self):
+    def disable_all_inputs(self) -> None:
         self.run_check_btn.config(state=tk.DISABLED)
 
-    def enable_all_inputs(self):
+    def enable_all_inputs(self) -> None:
         self.run_check_btn.config(state=tk.NORMAL)
         self.update_ui()
 
-    def load_png(self):
+    def load_png(self) -> None:
         i = Image.open(self.img_path)
         i = i.resize(self.img_size, Image.ANTIALIAS)
         self.img = ImageTk.PhotoImage(i)
 
-    def update_ui(self):
+    def update_ui(self) -> None:
         self.load_theme()
 
-        def tr(com) -> Tuple[bool, str]:
+        def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
             try:
                 com()
                 return True, '<no errors>'
             except Exception as E:
                 return False, str(E)
 
-        def log_error(com: str, el, reason: str, ind: int):
+        def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
             log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-        def log_norm(com: str, el):
+        def log_norm(com: str, el: tk.Widget) -> None:
             log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-        for elID, (element, command, args) in self.update_requests.items():
-            lCommand = [False]
+        for elID, (_e, _c, _a) in self.update_requests.items():
+            element = cast(tk.Button, _e)
+            command = cast(ThemeUpdateCommands, _c)
+            args = cast(List[Any], _a)
+
+            lCommand = [False, '', -1]
             cargs = []
             for index, arg in enumerate(args):
                 carg = arg
@@ -215,7 +223,7 @@ class _UI(Thread):
 
             elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
                 if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -262,7 +270,7 @@ class _UI(Thread):
                     lCommand = [True, 'Invalid args provided', 2]
 
             if lCommand[0] is True:
-                log_error(command.name, element, lCommand[1], lCommand[2])
+                log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
             elif DEBUG_NORM:
                 log_norm(command.name, element)
 
@@ -352,7 +360,8 @@ class _UI(Thread):
             selectforeground=self.theme.background.color
         )
 
-    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid=None):
+    def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
+                         padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -390,7 +399,7 @@ class _UI(Thread):
             ]
         ]
 
-    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] =None, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -418,7 +427,7 @@ class _UI(Thread):
             )
         ]
 
-    def load_theme(self):
+    def load_theme(self) -> None:
         self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
         self.theme_update_map = {
             ThemeUpdateVars.BG: self.theme.background,
@@ -439,7 +448,7 @@ class _UI(Thread):
             ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
         }
 
-    def run_all(self):
+    def run_all(self) -> None:
         self.disable_all_inputs()
         self.clear_lb()
 
@@ -520,7 +529,10 @@ class _UI(Thread):
             s_mem = qa_functions.SMem()
             qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Fix Errors?', ('Yes', 'y'), ('No', 'n'), default='<cancel>', message=f'Found {fail_acc} errors; do you want to fix these errors now?')
 
-            if s_mem.get() == 'y':
+            raw = s_mem.get()
+            assert isinstance(raw, str)
+
+            if raw == 'y':
                 log(LoggingLevel.INFO, f'User agreed to fix errors.')
 
                 self.insert_into_lb("")
@@ -562,9 +574,12 @@ class _UI(Thread):
                         message="The application needs to restart to finish the errors; restart NOW or LATER (when the app is closed)?",
                         default='<none>'
                     )
-                    log(LoggingLevel.INFO, f'User responded: {s_mem.get().strip()}')
+                    raw = s_mem.get()
+                    assert isinstance(raw, str)
 
-                    if s_mem.get().strip().lower() == "<now>":
+                    log(LoggingLevel.INFO, f'User responded: {raw.strip()}')
+
+                    if raw.strip().lower() == "<now>":
                         log(LoggingLevel.INFO, "Restarting app...")
                         subprocess.Popen(['.qa_update\\qa_update_app.exe', 'update', '--ReadFlags', '--noAdmin', '--Console'])
                         sys.exit()
@@ -576,7 +591,7 @@ class _UI(Thread):
             else:
                 log(LoggingLevel.INFO, 'User denied access to fix errors.')
 
-            del s_mem
+            del s_mem, raw
 
         del fail_acc, pass_acc
 
@@ -585,7 +600,7 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
-    def insert_into_lb(self, string: str, bg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG, fg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sbg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.ACCENT, sfg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG):
+    def insert_into_lb(self, string: str, bg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG, fg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sbg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.ACCENT, sfg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG) -> None:
         string = string.replace('\t', '     ')
         self.activity_box.insert(tk.END, string)
 
@@ -603,10 +618,10 @@ class _UI(Thread):
 
         self.activity_box.itemconfig(
             len(self.activity),
-            bg=self.theme_update_map[bg].color if bg in self.theme_update_map else bg,
-            fg=self.theme_update_map[fg].color if fg in self.theme_update_map else fg,
-            selectbackground=self.theme_update_map[sbg].color if sbg in self.theme_update_map else sbg,
-            selectforeground=self.theme_update_map[sfg].color if sfg in self.theme_update_map else sfg,
+            bg=cast(HexColor, self.theme_update_map[cast(ThemeUpdateVars, bg)]).color if bg in self.theme_update_map else bg,
+            fg=cast(HexColor, self.theme_update_map[cast(ThemeUpdateVars, fg)]).color if fg in self.theme_update_map else fg,
+            selectbackground=cast(HexColor, self.theme_update_map[cast(ThemeUpdateVars, sbg)]).color if sbg in self.theme_update_map else sbg,
+            selectforeground=cast(HexColor, self.theme_update_map[cast(ThemeUpdateVars, sfg)]).color if sfg in self.theme_update_map else sfg,
         )
 
         self.activity.append(string.strip())
@@ -614,7 +629,7 @@ class _UI(Thread):
 
         self.root.update()
 
-    def clear_lb(self):
+    def clear_lb(self) -> None:
         self.activity = []
         self.activity_box.delete(0, tk.END)
 
@@ -626,11 +641,11 @@ class _UI(Thread):
 
         self.root.update()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.thread.join(self, 0)
 
 
-def log(level: LoggingLevel, data: str):
+def log(level: LoggingLevel, data: str) -> None:
     global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
@@ -666,7 +681,7 @@ def log(level: LoggingLevel, data: str):
         )])
 
 
-def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs: Optional[Any]) -> tk.Toplevel:
     qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
     qa_prompts.LOGGER_FUNC = LOGGER_FUNC
     qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME

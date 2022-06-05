@@ -38,7 +38,7 @@ class Message:
 
 
 class _UI(Thread):
-    def __init__(self, root, ic, ds, **kwargs) -> None:
+    def __init__(self, root: Union[tk.Toplevel, tk.Tk], ic: Any, ds: Any, **kwargs: Optional[Any]) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
@@ -66,27 +66,23 @@ class _UI(Thread):
         ]
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-        self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor]] = {}
+        self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}
 
         self.padX = 20
         self.padY = 10
 
         self.gi_cl = True
-        self._job = None
+        self._job: Union[None, str] = None
 
         self.load_theme()
         tmp = tk.Label(self.root)
-        self.update_requests: Dict[str, List[Any]] = {'': []}
-        self.late_update_requests: Dict[tk.Widget, List[Any]] = {tmp: []}
+        self.update_requests: Dict[str, List[Any]] = {}
+        self.late_update_requests: Dict[tk.Widget, List[Any]] = {}
         self.data: Dict[Any, Any] = {}
-
-        self.update_requests.pop('')
-        self.late_update_requests.pop(tmp)
-        del tmp
 
         self.img_path = qa_functions.Files.AT_png
         self.img_size = (75, 75)
-        self.svgs = {
+        self.svgs: Dict[str, Any] = {
             'arrow_left': {'accent': '', 'normal': ''},
             'arrow_right': {'accent': '', 'normal': ''},
             'settings_cog': {'accent': '', 'normal': ''},
@@ -107,8 +103,7 @@ class _UI(Thread):
         self.svg_tmp = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup".replace('/', '\\')
         self.load_png()
 
-        self.ttk_theme = self.kwargs['ttk_theme']
-
+        self.ttk_theme = cast(str, self.kwargs['ttk_theme'])
         self.ttk_style = ttk.Style()
         self.ttk_style.theme_use(self.ttk_theme)
         self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Admin')
@@ -236,7 +231,7 @@ class _UI(Thread):
     # Frame Configurators
     # -------------------
 
-    def configure_create_frame(self):
+    def configure_create_frame(self) -> None:
         self.create_title.config(justify=tk.LEFT, anchor=tk.W)
         self.create_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
@@ -294,13 +289,13 @@ class _UI(Thread):
         self.create_inp2_var.trace("w", self.inp2_edit)
         self.create_inp1_var.trace("w", self.inp1_edit)
 
-    def configure_sel_frame(self):
+    def configure_sel_frame(self) -> None:
         self.select_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
         self.select_open.pack(fill=tk.X, expand=True, padx=self.padX, pady=(self.padY, 0), ipady=self.padY)
         self.select_new.pack(fill=tk.X, expand=True, padx=self.padX, ipady=self.padY)
         self.select_scores.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.BOTTOM, ipady=self.padY)
 
-    def configure_edit_frame(self):
+    def configure_edit_frame(self) -> None:
         global DEBUG_NORM
 
         # Layout
@@ -434,7 +429,7 @@ class _UI(Thread):
         self.edit_configuration_canvas.configure(yscrollcommand=self.edit_configuration_vsb.set)
 
         self.edit_configuration_canvas.create_window(
-            (0, 0),
+            0, 0,
             window=self.edit_configuration_frame,
             anchor="nw",
             tags="self.edit_configuration_frame"
@@ -456,7 +451,7 @@ class _UI(Thread):
                 (self.edit_config_dpi_lbl, 'dpi'),
                 (self.edit_config_dda_lbl, 'dda')
         ):
-            self._config_lbl_wrl(cast(tk.Label, el), name)
+            self._config_lbl_wrl(el, name)
 
         self.edit_config_ssd_var.set('')
         self.edit_config_dda_var.set('')
@@ -669,7 +664,7 @@ class _UI(Thread):
 
         del COM, VAR
 
-    def configure_edit_controls(self):
+    def configure_edit_controls(self) -> None:
         d = copy.deepcopy(self.data[self.EDIT_PAGE]['db']['CONFIGURATION'])
         if d['acc']:
             self.edit_config_acc_btn1.config(style='Active.TButton', state=tk.DISABLED, text='Enabled')
@@ -718,7 +713,7 @@ class _UI(Thread):
     # LL Event Handlers
     # -----------------
 
-    def _on_mousewheel(self, event):
+    def _on_mousewheel(self, event: Any) -> None:
         """
         Straight out of stackoverflow
         Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
@@ -729,31 +724,31 @@ class _UI(Thread):
 
         self.edit_configuration_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-    def onFrameConfig(self, event):
+    def onFrameConfig(self, _: Any) -> None:
         self.edit_configuration_canvas.configure(scrollregion=self.edit_configuration_canvas.bbox("all"))
 
     # ------------
     # GEO Handlers
     # ------------
 
-    def geo_large(self):
+    def geo_large(self) -> None:
         self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
 
-    def geo_small(self):
+    def geo_small(self) -> None:
         self.root.geometry(f"{self.window_size_2[0]}x{self.window_size_2[1]}+{self.screen_pos_2[0]}+{self.screen_pos_2[1]}")
 
     # -----
     # SETUP
     # -----
 
-    def close(self, *_0, **_1):
+    def close(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         sys.stdout.write("at - _UI.close")
         self.ic.shell = self.ds
         self.ic.shell_ready = False
 
         self.root.quit()
 
-    def run(self):
+    def run(self) -> None:
         global DEBUG_NORM, APP_TITLE
         qa_prompts.DEBUG_NORM = DEBUG_NORM
         qa_prompts.TTK_THEME = self.ttk_theme
@@ -782,16 +777,16 @@ class _UI(Thread):
         self.update_requests['title_box0'] = [self.title_box, TUC.BG, [TUV.BG]]
 
         self.menu.add_cascade(menu=self.menu_file, label='Database')
-        self.menu_file.add_command(label='Create New Database', command=lambda: self.root.focus_get().event_generate('<<NewDB>>'))
-        self.menu_file.add_command(label='Open Database', command=lambda: self.root.focus_get().event_generate('<<OpenDB>>'))
-        self.menu_file.add_command(label='Close Database', command=lambda: self.root.focus_get().event_generate('<<CloseDB>>'))
+        self.menu_file.add_command(label='Create New Database', command=self.new_entry)
+        self.menu_file.add_command(label='Open Database', command=self.open_entry)
+        self.menu_file.add_command(label='Close Database', command=self.close_entry)
 
-        self.context_menu.add_command(label='Create New Database', command=lambda: self.root.focus_get().event_generate('<<NewDB>>'))
-        self.context_menu.add_command(label='Open Database', command=lambda: self.root.focus_get().event_generate('<<OpenDB>>'))
-        self.context_menu.add_command(label='Close Database', command=lambda: self.root.focus_get().event_generate('<<CloseDB>>'))
+        self.context_menu.add_command(label='Create New Database', command=self.new_entry)
+        self.context_menu.add_command(label='Open Database', command=self.open_entry)
+        self.context_menu.add_command(label='Close Database', command=self.close_entry)
 
         self.menu_file.add_separator()
-        self.menu_file.add_command(label='Exit', command=lambda: self.root.focus_get().event_generate('<<ExitCall>>'))
+        self.menu_file.add_command(label='Exit', command=self.close)
 
         self.update_requests['select_frame0'] = [self.select_frame, TUC.BG, [TUV.BG]]
         self.update_requests['db_frame0'] = [self.db_frame, TUC.BG, [TUV.BG]]
@@ -800,8 +795,6 @@ class _UI(Thread):
         self.label_formatter(self.create_title, size=TUV.FONT_SIZE_TITLE, fg=TUV.ACCENT, uid='create_title')
         self.label_formatter(self.general_info_label, size=TUV.FONT_SIZE_SMALL, uid='general_info_label')
 
-        self.root.bind('<<ExitCall>>', self.close)
-        self.root.bind('<<CloseDB>>', self.close_entry)
         self.root.bind('<3>', self.context_menu_show)
         self.root.bind('<F5>', self.update_ui)
         self.root.bind('<Control-r>', self.update_ui)
@@ -821,39 +814,39 @@ class _UI(Thread):
     # Custom Event Handlers
     # ---------------------
 
-    def _acc_enable(self, *args, **kwargs):
+    def _acc_enable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['acc'] = True
         self.configure_edit_controls()
 
-    def _acc_disable(self, *args, **kwargs):
+    def _acc_disable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['acc'] = False
         self.configure_edit_controls()
 
-    def _poa_part(self, *args, **kwargs):
+    def _poa_part(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['poa'] = 'p'
         self.configure_edit_controls()
 
-    def _poa_all(self, *args, **kwargs):
+    def _poa_all(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['poa'] = 'a'
         self.configure_edit_controls()
 
-    def _rqo_enable(self, *args, **kwargs):
+    def _rqo_enable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['rqo'] = True
         self.configure_edit_controls()
 
-    def _rqo_disable(self, *args, **kwargs):
+    def _rqo_disable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['rqo'] = False
         self.configure_edit_controls()
 
-    def _dpi_enable(self, *args, **kwargs):
+    def _dpi_enable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['dpi'] = True
         self.configure_edit_controls()
 
-    def _dpi_disable(self, *args, **kwargs):
+    def _dpi_disable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['dpi'] = False
         self.configure_edit_controls()
 
-    def _ssd_inp(self, *args, **kwargs):
+    def _ssd_inp(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         if self.page_index != self.EDIT_PAGE:
             return
 
@@ -906,7 +899,7 @@ class _UI(Thread):
             )
             return
 
-    def _dda_inp(self, *args, **kwargs):
+    def _dda_inp(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         if self.page_index != self.EDIT_PAGE:
             return
 
@@ -959,7 +952,7 @@ class _UI(Thread):
             )
             return
 
-    def _config_lbl_wrl(self, el: tk.Label, name: str):
+    def _config_lbl_wrl(self, el: tk.Label, name: str) -> None:
         if el not in self.late_update_requests:
             self.late_update_requests[el] = []
 
@@ -988,7 +981,7 @@ class _UI(Thread):
             ]
         )
 
-    def expand_click(self, *args, **kwargs):
+    def expand_click(self, *_0: Optional[Any], **kwargs: Optional[Any]) -> None:
         try:
             curr = self.data[self.EDIT_PAGE]['_UI']['sb_shrunk']
             self.data[self.EDIT_PAGE]['_UI']['sb_shrunk'] = curr if kwargs.get('do_not_reset') else not curr
@@ -1010,7 +1003,7 @@ class _UI(Thread):
             self.edit_db_name.config(text=f"Current Database: \"{self.data[self.EDIT_PAGE]['db']['DB']['name']}\"")
             self.edit_pic.config(text="Admin Tools")
 
-    def db_psw_toggle(self, *args, **kwargs):
+    def db_psw_toggle(self, *_0: Optional[Any], **kwargs: Optional[Any]) -> None:
         if self.EDIT_PAGE not in self.data:
             return
 
@@ -1018,7 +1011,7 @@ class _UI(Thread):
 
         if not kwargs.get('nrst'):
             if not cond:
-                if self.db_psw_change()[1]:
+                if cast(Tuple[Any, ...], self.db_psw_change())[1]:
                     self.show_info(Message(Levels.ERROR, "Couldn't set password."))
                     return
 
@@ -1027,21 +1020,21 @@ class _UI(Thread):
 
         if cond:
             try:
-                self.edit_db_psw_button.image = self.svgs['checkmark']['accent']
+                self.edit_db_psw_button.image = self.svgs['checkmark']['accent']    # type: ignore
                 self.edit_db_psw_button.config(compound=tk.LEFT, image=self.svgs['checkmark']['accent'], style='Active.TButton')
             except Exception as E:
                 self.edit_db_psw_button.config(style='Active.TButton')
                 log(LoggingLevel.ERROR, f"Failed to add image to <edit_db_psw_button> : {E.__class__.__name__}({E})")
         else:
             self.data[self.EDIT_PAGE]['db']['DB']['psw'][1] = ''
-            self.edit_db_psw_button.image = ''
+            self.edit_db_psw_button.image = ''                                      # type: ignore
             self.edit_db_psw_button.config(style='TButton', image='')
 
         self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
 
-    def db_psw_change(self, *args, **kwargs):
+    def db_psw_change(self, *_0: Optional[Any], **_1: Optional[Any]) -> Optional[Tuple[Any, ...]]:
         if self.EDIT_PAGE not in self.data:
-            return
+            return None
 
         self.disable_all_inputs()
         self.busy = True
@@ -1057,9 +1050,10 @@ class _UI(Thread):
         if isinstance(res, str):
             res = res.strip()
             if res != '':
-                a = res.split(sep)
-                if len(a) == 2:
-                    a, b = a
+                c = res.split(sep)
+                if len(c) == 2:
+                    a, b = c
+                    del c
                     f = False
 
                     if a == b:
@@ -1088,7 +1082,7 @@ class _UI(Thread):
         del s_mem
         return f, f1
 
-    def qz_psw_toggle(self, *args, **kwargs):
+    def qz_psw_toggle(self, *_0: Optional[Any], **kwargs: Optional[Any]) -> None:
         if self.EDIT_PAGE not in self.data:
             return
 
@@ -1096,7 +1090,7 @@ class _UI(Thread):
 
         if not kwargs.get('nrst'):
             if not cond:
-                if self.qz_psw_change()[1]:
+                if cast(Tuple[Any, ...], self.qz_psw_change())[1]:
                     self.show_info(Message(Levels.ERROR, "Couldn't set password."))
                     return
 
@@ -1110,9 +1104,9 @@ class _UI(Thread):
             self.data[self.EDIT_PAGE]['db']['DB']['q_psw'][1] = ''
             self.edit_qz_psw_button.config(style='TButton', image='')
 
-    def qz_psw_change(self, *args, **kwargs):
+    def qz_psw_change(self, *_0: Optional[Any], **_1: Optional[Any]) -> Optional[Tuple[Any, ...]]:
         if self.EDIT_PAGE not in self.data:
-            return
+            return None
 
         self.disable_all_inputs()
         self.busy = True
@@ -1128,9 +1122,10 @@ class _UI(Thread):
         if isinstance(res, str):
             res = res.strip()
             if res != '':
-                a = res.split(sep)
-                if len(a) == 2:
-                    a, b = a
+                c = res.split(sep)
+                if len(c) == 2:
+                    a, b = c
+                    del c
                     f = False
 
                     if a == b:
@@ -1139,6 +1134,7 @@ class _UI(Thread):
                         s_mem.set('')
                         qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Reset Quiz Password?', ('Yes', 'y'), ("No", 'n'), default='n', message=f'Are you sure you want to reset your password to "{a}"')
                         if s_mem.get() == 'y':
+                            assert isinstance(a, str)
                             hashed = hashlib.sha3_512(a.encode()).hexdigest()
                             self.data[self.EDIT_PAGE]['db']['DB']['q_psw'] = [True, hashed]
                             self.show_info(Message(Levels.OKAY, 'Successfully reset quiz password'))
@@ -1159,7 +1155,7 @@ class _UI(Thread):
         del s_mem
         return f, f1
 
-    def inp2_edit(self, *args, **kwargs):
+    def inp2_edit(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global MAX
 
         a = self.create_inp2_var.get()
@@ -1169,7 +1165,7 @@ class _UI(Thread):
                 Message(Levels.ERROR, f'Password length cannot exceed {MAX} characters ({random.randint(0, 10)})')
             )
 
-    def inp1_edit(self, *args, **kwargs):
+    def inp1_edit(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global MAX
 
         a = self.create_inp1_var.get()
@@ -1179,7 +1175,7 @@ class _UI(Thread):
                 Message(Levels.ERROR, f'Name length cannot exceed {MAX} characters ({random.randint(0, 10)})')
             )
 
-    def _clear_info(self):
+    def _clear_info(self) -> None:
         if not self.gi_cl:
             return
 
@@ -1193,7 +1189,7 @@ class _UI(Thread):
         if self._job is not None:
             self.root.after_cancel(self._job)
 
-    def show_info(self, data: Message, timeout=3000):
+    def show_info(self, data: Message, timeout: int = 3000) -> None:
         if timeout < 10:  # Useless
             return
 
@@ -1214,7 +1210,7 @@ class _UI(Thread):
         self._job = self.root.after(timeout, self._clear_info)
         self.update_ui()
 
-    def ask_db_frame(self):
+    def ask_db_frame(self) -> None:
         self.prev_page = self.page_index
 
         self.db_frame.pack_forget()
@@ -1228,7 +1224,7 @@ class _UI(Thread):
 
         self.geo_small()
 
-    def create_db_frame(self):
+    def create_db_frame(self) -> None:
         self.prev_page = self.page_index
 
         self.db_frame.pack_forget()
@@ -1245,7 +1241,7 @@ class _UI(Thread):
 
         self.geo_small()
 
-    def edit_db_frame(self):
+    def edit_db_frame(self) -> None:
         self.prev_page = self.page_index
 
         self.select_frame.pack_forget()
@@ -1261,7 +1257,7 @@ class _UI(Thread):
         self.geo_large()
         self.edit_configuration()
 
-    def psw_sel_click(self, reset=False):
+    def psw_sel_click(self, reset: bool = False) -> None:
         if self.CREATE_PAGE not in self.data:
             reset = True
         elif 'psw_enb' not in self.data[self.CREATE_PAGE] or 'psw' not in self.data[self.CREATE_PAGE]:
@@ -1292,11 +1288,11 @@ class _UI(Thread):
         else:
             self.psw_sel_click(True)
 
-    def context_menu_show(self, e, *_0, **_1):
+    def context_menu_show(self, e: Any, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         if self.page_index == self.EDIT_PAGE:
             self.context_menu.post(e.x_root, e.y_root)
 
-    def proc_exit(self, exit_to_page):
+    def proc_exit(self, exit_to_page: Union[None, int]) -> None:
         self.page_index = exit_to_page if exit_to_page is not None else self.prev_page
         self.busy, self.dsb = False, False
 
@@ -1315,7 +1311,7 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
-    def new_entry(self, *_0, **_1):
+    def new_entry(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
 
         if self.dsb or self.busy:
@@ -1338,7 +1334,7 @@ class _UI(Thread):
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-    def close_entry(self, *_0, **_1):
+    def close_entry(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
 
         if self.dsb or self.busy:
@@ -1376,7 +1372,7 @@ class _UI(Thread):
                     LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
                 )])
 
-    def open_entry(self, *_0, **_1):
+    def open_entry(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
 
         if self.dsb or self.busy:
@@ -1391,7 +1387,7 @@ class _UI(Thread):
                 if file_name.split('.')[-1] != 'aspx':
                     file = qa_functions.File(file_name)
                     raw = qa_functions.OpenFile.load_file(file, qa_functions.OpenFunctionArgs())
-                    read, _ = qa_files.load_file(FileType.QA_FILE, raw)
+                    read, _ = cast(Tuple[bytes, str], qa_files.load_file(FileType.QA_FILE, raw))
                     self.open(file_name, json.loads(read), False)
 
         except Exception as E:
@@ -1416,7 +1412,7 @@ class _UI(Thread):
     # PAGE CHANGE
     # -----------
 
-    def edit_configuration(self, *_0, **_1):
+    def edit_configuration(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
         self.edit_configuration_btn.config(style='ActiveLG.TButton', image=self.svgs['settings_cog_large']['accent'])
         self.edit_questions_btn.config(style='LG.TButton', image=self.svgs['question_large']['normal'])
@@ -1428,7 +1424,7 @@ class _UI(Thread):
 
         self.update_ui()
 
-    def edit_questions(self, *_0, **_1):
+    def edit_questions(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
         self.edit_questions_btn.config(style='ActiveLG.TButton', image=self.svgs['question_large']['accent'])
         self.edit_configuration_btn.config(style='LG.TButton', image=self.svgs['settings_cog_large']['normal'])
@@ -1441,21 +1437,21 @@ class _UI(Thread):
     # Main Functions
     # --------------
 
-    def compile_changes(self):
+    def compile_changes(self) -> Tuple[bool, Tuple[List[Tuple[Union[Tuple[str, int], str], Any, Any]], List[str]]]:
         if not qa_functions.data_at_dict_path(f'{self.EDIT_PAGE}/db_saved', self.data)[0]:
             return False, ([], [])
 
         if self.data[self.EDIT_PAGE]['db_saved'] == self.data[self.EDIT_PAGE]['db']:
             return False, ([], [])
 
-        def rec(og: any, new: any, root="") -> Tuple[List[Tuple], List[str]]:
-            c: List[Tuple] = []
+        def rec(og: Any, new: Any, root: str = "") -> Tuple[List[Tuple[Union[Tuple[str, int], str], Any, Any]], List[str]]:
+            c: List[Tuple[Union[Tuple[str, int], str], Any, Any]] = []
             f: List[str] = []
 
             # assert , "[CRITICAL] Failed to compile changes: {DDT}"
             if type(og) is not type(new):
                 if isinstance(new, dict):
-                    og1 = {k: None for k in cast(dict, new).keys()}
+                    og1 = {k: None for k in new.keys()}
                     c1, f1 = rec(og1, new)
                     c.extend(c1)
                     f.extend(f1)
@@ -1466,15 +1462,13 @@ class _UI(Thread):
 
                 return c, f
 
-            tp = type(og)
-
-            if tp in [list, dict, tuple, set]:
+            if isinstance(og, (list, dict, tuple, set)):
                 # assert , "[CRITICAL] Failed to compile changes: {LEN}"
                 if len(og) != len(new):
                     if isinstance(new, dict):
                         if isinstance(og, dict):
-                            tks = {*cast(dict, og).keys(), *cast(dict, new).keys()}
-                            og1, new1 = {k: cast(dict, og).get(k) for k in tks}, {k: cast(dict, new).get(k) for k in tks}
+                            tks = {*og.keys(), *new.keys()}
+                            og1, new1 = {k: og.get(k) for k in tks}, {k: new.get(k) for k in tks}
                             c1, f1 = rec(og1, new1)
                             c.extend(c1)
                             f.extend(f1)
@@ -1490,35 +1484,34 @@ class _UI(Thread):
                     else:
                         c.append((root, '<ls>', '<data_added_or_removed>'))
 
-                elif tp is dict:
-                    for (k1, _), (k2, _1) in zip(cast(dict, og).items(), cast(dict, new).items()):
+                elif isinstance(og, dict):
+                    for (k1, _), (k2, _1) in zip(og.items(), new.items()):
                         if k1 != k2:
                             f.append('[CRITICAL] Failed to compile changes: {KoKt}')
                             continue
 
-                        a, b = rec(cast(dict, og)[k1], cast(dict, new)[k1], k1)
+                        a, b = rec(og[k1], new[k1], k1)
                         c.extend(a)
                         f.extend(b)
                         del a, b
 
                 else:
                     for i, (a, b) in enumerate(zip(og, new)):
-                        if cast(Union[str, bytes, int, float, bool], a) != cast(Union[str, bytes, int, float, bool], b):
+                        if cast(Any, a) != cast(Any, b):
                             c.append(((root, i), a, b))
 
             else:
                 if cast(Union[str, bytes, int, float, bool], og) != cast(Union[str, bytes, int, float, bool], new):
                     c.append((root, og, new))
 
-            del tp
             return c, f
 
         changes = rec(self.data[self.EDIT_PAGE]['db_saved'], self.data[self.EDIT_PAGE]['db'])
         return True, changes
 
     @staticmethod
-    def compile_changes_str(changes):
-        n_map = {
+    def compile_changes_str(changes: List[Tuple[Union[Tuple[str, int], str], Any, Any]]) -> str:
+        n_map: Dict[Any, Any] = {
             'psw': {
                 0: ['Database Password Protection', True, True],
                 1: ['Admin password', False, True]
@@ -1541,6 +1534,7 @@ class _UI(Thread):
         }
 
         c = []
+        print(changes)
         for n, og, new in changes:
             if isinstance(n, tuple):
                 n, ind = n
@@ -1573,7 +1567,7 @@ class _UI(Thread):
 
         return "\n   *" + "\n   *".join(c)
 
-    def save_db(self, _do_not_prompt: bool = False):
+    def save_db(self, _do_not_prompt: bool = False) -> None:
         s_mem = qa_functions.SMem()
         s_mem.set('n')
         changed, [changes, failures] = self.compile_changes()
@@ -1602,10 +1596,10 @@ class _UI(Thread):
         if r is None:
             return
 
-        if cast(str, r).strip() == 'y' or _do_not_prompt:
-            new = json.dumps(self.data[self.EDIT_PAGE]['db'])
+        if r.strip() == 'y' or _do_not_prompt:
+            new_str = json.dumps(self.data[self.EDIT_PAGE]['db'])
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
-            new, _ = cast(Tuple, qa_files.generate_file(FileType.QA_FILE, new))
+            new, _ = cast(Tuple[bytes, str], qa_files.generate_file(FileType.QA_FILE, new_str))
             qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
             self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(self.data[self.EDIT_PAGE]['db'])
             log(LoggingLevel.SUCCESS, 'Successfully saved new data to database.')
@@ -1613,7 +1607,7 @@ class _UI(Thread):
 
         del s_mem
 
-    def new_main(self, *_0, **_1):
+    def new_main(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global MAX
 
         log(LoggingLevel.DEBUG, 'Entered new_main proc')
@@ -1689,7 +1683,7 @@ class _UI(Thread):
         db_starter = json.dumps(db_starter_dict, indent=4)
 
         try:
-            data, _ = qa_files.generate_file(FileType.QA_FILE, db_starter)
+            data, _ = cast(Tuple[bytes, str], qa_files.generate_file(FileType.QA_FILE, db_starter))
             qa_functions.SaveFile.secure(file, data, qa_functions.SaveFunctionArgs(append=False, encrypt=False, save_data_type=bytes))
         except Exception as E:
             log(LoggingLevel.ERROR, f'DB_CREATION: [save proc]: {traceback.format_exc()}')
@@ -1706,14 +1700,14 @@ Technical Information: {traceback.format_exc()}"""))
         self.open(file.file_path, db_starter_dict, True)
 
     @staticmethod
-    def _clean_db(db: dict) -> dict:
+    def _clean_db(db: Dict[str, Any]) -> Dict[str, Any]:
         assert isinstance(db, dict)
         name_f, name_d = qa_functions.data_at_dict_path('DB/name', db)
         assert name_f
 
         log(LoggingLevel.INFO, 'Checking database integrity')
 
-        def rs_name():
+        def rs_name() -> None:
             log(LoggingLevel.ERROR, 'Name data corrupted')
 
             s_mem = qa_functions.SMem()
@@ -1721,9 +1715,11 @@ Technical Information: {traceback.format_exc()}"""))
 
             while True:
                 qa_prompts.InputPrompts.SEntryPrompt(s_mem, 'The database\'s name data was corrupted; please enter a new name below:', default='')
-                res = s_mem.get().strip()
+                res = s_mem.get()
                 if res is None:
                     continue
+                res = res.strip()
+
                 if len(res) > 0:
                     break
 
@@ -1814,7 +1810,7 @@ Technical Information: {traceback.format_exc()}"""))
 
         return db
 
-    def open(self, path: str, data: dict, _bypass_psw: bool = False):
+    def open(self, path: str, data: Dict[Any, Any], _bypass_psw: bool = False) -> None:
         assert os.path.isfile(path)
         assert type(data) is dict
 
@@ -1857,17 +1853,14 @@ Technical Information: {traceback.format_exc()}"""))
                 s_mem = qa_functions.SMem()
                 qa_prompts.InputPrompts.SEntryPrompt(s_mem, f'Enter database password for \'{data["DB"]["name"]}\'', '')
 
-                if s_mem.get() is None:
+                r = s_mem.get()
+                if r is None:
                     del s_mem
 
                     self.proc_exit(self.SELECT_PAGE)
                     return
 
-                r = s_mem.get()
-                if r is None:
-                    return
-
-                if cast(str, r).strip()  == '':
+                if r.strip() == '':
                     del s_mem
                     self.proc_exit(self.SELECT_PAGE)
                     return
@@ -1917,33 +1910,37 @@ Technical Information: {traceback.format_exc()}"""
     # DEFAULT UI FUNCTIONS
     # --------------------
 
-    def update_ui(self, *_9, **_1):
+    def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 
-        def tr(com, *args, **kwargs) -> Tuple[bool, str]:
+        def tr(com: Any, *a: Any, **k: Any) -> Tuple[bool, str]:
             try:
-                return True, com(*args, **kwargs)
+                return True, com(*a, **k)
             except Exception as E:
                 return False, f"{E.__class__.__name__}({E})"
 
-        def log_error(com: str, el, reason: str, ind: int):
+        def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
             log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
-        def log_norm(com: str, el):
+        def log_norm(com: str, el: tk.Widget) -> None:
             log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
-        for elID, (element, command, args) in self.update_requests.items():
-            lCommand = [False]
-            cargs = []
-            for index, arg in enumerate(args):
-                cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+        for elID, (_e, _c, _a) in self.update_requests.items():
+            command = cast(ThemeUpdateCommands, _c)
+            element = cast(tk.Button, _e)
+            args = cast(List[Any], _a)
 
-                if isinstance(cargs[index], qa_functions.HexColor):
-                    cargs[index] = cargs[index].color
+            lCommand = [False, '', -1]
+            cleaned_args = []
+            for index, arg in enumerate(args):
+                cleaned_args.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+
+                if isinstance(cleaned_args[index], qa_functions.HexColor):
+                    cleaned_args[index] = cleaned_args[index].color
 
             if command == ThemeUpdateCommands.BG:  # Background
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(bg=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(bg=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -1951,8 +1948,8 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.FG:  # Foreground
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(fg=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(fg=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -1960,8 +1957,8 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(activebackground=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(activebackground=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -1969,8 +1966,8 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(activeforeground=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(activeforeground=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -1978,8 +1975,8 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -1987,8 +1984,8 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(highlightthickness=cargs[0], bd=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(highlightthickness=cleaned_args[0], bd=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -1996,8 +1993,8 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.FONT:  # Font
-                if len(cargs) == 2:
-                    ok, rs = tr(lambda: element.config(font=(cargs[0], cargs[1])))
+                if len(cleaned_args) == 2:
+                    ok, rs = tr(lambda: element.config(font=(cleaned_args[0], cleaned_args[1])))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -2005,20 +2002,20 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             elif command == ThemeUpdateCommands.CUSTOM:  # Custom
-                if len(cargs) <= 0:
+                if len(cleaned_args) <= 0:
                     lCommand = [True, 'Function not provided', 1]
-                elif len(cargs) == 1:
-                    ok, rs = tr(cargs[0])
+                elif len(cleaned_args) == 1:
+                    ok, rs = tr(cleaned_args[0])
                     if not ok:
                         lCommand = [True, rs, 0]
-                elif len(cargs) > 1:
-                    ok, rs = tr(lambda: cargs[0](*cargs[1::]))
+                elif len(cleaned_args) > 1:
+                    ok, rs = tr(lambda: cleaned_args[0](*cleaned_args[1::]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
             elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
-                if len(cargs) == 1:
-                    ok, rs = tr(lambda: element.config(wraplength=cargs[0]))
+                if len(cleaned_args) == 1:
+                    ok, rs = tr(lambda: element.config(wraplength=cleaned_args[0]))
                     if not ok:
                         lCommand = [True, rs, 0]
 
@@ -2026,11 +2023,11 @@ Technical Information: {traceback.format_exc()}"""
                     lCommand = [True, 'Invalid args provided', 2]
 
             if lCommand[0] is True:
-                log_error(command.name, element, lCommand[1], lCommand[2])
+                log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
             elif DEBUG_NORM:
                 log_norm(command.name, element)
 
-            del lCommand, cargs
+            del lCommand, cleaned_args
 
         # TTK
         self.ttk_style.configure(
@@ -2173,47 +2170,49 @@ Technical Information: {traceback.format_exc()}"""
 
         elID = "<lUP::unknown>"
 
-        for element, commands in self.late_update_requests.items():
-            assert type(commands) in [list, tuple, set]
-            commands: Union[list, tuple, set]
+        for _e, commands in self.late_update_requests.items():
+            assert isinstance(commands, (list, tuple, set))
+            element = cast(tk.Button, _e)
 
-            for command, args in commands:
+            for _c, _a in commands:
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
                 lCommand = [False]
-                cargs = []
+                cleaned_args = []
                 for index, arg in enumerate(args):
-                    carg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                    cleaned_arg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
 
                     if isinstance(arg, tuple):
                         if len(arg) >= 2:
                             if arg[0] == '<EXECUTE>':
                                 ps, res = (tr(arg[1]) if len(args) == 2 else tr(arg[1], arg[2::]))
                                 if ps:
-                                    carg = res
+                                    cleaned_arg = res
                                 else:
                                     log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
 
                             if arg[0] == '<LOOKUP>':
-                                rs = {
+                                rs_b: int = cast(int, {
                                     'padX': self.padX,
                                     'padY': self.padY,
                                     'root_width': self.root.winfo_width(),
                                     'root_height': self.root.winfo_height(),
-                                }.get(arg[1])
+                                }.get(cast(str, arg[1])))
 
-                                if rs is not None:
-                                    carg = rs
+                                if rs_b is not None:
+                                    cleaned_arg = rs_b
                                 else:
                                     log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
 
-                    cargs.append(carg)
-                    cargs: list
+                    cleaned_args.append(cleaned_arg)
 
-                    if isinstance(cargs[index], qa_functions.HexColor):
-                        cargs[index] = cargs[index].color
+                    if isinstance(cleaned_args[index], qa_functions.HexColor):
+                        cleaned_args[index] = cleaned_args[index].color
 
                 if command == ThemeUpdateCommands.BG:  # Background
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(bg=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(bg=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2221,8 +2220,8 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.FG:  # Foreground
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(fg=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(fg=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2230,8 +2229,8 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(activebackground=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(activebackground=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2239,8 +2238,8 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(activeforeground=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(activeforeground=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2248,8 +2247,8 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent, highlightbackground=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2257,8 +2256,8 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(highlightthickness=cargs[0], bd=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(highlightthickness=cleaned_args[0], bd=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2266,8 +2265,8 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.FONT:  # Font
-                    if len(cargs) == 2:
-                        ok, rs = tr(lambda: element.config(font=(cargs[0], cargs[1])))
+                    if len(cleaned_args) == 2:
+                        ok, rs = tr(lambda: element.config(font=(cleaned_args[0], cleaned_args[1])))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2275,20 +2274,20 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 elif command == ThemeUpdateCommands.CUSTOM:  # Custom
-                    if len(cargs) <= 0:
+                    if len(cleaned_args) <= 0:
                         lCommand = [True, 'Function not provided', 1]
-                    elif len(cargs) == 1:
-                        ok, rs = tr(cargs[0])
+                    elif len(cleaned_args) == 1:
+                        ok, rs = tr(cleaned_args[0])
                         if not ok:
                             lCommand = [True, rs, 0]
-                    elif len(cargs) > 1:
-                        ok, rs = tr(lambda: cargs[0](*cargs[1::]))
+                    elif len(cleaned_args) > 1:
+                        ok, rs = tr(lambda: cleaned_args[0](*cleaned_args[1::]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
                 elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
-                    if len(cargs) == 1:
-                        ok, rs = tr(lambda: element.config(wraplength=cargs[0]))
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(wraplength=cleaned_args[0]))
                         if not ok:
                             lCommand = [True, rs, 0]
 
@@ -2296,13 +2295,14 @@ Technical Information: {traceback.format_exc()}"""
                         lCommand = [True, 'Invalid args provided', 2]
 
                 if lCommand[0] is True:
-                    log_error(command.name, element, lCommand[1], lCommand[2])
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
                     log_norm(command.name, element)
 
-                del lCommand, cargs
+                del lCommand, cleaned_args
 
-    def button_formatter(self, button: tk.Button, accent=False, font=ThemeUpdateVars.DEFAULT_FONT_FACE, size=ThemeUpdateVars.FONT_SIZE_MAIN, padding=None, bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, abg=ThemeUpdateVars.ACCENT, afg=ThemeUpdateVars.BG, uid=None):
+    def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
+                         padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -2340,7 +2340,8 @@ Technical Information: {traceback.format_exc()}"""
             ]
         ]
 
-    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg=ThemeUpdateVars.BG, fg=ThemeUpdateVars.FG, size=ThemeUpdateVars.FONT_SIZE_MAIN, font=ThemeUpdateVars.DEFAULT_FONT_FACE, padding=None, uid=None):
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
+                        font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -2368,7 +2369,7 @@ Technical Information: {traceback.format_exc()}"""
             )
         ]
 
-    def load_theme(self):
+    def load_theme(self) -> None:
         self.theme = qa_functions.qa_theme_loader.Load.auto_load_pref_theme()
         self.rst_theme = False
 
@@ -2391,34 +2392,39 @@ Technical Information: {traceback.format_exc()}"""
             ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
         }
 
-    def load_png(self):
+    def load_png(self) -> None:
         i = Image.open(self.img_path)
         i = i.resize(self.img_size, Image.ANTIALIAS)
         self.svgs['admt'] = ImageTk.PhotoImage(i)
+        
+        ls: Tuple[
+            Tuple[str, str, HexColor, HexColor, Union[int, float], Tuple[str, str]],
+            ...] = (
+            (self.checkmark_src, 'c_mark', self.theme.background, self.theme.accent, self.theme.font_main_size, ('checkmark', 'normal')),
+            (self.checkmark_src, 'c_mark_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('checkmark', 'accent')),
+            (self.cog_src, 'cog', self.theme.background, self.theme.accent, self.theme.font_main_size, ('settings_cog', 'normal')),
+            (self.cog_src, 'cog_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('settings_cog', 'accent')),
+            (self.arrow_right_src, 'arrow_right', self.theme.background, self.theme.accent, self.theme.font_main_size, ('arrow_right', 'normal')),
+            (self.arrow_right_src, 'arrow_right_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_right', 'accent')),
+            (self.arrow_left_src, 'arrow_left', self.theme.background, self.theme.accent, self.theme.font_main_size, ('arrow_left', 'normal')),
+            (self.arrow_left_src, 'arrow_left_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_left', 'accent')),
+            (self.question_src, 'question', self.theme.background, self.theme.accent, self.theme.font_main_size, ('question', 'normal')),
+            (self.question_src, 'question_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('question', 'accent')),
 
-        for src, name, background, foreground, size, (a, b) in [
-            [self.checkmark_src, 'c_mark', self.theme.background, self.theme.accent, self.theme.font_main_size, ('checkmark', 'normal')],
-            [self.checkmark_src, 'c_mark_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('checkmark', 'accent')],
-            [self.cog_src, 'cog', self.theme.background, self.theme.accent, self.theme.font_main_size, ('settings_cog', 'normal')],
-            [self.cog_src, 'cog_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('settings_cog', 'accent')],
-            [self.arrow_right_src, 'arrow_right', self.theme.background, self.theme.accent, self.theme.font_main_size, ('arrow_right', 'normal')],
-            [self.arrow_right_src, 'arrow_right_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_right', 'accent')],
-            [self.arrow_left_src, 'arrow_left', self.theme.background, self.theme.accent, self.theme.font_main_size, ('arrow_left', 'normal')],
-            [self.arrow_left_src, 'arrow_left_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_left', 'accent')],
-            [self.question_src, 'question', self.theme.background, self.theme.accent, self.theme.font_main_size, ('question', 'normal')],
-            [self.question_src, 'question_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('question', 'accent')],
-
-            [self.checkmark_src, 'c_mark_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('checkmark_large', 'normal')],
-            [self.checkmark_src, 'c_mark_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('checkmark_large', 'accent')],
-            [self.cog_src, 'cog_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('settings_cog_large', 'normal')],
-            [self.cog_src, 'cog_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('settings_cog_large', 'accent')],
-            [self.arrow_right_src, 'arrow_right_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_right_large', 'normal')],
-            [self.arrow_right_src, 'arrow_right_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_right_large', 'accent')],
-            [self.arrow_left_src, 'arrow_left_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_left_large', 'normal')],
-            [self.arrow_left_src, 'arrow_left_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_left_large', 'accent')],
-            [self.question_src, 'question_accent', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')],
-            [self.question_src, 'question_accent_accent', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')],
-        ]:
+            (self.checkmark_src, 'c_mark_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('checkmark_large', 'normal')),
+            (self.checkmark_src, 'c_mark_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('checkmark_large', 'accent')),
+            (self.cog_src, 'cog_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('settings_cog_large', 'normal')),
+            (self.cog_src, 'cog_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('settings_cog_large', 'accent')),
+            (self.arrow_right_src, 'arrow_right_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_right_large', 'normal')),
+            (self.arrow_right_src, 'arrow_right_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_right_large', 'accent')),
+            (self.arrow_left_src, 'arrow_left_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_left_large', 'normal')),
+            (self.arrow_left_src, 'arrow_left_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_left_large', 'accent')),
+            (self.question_src, 'question_accent', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')),
+            (self.question_src, 'question_accent_accent', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')),
+        )
+        
+        for src, name, background, foreground, _s, (a, b) in ls:
+            size = cast(int, _s)
             try:
                 File = qa_functions.File(src)
                 tmp = f"{self.svg_tmp}\\{File.file_name}"
@@ -2427,10 +2433,11 @@ Technical Information: {traceback.format_exc()}"""
                 File = qa_functions.File(tmp)
                 qa_functions.SaveFile.secure(File, new_data, qa_functions.SaveFunctionArgs(False, False, b'', True, True, save_data_type=str))
                 self.svgs[a][b] = get_svg(tmp, background.color, (size, size), name)
+
             except Exception as E:
                 log(LoggingLevel.ERROR, f'admt::load_png - Failed to load requested svg ({src}): {E}')
 
-    def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button]]):
+    def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button], ...]) -> None:
         self.dsb = True
 
         for btn in (self.select_open, self.select_new, self.select_scores,
@@ -2440,7 +2447,7 @@ Technical Information: {traceback.format_exc()}"""
             if btn not in exclude:
                 btn.config(state=tk.DISABLED)
 
-    def enable_all_inputs(self, *exclude):
+    def enable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button], ...]) -> None:
         self.dsb = False
 
         for btn in (self.select_open, self.select_new, self.select_scores,
@@ -2452,13 +2459,16 @@ Technical Information: {traceback.format_exc()}"""
 
         self.update_ui()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.thread.join(self, 0)
 
 
-def get_svg(svg_file, background, size=None, name=None):
-    if isinstance(background, str):
-        background = int(background.replace("#", '0x'), 0)
+def get_svg(svg_file: str, bg: Union[str, int], size: Union[None, Tuple[int, int]] = None, name: Union[None, str] = None) -> ImageTk.PhotoImage:
+    background = bg
+    if isinstance(bg, str):
+        background = int(bg.replace("#", '0x'), 0)
+
+    assert isinstance(background, int)
 
     drawing = svg2rlg(svg_file)
     bytes_png = BytesIO()
@@ -2472,7 +2482,7 @@ def get_svg(svg_file, background, size=None, name=None):
     return p_img
 
 
-def log(level: LoggingLevel, data: str):
+def log(level: LoggingLevel, data: str) -> None:
     global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
@@ -2508,7 +2518,7 @@ def log(level: LoggingLevel, data: str):
         )])
 
 
-def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs):
+def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs: Any) -> tk.Toplevel:
     qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
     qa_prompts.LOGGER_FUNC = LOGGER_FUNC
     qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME
