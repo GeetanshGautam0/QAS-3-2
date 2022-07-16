@@ -34,12 +34,6 @@ def _set_build_number(build_number: float, build_id: str, build_name: str) -> No
     else:
         sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to save new configuration to inst_config\n")
 
-    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Fixing SVH information\n")
-    try:
-        setup_svh()
-    except Exception as E:
-        sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED}{ANSI.REVERSED} [ERROR] {ANSI.RESET} Failed to save SVH (fatal); more information: \n{traceback.format_exc()}\n")
-
 
 def _run_command(com: str, *args: Optional[str], admin: bool = False, silent: bool = False) -> None:
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} {' '.join(cast(Iterable[str], [com, *args])).strip()} {ANSI.RESET} (UAC_ELEVATION: {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD}{admin}{ANSI.RESET})\n")
@@ -182,7 +176,13 @@ Recompile installer?
         COM = f"\"installer\\installer.iss\""
 
         _run_command(ISCC, COM)
-    
+
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Fixing SVH information\n")
+    try:
+        setup_svh()
+    except Exception as E:
+        sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED}{ANSI.REVERSED} [ERROR] {ANSI.RESET} Failed to save SVH (fatal); more information: \n{traceback.format_exc()}\n")
+
     if push:
         _run_command(*f'git commit -a -m \"{msg}\"'.split())
         _run_command(*f'git commit -a -m \"dev::{BUILD_NAME_STR}\"'.split())
