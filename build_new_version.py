@@ -58,6 +58,7 @@ def _run_command(com: str, *args: Optional[str], admin: bool = False, silent: bo
 
 def setup_svh() -> None:
     svh = json.dumps(compile_svh(), indent=4)
+    # print(svh)
     with open('.config\\svh.json', 'w') as SVH_F:
         SVH_F.write(svh)
         SVH_F.close()
