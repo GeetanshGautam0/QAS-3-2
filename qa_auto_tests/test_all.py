@@ -1,10 +1,13 @@
-import pytest, os, sys, json
+import pytest, os, sys, json, hashlib, subprocess
 from qa_functions.qa_std import data_type_converter, brute_force_decoding, data_at_dict_path, float_map, \
     flatten_list, ANSI
 from qa_functions.qa_file_handler import _Crypt
 from qa_functions.qa_custom import ConverterFunctionArgs, HexColor, UnexpectedEdgeCase
 from qa_functions.qa_colors import Convert as ConvertColor, Functions as ColorFunctions
+from qa_functions.qa_info import file_hash
+from qa_functions.qa_svh import compile_svh
 from typing import Tuple, cast
+from ctypes import windll
 
 
 def test_cryptography() -> None:
@@ -433,6 +436,8 @@ def test_installer_iss() -> None:
         iss_data = iss_file.read()
         iss_file.close()
 
+    fail = False
+
     if f"; {rt} start_here" in iss_data and f"; {rt} stop_here" in iss_data:
         if iss_data.count(f"; {rt} start_here") == iss_data.count(f"; {rt} stop_here") == 1:
             iss_data = iss_data.split(f"; {rt} start_here")[-1].split(f"; {rt} stop_here")[0]
@@ -447,17 +452,18 @@ def test_installer_iss() -> None:
                     extn_del.append(line.split('.')[-1])
                     if line.split('.')[-1] not in extn_req:
                         sys.stdout.write(f"{ANSI.FG_BRIGHT_YELLOW}{ANSI.BOLD}[WARNING] [INSTALLER] Extension \".{line.split('.')[-1]}\" in delete commands; not found in source directry.{ANSI.RESET}\n")
-                    
+                        fail = True
+
                 else:
                     item_del.append(line)
                     if line not in req:
                         sys.stdout.write(f"{ANSI.FG_BRIGHT_YELLOW}{ANSI.BOLD}[WARNING] [INSTALLER] Item \"{line}\" in delete commands; not found in source directry.{ANSI.RESET}\n")
+                        fail = True
         else:
             assert False, "Invalid start and end points in iss_data."
     else:
         assert False, "Start and end points not found in iss_data."
 
-    fail = False
     for name in req:
         extn = name.split('.')[-1]
         if extn not in extn_del and name not in item_del:
@@ -465,3 +471,22 @@ def test_installer_iss() -> None:
             fail = True
 
     assert not fail, "Potential failure in uninstaller (see warnings)."
+
+
+def test_script_hash() -> None:
+    subprocess.call('', shell=True)
+    if os.name == 'nt':  # Only if we are running on Windows
+        k = windll.kernel32
+        k.SetConsoleMode(k.GetStdHandle(-11), 7)
+
+    svh = compile_svh()
+    failures = []
+
+    for f, h in svh.items():
+        if file_hash.get(f) != h:
+            failures.append(
+                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}"
+            )
+
+    assert len(failures) == 0, "\n".join(failures).strip()
+

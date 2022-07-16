@@ -12,7 +12,6 @@ from .qa_custom import File, CannotCreateBackup, CannotSave, SaveFunctionArgs, O
 
 
 FILE_IO_HANDLER_SCRIPT_VERSION_HASH = create_script_version_hash(os.path.abspath(__file__), True)
-sys.stdout.write(f"{FILE_IO_HANDLER_SCRIPT_VERSION_HASH=}\n")
 
 try:
     check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')

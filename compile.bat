@@ -3,7 +3,7 @@
 taskkill /f /im qa_update_app.exe
 del /S /F /Q .qa_update\*
 
-python.exe -m PyInstaller -w -D -i ".\.src\.icons\.app_ico\updater.ico" --clean ".\qa_installer_functions\qa_update_app.py"
+python.exe -m PyInstaller --noconfirm -w -D -i ".\.src\.icons\.app_ico\updater.ico" --clean ".\qa_installer_functions\qa_update_app.py"
 del /S /F /Q .\.qa_update
 Xcopy /S /Y dist\qa_update_app\* .\.qa_update
 

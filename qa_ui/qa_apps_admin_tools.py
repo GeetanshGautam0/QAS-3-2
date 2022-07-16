@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 from ctypes import windll
 from typing import *
+from . import qa_adv_forms as qa_forms
 
 script_name = "APP_AT"
 APP_TITLE = "Quizzing Application | Admin Tools"
@@ -2531,12 +2532,12 @@ def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **k
         k = windll.kernel32
         k.SetConsoleMode(k.GetStdHandle(-11), 7)
 
-        log(LoggingLevel.ERROR, '[USER CHECK] Error message logging available')
-        log(LoggingLevel.SUCCESS, '[USER CHECK] Success message logging available')
-        log(LoggingLevel.INFO, '[USER CHECK] Info message logging available')
-        log(LoggingLevel.WARNING, '[USER CHECK] Warning message logging available')
-        log(LoggingLevel.DEBUG, '[USER CHECK] Debug message logging available')
-        log(LoggingLevel.DEVELOPER, '[USER CHECK] Developer console logging available')
+    log(LoggingLevel.ERROR, '[USER CHECK] Error message logging available')
+    log(LoggingLevel.SUCCESS, '[USER CHECK] Success message logging available')
+    log(LoggingLevel.INFO, '[USER CHECK] Info message logging available')
+    log(LoggingLevel.WARNING, '[USER CHECK] Warning message logging available')
+    log(LoggingLevel.DEBUG, '[USER CHECK] Debug message logging available')
+    log(LoggingLevel.DEVELOPER, '[USER CHECK] Developer console logging available')
 
     ui_root = tk.Toplevel()
     _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)

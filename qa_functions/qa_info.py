@@ -1,7 +1,16 @@
 import appdirs, json, os, sys, traceback, hashlib
 from . import qa_err
 from . import qa_enum
+from .qa_svh import compile_svh
 from . import qa_custom
+
+
+with open('.config\\svh.json', 'r') as SVH_FILE:
+    SVH_FILE_DATA = SVH_FILE.read()
+    SVH_FILE.close()
+
+file_hash = json.loads(SVH_FILE_DATA)
+del SVH_FILE_DATA
 
 
 class ConfigurationFile:

@@ -3,7 +3,7 @@
 echo Running MyPy tests
 mypy . > exclude_a.res
 echo Running PyTest
-pytest -vv > exclude_b.res
+pytest -vv -s > exclude_b.res
 
 echo Consolidating
 copy *.res exclude_TEST_RESULTS.log

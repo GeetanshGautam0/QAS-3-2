@@ -8,7 +8,6 @@ from typing import *
 
 # Version Checking
 LOGGER_SCRIPT_VERSION_HASH = create_script_version_hash(__file__, True)
-print(f"{LOGGER_SCRIPT_VERSION_HASH=}")
 try:
     check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
 except AssertionError:
@@ -18,7 +17,7 @@ EXPECTED_F_IO_H_SVH = EXPECTED['byLogger']['FILE_IO_HANDLER']
 try:
     check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
 except AssertionError:
-    sys.stderr.write("[WARNING] Potentially outdated FIO SVH expected by logger.")
+    sys.stderr.write("[WARNING] Potentially outdated FIO SVH expected by logger.\n")
 
 # Global Variables
 DEBUGGING_ENABLED = False

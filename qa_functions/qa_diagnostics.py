@@ -3,6 +3,8 @@ from .qa_info import ConfigurationFile, App, Files
 from .qa_std import HTTP_HEADERS_NO_CACHE
 from .qa_theme_loader import Test as TestTheme
 from .qa_updater_call import RunUpdater
+from .qa_info import file_hash
+from .qa_svh import compile_svh
 from typing import *
 
 
@@ -88,6 +90,18 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
         del hash_raw, raw, f_name, f_hash, success, failures, res, res2
 
         return True, ("Default theme(s) passed tests", ), (*warnings, ), RunTest
+
+    @staticmethod
+    def script_hash() -> Tuple[bool, Tuple[Union[None, str], ...], Tuple[Union[bool, None, str], ...], Any]:
+        # ALL: -> (bool, messages, codes/warnings, fix_func)
+        failures = []
+        svh = compile_svh()
+
+        for f, h in svh.items():
+            if file_hash.get(f) != h:
+                failures.append(f'Incorrect hash stored for file "{f}"')
+
+        return len(failures) == 0, (*failures,), ('qa_functions.qa_info not tested.',), cast(Any, Fix.UpdateApp)
 
 
 class Fix:

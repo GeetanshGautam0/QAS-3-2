@@ -6,7 +6,7 @@ from .qa_custom import HexColor, Theme, LoggingPackage, SaveFunctionArgs, Conver
 from .qa_enum import LoggingLevel, ScriptLevelID, ExitCodes, CLI, ErrorLevels, Application, FileType
 from .qa_err import raise_error as _re
 from .qa_file_handler import Open as OpenFile, Save as SaveFile
-from .qa_info import ConfigurationFile, App, Extensions, Files, Encryption, OnlineFiles
+from .qa_info import ConfigurationFile, App, Extensions, Files, Encryption, OnlineFiles, file_hash as ScriptHashes
 from .qa_logger import threaded_logger as _tl, normal_logger as _nl, clear_logs as _cl
 from .qa_nv_flags import create_flag as _cf, delete_flag as _df, check_flag as _chf, clear_all_app_flags as _caaf, clear_all_flags as _caf, \
     yield_all_flags as _yaf, yield_all_flags_as_list as _yafal

@@ -462,7 +462,8 @@ class _UI(Thread):
         for test, string in (
             (Diagnostics.app_version, 'Checking for updates'),
             (Diagnostics.default_theme, 'Checking default theme'),
-            (Diagnostics.global_check, 'Checking all files')
+            (Diagnostics.global_check, 'Checking all files'),
+            (Diagnostics.script_hash, 'Checking all files (hash)'),
         ):
             log(LoggingLevel.INFO, string)
 

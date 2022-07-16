@@ -5,3 +5,5 @@ from . import qa_apps_theming_util as ThemingUtil
 
 from . import qa_prompts
 from . import qa_splash
+
+from . import qa_adv_forms as qa_forms

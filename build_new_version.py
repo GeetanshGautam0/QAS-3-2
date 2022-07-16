@@ -1,8 +1,9 @@
-import os, sys, json, subprocess
+import os, sys, json, subprocess, traceback
 from qa_functions import ANSI, File, SaveFunctionArgs, SaveFile
 from datetime import datetime
 from ctypes import windll
 from typing import Optional, cast, Iterable
+from qa_functions.qa_svh import compile_svh
 
 
 def _build_number() -> float:
@@ -33,6 +34,12 @@ def _set_build_number(build_number: float, build_id: str, build_name: str) -> No
     else:
         sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to save new configuration to inst_config\n")
 
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Fixing SVH information\n")
+    try:
+        setup_svh()
+    except Exception as E:
+        sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED}{ANSI.REVERSED} [ERROR] {ANSI.RESET} Failed to save SVH (fatal); more information: \n{traceback.format_exc()}\n")
+
 
 def _run_command(com: str, *args: Optional[str], admin: bool = False, silent: bool = False) -> None:
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Running Command:         {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} {' '.join(cast(Iterable[str], [com, *args])).strip()} {ANSI.RESET} (UAC_ELEVATION: {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD}{admin}{ANSI.RESET})\n")
@@ -47,6 +54,13 @@ def _run_command(com: str, *args: Optional[str], admin: bool = False, silent: bo
 
     if not silent:
         sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Command Status:          {ANSI.FG_BRIGHT_GREEN}{ANSI.REVERSED}{ANSI.BOLD} Successfully ran command {ANSI.RESET}\n")
+
+
+def setup_svh() -> None:
+    svh = json.dumps(compile_svh(), indent=4)
+    with open('.config\\svh.json', 'w') as SVH_F:
+        SVH_F.write(svh)
+        SVH_F.close()
 
 
 if __name__ == "__main__":

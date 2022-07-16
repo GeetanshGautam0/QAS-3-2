@@ -1,12 +1,10 @@
 import os, hashlib
+from typing import Dict
 
-
-FILE_IO_HANDLER_HASH = "1e9a3f334048fea02f61d240bdba014084594a7eabc79c27f01a662764e112b489da493973ea339d267aad1c9aa00fb4e9e885e601b24a87ef15bfe3a3f09ee9"
-LOGGER_HASH = "b4b0d2aa9ed2e217924b4425650991fbaad6e56fdbe28efb25167e32e60ddb81fbe3d118bcd991fde14aa86df3c28c2b28212ad1cf87339b908033b77fb6e345"
 
 EXPECTED = {
     'byLogger': {
-        'FILE_IO_HANDLER': "1e9a3f334048fea02f61d240bdba014084594a7eabc79c27f01a662764e112b489da493973ea339d267aad1c9aa00fb4e9e885e601b24a87ef15bfe3a3f09ee9"
+        'FILE_IO_HANDLER': "969af6200ed5a3bdfd9ef6e7d7ce79e1b0b55a4027f6e8d8ac3aacc4a5d609e7ce1e1a523ed9b6aa5e14c651bf6a8dbf958a13fc400b7017875de081557e103f"
     }
 }
 
@@ -15,7 +13,6 @@ def create_script_version_hash(file_path: str, silent: bool = False) -> str:
     if silent and 'AppData\\Local\\Temp' in file_path.replace('/', '\\'):
         return ''
 
-    print(file_path)
     assert os.path.isfile(file_path)
 
     with open(file_path, 'rb') as script:
@@ -26,22 +23,52 @@ def create_script_version_hash(file_path: str, silent: bool = False) -> str:
 
 
 def check_hash(script: str, expected_hash: str, script_type: str, self_id: str = "<Unknown>") -> None:
-    global FILE_IO_HANDLER_HASH, LOGGER_HASH
-
     assert isinstance(script_type, str)
     assert isinstance(script, str)
     assert isinstance(expected_hash, str)
     assert isinstance(self_id, str)
 
     scripts = {
-        'FileIOHandler': FILE_IO_HANDLER_HASH,
-        'Logger':        LOGGER_HASH
+        'FileIOHandler': '.\\qa_functions\\qa_file_handler.py',
+        'Logger':        '.\\qa_functions\\qa_logger.py'
     }
 
     assert script_type in ('import', 'self')
     assert script in scripts
 
-    assert expected_hash == scripts[script], \
+    fh_table = compile_svh()
+
+    assert expected_hash == fh_table[scripts[script]]['sha'], \
         f"[VERSION MISMATCH ERROR] Script: \"{script}\"; invalid script version hash provided." if script_type == 'self' else \
         f"[IMPORT ERROR] In {self_id}; Attempted-Import: {script}; outdated/invalid script version hash"
 
+
+def compile_svh() -> Dict[str, Dict[str, str]]:
+    output: Dict[str, Dict[str, str]] = {}
+    excl = ('svh.json', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer', '.qa_update')
+
+    def rc(root: str) -> None:
+        files = {*[i for i in os.listdir(root) if (i not in excl and "exclude_" not in i and os.path.isfile(f"{root}\\{i}"))]}
+        dirs = {*[i for i in os.listdir(root) if (i not in excl and "exclude_" not in i and os.path.isdir(f"{root}\\{i}"))]}
+
+        for file in files:
+            if file.split('.')[-1].strip() not in ('json', 'svg', 'py', 'int', 'bat', 'txt', 'toml', 'md', 'yml'):
+                continue
+
+            with open(f"{root}\\{file}", 'rb') as f:
+                r = f.read()
+                f.close()
+
+            filename = file.split('\\')[-1].strip()
+
+            md5 = hashlib.md5(r).hexdigest()
+            sha = hashlib.sha3_512(r).hexdigest()
+
+            output[f'{root}\\{filename}'] = {'md5': md5, 'sha': sha}
+
+        for directory in dirs:
+            rc(f'{root}\\{directory}')
+
+    rc('.')
+
+    return output

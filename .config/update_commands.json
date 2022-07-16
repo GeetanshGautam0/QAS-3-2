@@ -78,7 +78,8 @@
     "qa_functions/qa_std.py": "qa_functions/qa_std.py",
     "qa_functions/qa_svh.py": "qa_functions/qa_svh.py",
     "qa_functions/qa_theme_loader.py": "qa_functions/qa_theme_loader.py",
-    "qa_functions/qa_updater_call.py": "qa_functions/qa_updater_call.py"
+    "qa_functions/qa_updater_call.py": "qa_functions/qa_updater_call.py",
+    ".config/svh.json": ".config/svh.json"
   },
   "MODULES_QA_FILES": {
     "qa_files/__init__.py": "qa_files/__init__.py",
@@ -110,7 +111,9 @@
     "qa_ui/qa_apps_theming_util.py": "qa_ui/qa_apps_theming_util.py",
     "qa_main.py": "qa_main.py",
     "qa_ui/qa_prompts.py": "qa_ui/qa_prompts.py",
-    "qa_ui/qa_splash.py": "qa_ui/qa_splash.py"
+    "qa_ui/qa_splash.py": "qa_ui/qa_splash.py",
+    "qa_ui/qa_adv_forms/__init__.py": "qa_ui/qa_adv_forms/__init__.py",
+    "qa_ui/qa_adv_forms/qa_form_q_edit.py": "qa_ui/qa_adv_forms/qa_form_q_edit.py"
   },
 
   "ADDONS_THEME": {

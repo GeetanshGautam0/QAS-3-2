@@ -255,6 +255,22 @@ def check_up_tickets() -> None:
         qa_splash.show(cast(qa_splash.Splash, SPLASH))
 
 
+def check_files() -> None:
+    global SPLASH
+
+    res = qa_functions.qa_diagnostics.Diagnostics.script_hash()
+    if not res[0]:
+        qa_splash.hide(cast(qa_splash.Splash, SPLASH))
+
+        if messagebox.askyesno('QA Automatic Checker', 'One or more errors (listed below) are needed to be fixed prior to using the application. The fix requires an update of the entire application; DO YOU WANT TO UPDATE NOW?\n\nFailures: \n\t* ' + (
+            '\n\t* '.join(cast(Iterable[str], res[1])).strip() if len(res[1]) > 0 else 'None'
+        )):
+            subprocess.Popen([os.path.abspath('.qa_update\\qa_update_app.exe'), 'update', '--UpdateAll'])
+            sys.exit(0)
+
+        sys.exit(-1)
+
+
 def check_for_updates() -> None:
     global SPLASH
 
@@ -286,6 +302,7 @@ if __name__ == "__main__":
 
     check_for_updates()
     check_up_tickets()
+    check_files()
 
     qa_splash.update_step(SPLASH, 2, BOOT_STEPS)
 
