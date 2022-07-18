@@ -484,8 +484,10 @@ def test_script_hash() -> None:
 
     for f, h in svh.items():
         if file_hash.get(f) != h:
+            m1: str = file_hash[f]['md5'] if file_hash.get(f) is not None else None
+            s1: str = file_hash[f]['sha'] if m1 is not None else None
             failures.append(
-                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}"
+                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}"
             )
 
     assert len(failures) == 0, "\n".join(failures).strip()

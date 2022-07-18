@@ -1,5 +1,5 @@
 import os, hashlib
-from typing import Dict
+from typing import Dict, Tuple
 
 
 EXPECTED = {
@@ -61,6 +61,9 @@ def compile_svh() -> Dict[str, Dict[str, str]]:
 
             filename = file.split('\\')[-1].strip()
 
+            s: str = brute_force_decoding(r, (), ())[1]
+            r = s.replace(' ', '').replace('\t', '').replace('\n', '').strip().encode()
+
             md5 = hashlib.md5(r).hexdigest()
             sha = hashlib.sha3_512(r).hexdigest()
 
@@ -72,3 +75,37 @@ def compile_svh() -> Dict[str, Dict[str, str]]:
     rc('.')
 
     return output
+
+
+def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str, ...], extra_encodings_to_try: Tuple[str, ...] = ()) -> Tuple[str, str]:
+    """
+
+    **BRUTE_FORCE_DECODING**
+
+    Will attempt to decode the given bytes data;
+    Tries the following encodings:
+
+    * UTF-7
+    * UTF-8
+    * UTF-16
+    * UTF-32
+
+    Will raise exception if no encodings work
+
+    :param data: Read the name
+    :param excluded_encodings: Read the name
+    :param extra_encodings_to_try: Read the name
+    :return: (encoding used, string) **
+    """
+
+    encodings = ('UTF-8', 'UTF-16', *extra_encodings_to_try)
+    for encoding in encodings:
+        if encoding in excluded_encodings:
+            continue
+
+        try:
+            return encoding, data.decode(encoding)
+        except:
+            continue
+
+    raise Exception("encoding not found")
