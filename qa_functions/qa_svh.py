@@ -52,7 +52,7 @@ def compile_svh() -> Dict[str, Dict[str, str]]:
         dirs = {*[i for i in os.listdir(root) if (i not in excl and "exclude_" not in i and os.path.isdir(f"{root}\\{i}"))]}
 
         for file in files:
-            if file.split('.')[-1].strip() not in ('json', 'svg', 'py', 'int', 'bat', 'txt', 'toml', 'md', 'yml'):
+            if file.split('.')[-1].strip() not in ('py', 'ini', 'bat', 'txt', 'toml', 'md', 'yml'):
                 continue
 
             with open(f"{root}\\{file}", 'rb') as f:
