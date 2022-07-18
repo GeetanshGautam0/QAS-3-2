@@ -262,13 +262,15 @@ def check_files() -> None:
     if not res[0]:
         qa_splash.hide(cast(qa_splash.Splash, SPLASH))
 
-        if messagebox.askyesno('QA Automatic Checker', 'One or more errors (listed below) are needed to be fixed prior to using the application. The fix requires an update of the entire application; DO YOU WANT TO UPDATE NOW?\n\nFailures: \n\t* ' + (
+        messagebox.showwarning("QA Startup Checker", 'One or more warnings (listed below) were raised by the diagnostics function.\n\nFailures: \n\t* ' + (
             '\n\t* '.join(cast(Iterable[str], res[1])).strip() if len(res[1]) > 0 else 'None'
-        )):
+        ))
+
+        if messagebox.askyesno('QA Startup Checker', 'Updating the app MAY fix the aforementioned warnings; DO YOU WANT TO UPDATE / RESET THE APPLICATION.\n\nNote: no data will be destroyed in this process.'):
             subprocess.Popen([os.path.abspath('.qa_update\\qa_update_app.exe'), 'update', '--UpdateAll'])
             sys.exit(0)
 
-        sys.exit(-1)
+        qa_splash.show(cast(qa_splash.Splash, SPLASH))
 
 
 def check_for_updates() -> None:
