@@ -101,7 +101,7 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             if file_hash.get(f) != h:
                 failures.append(f'Incorrect hash stored for file "{f}"')
 
-        return len(failures) == 0, (*failures,), ('qa_functions.qa_info not tested.',), cast(Any, Fix.UpdateApp)
+        return len(failures) == 0, (*failures,), ('.JSON files not tested', '.SVG files not tested', '.PNG files not tested'), cast(Any, Fix.UpdateApp)
 
 
 class Fix:
