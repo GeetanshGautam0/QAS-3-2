@@ -68,27 +68,29 @@ if __name__ == "__main__":
     else:
         _run_command('clear', silent=True)
 
-    with open('mypy_switches.txt', 'r') as mp_switch:
-        mp_flags_str = mp_switch.read()
-        mp_switch.close()
-    mp_flags = mp_flags_str.replace('\n', ' ').split()
-    del mp_flags_str
+    if '--nochecks' not in sys.argv:
+        with open('mypy_switches.txt', 'r') as mp_switch:
+            mp_flags_str = mp_switch.read()
+            mp_switch.close()
 
-    _run_command('mypy', '--pretty', '.')
-    _run_command('mypy', *mp_flags, '.')
-    _run_command(f'pytest', '-vv')
+        mp_flags = mp_flags_str.replace('\n', ' ').split()
+        del mp_flags_str
 
-    if input(f"""Do you want to continue with the build?
-    ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
-    ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
-> """) != '1':
-        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_RED}EXITING{ANSI.RESET}")
-        sys.exit(0)
+        _run_command('mypy', '--pretty', '.')
+        _run_command('mypy', *mp_flags, '.')
+        _run_command(f'pytest', '-vv')
+
+        if input(f"""Do you want to continue with the build?
+        ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
+        ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}0{ANSI.RESET}) No
+    > """) != '1':
+            sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_RED}EXITING{ANSI.RESET}")
+            sys.exit(0)
 
     lvl = ''
     push = False
     release = False
-    recompile= True
+    recompile = True
 
     while True:
         print(

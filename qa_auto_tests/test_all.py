@@ -5,7 +5,7 @@ from qa_functions.qa_file_handler import _Crypt
 from qa_functions.qa_custom import ConverterFunctionArgs, HexColor, UnexpectedEdgeCase
 from qa_functions.qa_colors import Convert as ConvertColor, Functions as ColorFunctions
 from qa_functions.qa_info import file_hash
-from qa_functions.qa_svh import compile_svh
+from qa_functions.qa_svh import compile_svh_with_fn
 from typing import Tuple, cast
 from ctypes import windll
 
@@ -479,7 +479,7 @@ def test_script_hash() -> None:
         k = windll.kernel32
         k.SetConsoleMode(k.GetStdHandle(-11), 7)
 
-    svh = compile_svh()
+    svh, data = compile_svh_with_fn()
     failures = []
 
     for f, h in svh.items():
@@ -487,7 +487,8 @@ def test_script_hash() -> None:
             m1: str = file_hash[f]['md5'] if file_hash.get(f) is not None else None
             s1: str = file_hash[f]['sha'] if m1 is not None else None
             failures.append(
-                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}"
+                # f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n\tData: {data[f]}"f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}"
+                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n\tData: {data[f]}"f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n\tData: {data[f]}"
             )
 
     assert len(failures) == 0, "\n".join(failures).strip()

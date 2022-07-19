@@ -62,7 +62,7 @@ def compile_svh() -> Dict[str, Dict[str, str]]:
             filename = file.split('\\')[-1].strip()
 
             s: str = brute_force_decoding(r, (), ())[1]
-            r = s.replace(' ', '').replace('\t', '').replace('\n', '').strip().encode()
+            r = s.replace(' ', '').replace('\t', '').replace('\n', '').replace('\r', '').strip().encode('utf-8')
 
             md5 = hashlib.md5(r).hexdigest()
             sha = hashlib.sha3_512(r).hexdigest()
@@ -75,6 +75,42 @@ def compile_svh() -> Dict[str, Dict[str, str]]:
     rc('.')
 
     return output
+
+
+def compile_svh_with_fn() -> Tuple[Dict[str, Dict[str, str]], Dict[str, str]]:
+    output: Dict[str, Dict[str, str]] = {}
+    fn_output: Dict[str, str] = {}
+    excl = ('svh.json', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer', '.qa_update')
+
+    def rc(root: str) -> None:
+        files = {*[i for i in os.listdir(root) if (i not in excl and "exclude_" not in i and os.path.isfile(f"{root}\\{i}"))]}
+        dirs = {*[i for i in os.listdir(root) if (i not in excl and "exclude_" not in i and os.path.isdir(f"{root}\\{i}"))]}
+
+        for file in files:
+            if file.split('.')[-1].strip() not in ('py', 'ini', 'bat', 'txt', 'toml', 'md', 'yml'):
+                continue
+
+            with open(f"{root}\\{file}", 'rb') as f:
+                r = f.read()
+                f.close()
+
+            filename = file.split('\\')[-1].strip()
+
+            s: str = brute_force_decoding(r, (), ())[1]
+            r = s.replace(' ', '').replace('\t', '').replace('\n', '').replace('\r', '').strip().encode('utf-8')
+
+            md5 = hashlib.md5(r).hexdigest()
+            sha = hashlib.sha3_512(r).hexdigest()
+
+            output[f'{root}\\{filename}'] = {'md5': md5, 'sha': sha}
+            fn_output[f'{root}\\{filename}'] = r.decode('utf-8')
+
+        for directory in dirs:
+            rc(f'{root}\\{directory}')
+
+    rc('.')
+
+    return output, fn_output
 
 
 def brute_force_decoding(data: bytes, excluded_encodings: Tuple[str, ...], extra_encodings_to_try: Tuple[str, ...] = ()) -> Tuple[str, str]:
