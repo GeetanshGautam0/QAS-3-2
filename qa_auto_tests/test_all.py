@@ -383,9 +383,8 @@ def test_float_map() -> None:
         float_map(-10, -1, 10, 0, 1, False)
 
 
-
 def test_src_files() -> None:
-    excl = ('.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
+    excl = ('unins000.dat', 'unins000.exe', '.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
     addons = ('ADDONS_THEME', )
     lsa = []
 
@@ -424,8 +423,11 @@ def test_src_files() -> None:
 
 
 def test_installer_iss() -> None:
+    if not os.path.isfile("installer\\installer.iss"):
+        return
+
     rt = "<test::uninstaller>"
-    excl = ('TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
+    excl = ('unins000.dat', 'unins000.exe', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
     
     req = {*[i for i in os.listdir() if (i not in excl and "exclude_" not in i)]}
     extn_req = {*[i.split('.')[-1] for i in req if os.path.isfile(i)]}
@@ -479,7 +481,7 @@ def test_script_hash() -> None:
         k = windll.kernel32
         k.SetConsoleMode(k.GetStdHandle(-11), 7)
 
-    svh, data = compile_svh_with_fn()
+    svh, _ = compile_svh_with_fn()
     failures = []
 
     for f, h in svh.items():
@@ -487,8 +489,7 @@ def test_script_hash() -> None:
             m1: str = file_hash[f]['md5'] if file_hash.get(f) is not None else None
             s1: str = file_hash[f]['sha'] if m1 is not None else None
             failures.append(
-                # f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n\tData: {data[f]}"f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}"
-                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n\tData: {data[f]}"f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n\tData: {data[f]}"
+                f"Invalid hash stored for file '{f}'; expected:\n\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{h['md5']}{ANSI.RESET}\n\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{h['sha']}{ANSI.RESET}\n\tGot:\n\t\t* MD5: {ANSI.BOLD}{ANSI.FG_BRIGHT_MAGENTA}{m1}{ANSI.RESET}\n\t\t* SHA3 (512): {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{s1}{ANSI.RESET}\n"
             )
 
     assert len(failures) == 0, "\n".join(failures).strip()
