@@ -10,6 +10,36 @@ def _build_number() -> float:
     return float(datetime.now().strftime('%y%m%j.%H%M%S%f'))
 
 
+def _disable_dev_mode() -> None:
+    with open('.config\\main_config.json', 'r') as mc_file:
+        mc_json = json.loads(mc_file.read())
+        mc_file.close()
+
+    mc_json['application']['dev_mode'] = False
+
+    # .config\main_config.json
+    file = File('.config\\main_config.json')
+    if SaveFile.secure(file, json.dumps(mc_json, indent=4), SaveFunctionArgs(False)):
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Successfully saved new configuration to dev_config (disabled dev_mode)\n")
+    else:
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to save new configuration to dev_config (failed to disable dev_mode)\n")
+
+
+def _enable_dev_mode() -> None:
+    with open('.config\\main_config.json', 'r') as mc_file:
+        mc_json = json.loads(mc_file.read())
+        mc_file.close()
+
+    mc_json['application']['dev_mode'] = True
+
+    # .config\main_config.json
+    file = File('.config\\main_config.json')
+    if SaveFile.secure(file, json.dumps(mc_json, indent=4), SaveFunctionArgs(False)):
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Successfully saved new configuration to dev_config (enabled dev_mode)\n")
+    else:
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED} Failed to save new configuration to dev_config (failed to enable dev_mode)\n")
+
+
 def _set_build_number(build_number: float, build_id: str, build_name: str) -> None:
     with open('.config\\main_config.json', 'r') as mc_file:
         mc_json = json.loads(mc_file.read())
@@ -179,6 +209,9 @@ Recompile installer?
 
         _run_command(ISCC, COM)
 
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Disabling developer mode\n")
+    _disable_dev_mode()
+
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Fixing SVH information\n")
     try:
         setup_svh()
@@ -201,3 +234,5 @@ Recompile installer?
         _run_command(*'git merge release'.split())
         _run_command(*'git push -u origin master'.split())
 
+    sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Enabling (resetting) developer mode\n")
+    _enable_dev_mode()
