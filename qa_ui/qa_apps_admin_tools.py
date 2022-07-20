@@ -1706,10 +1706,10 @@ Technical Information: {traceback.format_exc()}"""))
         name_f, name_d = qa_functions.data_at_dict_path('DB/name', db)
         assert name_f
 
-        log(LoggingLevel.INFO, 'Checking database integrity')
+        log(LoggingLevel.INFO, '_clean_db - Checking database integrity')
 
         def rs_name() -> None:
-            log(LoggingLevel.ERROR, 'Name data corrupted')
+            log(LoggingLevel.ERROR, '_clean_db::DBCleaner - Name data corrupted')
 
             s_mem = qa_functions.SMem()
             s_mem.set('')
@@ -1724,7 +1724,7 @@ Technical Information: {traceback.format_exc()}"""))
                 if len(res) > 0:
                     break
 
-            log(LoggingLevel.ERROR, f'Name reset to \"{res}\"')
+            log(LoggingLevel.ERROR, f'_clean_db::DBCleaner - Name reset to \"{res}\"')
 
             db['DB']['name'] = res
             del res, s_mem
@@ -1752,7 +1752,7 @@ Technical Information: {traceback.format_exc()}"""))
                     # <128> and <enb>: True
 
         if not b:
-            log(LoggingLevel.ERROR, 'DB_PSW corruption; reset.')
+            log(LoggingLevel.ERROR, '_clean_db::DBCleaner - DB_PSW corruption; reset.')
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Administrator password corrupted; protection disabled.'))
             db['DB']['psw'] = [False, '']
 
@@ -1776,7 +1776,7 @@ Technical Information: {traceback.format_exc()}"""))
                     # <128> and <enb>: True
 
         if not b:
-            log(LoggingLevel.ERROR, 'QZ_PSW corruption; reset.')
+            log(LoggingLevel.ERROR, '_clean_db::DBCleaner - QZ_PSW corruption; reset.')
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Quiz password corrupted; protection disabled.'))
             db['DB']['q_psw'] = [False, '']
 
@@ -1785,7 +1785,7 @@ Technical Information: {traceback.format_exc()}"""))
         cd = db.get(cr)
 
         if not cd:
-            log(LoggingLevel.ERROR, "Configuration data not found; resetting configuration data. ")
+            log(LoggingLevel.ERROR, "_clean_db::ConfigurationCleaner - Configuration data not found; resetting configuration data. ")
             db[cr] = {
                 'acc': False,  # Allow custom quiz configuration
                 'poa': 'p',  # Part or all
@@ -1794,18 +1794,40 @@ Technical Information: {traceback.format_exc()}"""))
                 'dpi': False,  # Deduct points on incorrect (responses)
                 'a2d': 1  # Amount of points to deduct
             }
-        else:
+        elif isinstance(cd, dict):
             f: List[Any] = []
-            for k, (tp, default, ln) in (
-                    ('acc', (bool, False, None)),
-                    ('poa', (str, 'p', 1)),
-                    ('rqo', (bool, False, None)),
-                    ('ssd', (int, 2, None)),
-                    ('dpi', (bool, False, None)),
-                    ('a2d', (int, 1, None)),
+
+            for k, (tp, default, opts) in (
+                    ('acc', (bool, False, [])),
+                    ('poa', (str, 'p', ['p', 'a'])),
+                    ('rqo', (bool, False, [])),
+                    ('ssd', (int, 2, [])),
+                    ('dpi', (bool, False, [])),
+                    ('a2d', (int, 1, [])),
             ):
-                # TODO: Implement test
-                pass
+                assert isinstance(k, str)
+                assert isinstance(opts, (list, tuple, set))
+
+                if not isinstance(cd.get(k), tp):
+                    f.append(f'"{k}": tp_check failed; restoring value to "{default}"')
+                    cd[k] = default
+                    continue
+
+                if len(cast(Sized, opts)) > 0:
+                    if cd.get(k) not in opts:
+                        f.append(f'"{k}": opt_check failed; restoring value to "{default}"')
+                        cd[k] = default
+                        continue
+
+                log(LoggingLevel.SUCCESS, f'_clean_db::ConfigurationCleaner - Value for "{k}" is okay (tp, opt).')
+
+            for failure in f:
+                log(LoggingLevel.ERROR, f'_clean_db::ConfigurationCleaner - {failure}')
+
+            db[cr] = cd
+
+        else:
+            raise qa_functions.UnexpectedEdgeCase('_clean_db::?ConfigurationData (cd) :: !dict, !NoneType')
 
         qr = 'QUESTIONS'
 

@@ -82,9 +82,22 @@ def _run_command(com: str, *args: Optional[str], admin: bool = False, silent: bo
 
 def setup_svh() -> None:
     svh = json.dumps(compile_svh(), indent=4)
-    # print(svh)
     with open('.config\\svh.json', 'w') as SVH_F:
         SVH_F.write(svh)
+        SVH_F.close()
+
+
+def setup_esvh() -> None:
+    svh = compile_svh()
+    tmp = {}
+    for script_that_needs in ('Logger', ):
+        tmp[f'by{script_that_needs}'] = svh
+
+    svhs = json.dumps(tmp, indent=4)
+    del tmp
+
+    with open('.config\\esvh.json', 'w') as SVH_F:
+        SVH_F.write(svhs)
         SVH_F.close()
 
 
@@ -97,6 +110,12 @@ if __name__ == "__main__":
 
     else:
         _run_command('clear', silent=True)
+
+    if '--reset-all-svh' in sys.argv:
+        setup_esvh()
+        setup_svh()
+        sys.stdout.write('done.\n')
+        sys.exit(0)
 
     if '--nochecks' not in sys.argv:
         with open('mypy_switches.txt', 'r') as mp_switch:
@@ -211,6 +230,12 @@ Recompile installer?
 
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Disabling developer mode\n")
     _disable_dev_mode()
+
+    if '--reset-esvh' in sys.argv:
+        try:
+            setup_esvh()
+        except Exception as E:
+            sys.stderr.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.FG_BRIGHT_RED}{ANSI.REVERSED} [ERROR] {ANSI.RESET} Failed to save ESVH (fatal); more information: \n{traceback.format_exc()}\n")
 
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Fixing SVH information\n")
     try:

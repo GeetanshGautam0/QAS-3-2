@@ -79,7 +79,8 @@
     "qa_functions/qa_svh.py": "qa_functions/qa_svh.py",
     "qa_functions/qa_theme_loader.py": "qa_functions/qa_theme_loader.py",
     "qa_functions/qa_updater_call.py": "qa_functions/qa_updater_call.py",
-    ".config/svh.json": ".config/svh.json"
+    ".config/svh.json": ".config/svh.json",
+    ".config/esvh.json": ".config/esvh.json"
   },
   "MODULES_QA_FILES": {
     "qa_files/__init__.py": "qa_files/__init__.py",

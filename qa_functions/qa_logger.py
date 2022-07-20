@@ -7,17 +7,14 @@ from typing import *
 
 
 # Version Checking
-LOGGER_SCRIPT_VERSION_HASH = create_script_version_hash(__file__, True)
 try:
-    check_hash('Logger', LOGGER_SCRIPT_VERSION_HASH, 'self')
-except AssertionError:
-    sys.stderr.write("[WARNING] Potential logger script hash mismatch\n")
-
-EXPECTED_F_IO_H_SVH = EXPECTED['byLogger']['FILE_IO_HANDLER']
-try:
-    check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
-except AssertionError:
-    sys.stderr.write("[WARNING] Potentially outdated FIO SVH expected by logger.\n")
+    EXPECTED_F_IO_H_SVH = EXPECTED['byLogger']['.\\qa_functions\\qa_file_handler.py']['sha']
+    try:
+        check_hash('FileIOHandler', EXPECTED_F_IO_H_SVH, 'import', 'Logger')
+    except AssertionError as E:
+        sys.stderr.write(f"[WARNING] Potentially outdated FIO SVH expected by logger ({E}).\n")
+except Exception as E:
+    sys.stderr.write(f"[WARNING] ESVH service unavailable for 'Logger' <err: {E.__class__.__name__}({E})>.\n")
 
 # Global Variables
 DEBUGGING_ENABLED = False

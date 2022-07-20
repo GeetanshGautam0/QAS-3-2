@@ -11,14 +11,6 @@ from .qa_custom import File, CannotCreateBackup, CannotSave, SaveFunctionArgs, O
     ConverterFunctionArgs, EncryptionError
 
 
-FILE_IO_HANDLER_SCRIPT_VERSION_HASH = create_script_version_hash(os.path.abspath(__file__), True)
-
-try:
-    check_hash('FileIOHandler', FILE_IO_HANDLER_SCRIPT_VERSION_HASH, 'self')
-except AssertionError:
-    sys.stderr.write("[WARNING] Potential FileIOHandler hash mismatch\n")
-
-
 class Open:
     @staticmethod
     def load_file(file_obj: File, ofa: OpenFunctionArgs) -> Any:
