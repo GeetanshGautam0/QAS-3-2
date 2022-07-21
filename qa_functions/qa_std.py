@@ -596,13 +596,18 @@ def gen_short_uid(prefix: str = "qa") -> str:
 
 class SMem:
     def __init__(self, size: int = 2048) -> None:
+        assert isinstance(size, int)
+
+        self.NullStr = '<!QApp::STD::SMEM(SharedMemory)::Code::NULL!>@$'
+
+        self.size = size
         self.r1 = random.randint(10, 99)
         self.r2 = random.randint(10, 99)
         self.r3 = random.randint(10, 99)
         self.r4 = random.randint(10, 99)
         self.r5 = int(random.randint(10000, 99999))
-        name = "%s%s%s%s" % (self.r4, self.r3, self.r1, self.r2)
-        self.mem = SharedMemoryDict(name=name, size=size)
+        self.name = "%s%s%s%s" % (self.r4, self.r3, self.r1, self.r2)
+        self.mem = SharedMemoryDict(name=self.name, size=self.size)
 
     def set(self, data: str, add: int = 0) -> None:
         assert isinstance(add, int)
@@ -611,6 +616,9 @@ class SMem:
     def get(self, add: int = 0) -> Union[None, str]:
         assert isinstance(add, int)
         return cast(Union[None, str], self.mem.get(str(self.r5 + add)))
+
+    def get_name(self):
+        return self.name
 
 
 def clamp(minimum: Union[int, float], actual: Union[int, float], maximum: Union[int, float]) -> Union[int, float]:

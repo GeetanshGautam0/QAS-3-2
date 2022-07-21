@@ -1,4 +1,5 @@
 import qa_functions, sys, PIL  # , os, qa_files
+from enum import Enum
 from tkinter import ttk
 from threading import Thread
 from qa_functions.qa_custom import *
@@ -10,7 +11,7 @@ from PIL import Image, ImageTk
 from io import BytesIO
 
 
-script_name = "APP_AT"
+script_name = "APP_AT::QEdit"
 APP_TITLE = "Quizzing Application | Editing Question"
 LOGGER_AVAIL = False
 LOGGER_FUNC = qa_functions.NormalLogger
@@ -20,13 +21,17 @@ DEBUG_NORM = False
 DEBUG_DEV_FLAG = False
 
 
+class SMemInd(Enum):
+    (QUESTION, ANSWER, DATA0, DATA1) = range(4)
+
+
 class QEditUI(Thread):
-    def __init__(self, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, shared_mem_obj: qa_functions.SMem, **kwargs: Any) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
 
-        self.kwargs = kwargs
+        self.s_mem, self.kwargs = shared_mem_obj, kwargs
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
         self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}
@@ -89,12 +94,47 @@ class QEditUI(Thread):
         self.prev_btn = ttk.Button(self.root)
 
         self.start()
+        self.root.mainloop()
 
     def __del__(self) -> None:
         self.thread.join(self, 0)
 
+    def close(self) -> None:
+        self.thread.join(self, 0)
+        self.root.after(0, self.root.quit)
+        self.root.withdraw()
+        self.root.title('Quizzing Application | Closed Form')
+
     def run(self) -> None:
-        pass
+        global APP_TITLE
+
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
+        self.root.title(APP_TITLE)
+        self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
+        self.root.iconbitmap(qa_functions.Files.AT_ico)
+
+        self.update_requests[gen_short_uid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+        self.setup_smem()
+        self.set_data(SMemInd.QUESTION, 'a'*512)
+        self.update_ui()
+
+    def set_data(self, index: SMemInd, data: str):
+        assert isinstance(data, str)
+        self.s_mem.set(data, cast(int, index.value)*8192)
+
+    def setup_smem(self):
+        assert self.s_mem.size >= 2048, "S_MEM size invalid"
+
+        self.s_mem.set(self.s_mem.NullStr, 0)
+        self.s_mem.set(self.s_mem.NullStr, 512)
+        self.s_mem.set(self.s_mem.NullStr, 512*2)
+        self.s_mem.set(self.s_mem.NullStr, 512*3)
+
+        for i in range(4):
+            assert self.s_mem.get(512*i) == self.s_mem.NullStr
+
+        sys.stdout.write(f"Successfully configured SharedMemory Object \"{self.s_mem.name}\"\n")
 
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()

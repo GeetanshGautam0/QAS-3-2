@@ -111,13 +111,16 @@ if __name__ == "__main__":
     else:
         _run_command('clear', silent=True)
 
+    if '--checks-only' in sys.argv and '--no-checks' in sys.argv: raise Exception
+
     if '--reset-all-svh' in sys.argv:
         setup_esvh()
         setup_svh()
-        sys.stdout.write('done.\n')
-        sys.exit(0)
+        sys.stdout.write('Reset SVH and ESVH\n')
+        if '--checks-only' not in sys.argv:
+            sys.exit(0)
 
-    if '--nochecks' not in sys.argv:
+    if '--no-checks' not in sys.argv:
         with open('mypy_switches.txt', 'r') as mp_switch:
             mp_flags_str = mp_switch.read()
             mp_switch.close()
@@ -135,6 +138,8 @@ if __name__ == "__main__":
     > """) != '1':
             sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_RED}EXITING{ANSI.RESET}")
             sys.exit(0)
+
+        if '--checks-only' in sys.argv: sys.exit(0)
 
     lvl = ''
     push = False
