@@ -617,8 +617,11 @@ class SMem:
         assert isinstance(add, int)
         return cast(Union[None, str], self.mem.get(str(self.r5 + add)))
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name
+
+    def get_size(self) -> int:
+        return self.size
 
 
 def clamp(minimum: Union[int, float], actual: Union[int, float], maximum: Union[int, float]) -> Union[int, float]:

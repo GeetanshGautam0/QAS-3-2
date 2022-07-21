@@ -152,18 +152,13 @@ class QEditUI(Thread):
         self.configure_main_frame()
         self.set_frame(self.QFrameInd)
 
-        self.root.bind("<Configure>", self.update)
-
         self.setup_smem()
         self.update_ui()
 
-    def update(self, *_, **_0):
-        print(self.root.winfo_width(), self.root.winfo_height(), sep='x')
-
-    def set_frame(self, frame_index: int):
+    def set_frame(self, frame_index: int) -> None:
         pass
 
-    def configure_main_frame(self):
+    def configure_main_frame(self) -> None:
         self.title_text.config(text="Question Editor", anchor=tk.W)
         self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
         self.title_icon.config(image=self.svgs['admt'])
@@ -180,15 +175,15 @@ class QEditUI(Thread):
         self.prev_btn.pack(fill=tk.X, expand=True, side=tk.LEFT, pady=self.padY/2, padx=self.padX)
         self.prev_btn.config(text="Previous Step")
 
-    def set_data(self, index: SMemInd, data: str):
+    def set_data(self, index: SMemInd, data: str) -> None:
         global S_MEM_VAL_OFFSET, S_MEM_M_VAL_MAX_SIZE, S_MEM_D_VAL_MAX_SIZE
 
         assert isinstance(data, str)
         assert len(data) <= (S_MEM_D_VAL_MAX_SIZE if index in (SMemInd.DATA0, SMemInd.DATA1) else S_MEM_M_VAL_MAX_SIZE)
 
-        self.s_mem.set(data, cast(int, index.value) * S_MEM_VAL_OFFSET)
+        self.s_mem.set(data, index.value * S_MEM_VAL_OFFSET)
 
-    def setup_smem(self):
+    def setup_smem(self) -> None:
         global S_MEM_VAL_OFFSET
 
         assert self.s_mem.size >= 2048, "S_MEM size invalid"
