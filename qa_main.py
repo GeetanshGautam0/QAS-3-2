@@ -256,6 +256,9 @@ def check_up_tickets() -> None:
 
 
 def check_files() -> None:
+    if qa_functions.ConfigurationFile.json_data['application']['dev_mode']:
+        return
+
     global SPLASH
 
     res = qa_functions.qa_diagnostics.Diagnostics.script_hash()

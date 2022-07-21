@@ -1,14 +1,15 @@
-import qa_functions, sys, PIL  # , os, qa_files
+import qa_functions, sys, PIL, tkinter as tk, random  # , os, qa_files
 from enum import Enum
 from tkinter import ttk
 from threading import Thread
-from qa_functions.qa_custom import *
-from qa_functions.qa_std import *
+from qa_functions.qa_custom import ThemeUpdateVars, ThemeUpdateCommands, LoggingLevel, HexColor
+from qa_functions.qa_std import gen_short_uid, ANSI, AppLogColors
 from qa_ui import qa_prompts
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
+from typing import *
 
 
 script_name = "APP_AT::QEdit"
@@ -25,6 +26,11 @@ class SMemInd(Enum):
     (QUESTION, ANSWER, DATA0, DATA1) = range(4)
 
 
+S_MEM_VAL_OFFSET = 512
+S_MEM_M_VAL_MAX_SIZE = 2048  # Major Value (Question / Answer)
+S_MEM_D_VAL_MAX_SIZE = 1024  # Data Value (Data0 / Data1)
+
+
 class QEditUI(Thread):
     def __init__(self, shared_mem_obj: qa_functions.SMem, **kwargs: Any) -> None:
         super().__init__()
@@ -39,7 +45,7 @@ class QEditUI(Thread):
         self.root = tk.Toplevel()
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
-        wd_w = 1000 if 1000 <= self.screen_dim[0] else self.screen_dim[0]
+        wd_w = 850 if 850 <= self.screen_dim[0] else self.screen_dim[0]
         wd_h = 900 if 900 <= self.screen_dim[1] else self.screen_dim[1]
         self.window_size = [wd_w, wd_h]
         self.screen_pos = [
@@ -86,12 +92,28 @@ class QEditUI(Thread):
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_large_size, 'MyLarge')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
 
-        self.question_frame = tk.Frame(self.root)
-        self.answer_frame = tk.Frame(self.root)
-        self.review_frame = tk.Frame(self.root)
+        # -------------------------------------------
+        # TKINTER ELEMENT DECLARATIONS
+        # -------------------------------------------
 
-        self.next_btn = ttk.Button(self.root)
-        self.prev_btn = ttk.Button(self.root)
+        (self.QFrameInd, self.AnsFrameInd, self.OptFrameInd, self.RFrameInd) = range(4)
+
+        # Frames
+        self.title_frame = tk.Frame(self.root)
+        self.main_frame = tk.Frame(self.root)
+        self.question_frame = tk.Frame(self.main_frame)
+        self.options_frame = tk.Frame(self.main_frame)
+        self.answer_frame = tk.Frame(self.main_frame)
+        self.review_frame = tk.Frame(self.main_frame)
+
+        # Title
+        self.title_icon = tk.Label(self.title_frame)
+        self.title_text = tk.Label(self.title_frame)
+
+        # Navigation
+        self.navbar = tk.Frame(self.root)
+        self.next_btn = ttk.Button(self.navbar)
+        self.prev_btn = ttk.Button(self.navbar)
 
         self.start()
         self.root.mainloop()
@@ -114,25 +136,70 @@ class QEditUI(Thread):
         self.root.iconbitmap(qa_functions.Files.AT_ico)
 
         self.update_requests[gen_short_uid()] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.question_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.answer_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.options_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.review_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.main_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.navbar, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gen_short_uid()] = [self.title_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+        self.update_requests[gen_short_uid()] = [self.title_icon, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+        self.label_formatter(self.title_text, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, uid='title_label')
+        self.label_formatter(self.title_icon, uid='title_icon')
+
+        self.configure_main_frame()
+        self.set_frame(self.QFrameInd)
+
+        self.root.bind("<Configure>", self.update)
 
         self.setup_smem()
-        self.set_data(SMemInd.QUESTION, 'a'*512)
         self.update_ui()
 
+    def update(self, *_, **_0):
+        print(self.root.winfo_width(), self.root.winfo_height(), sep='x')
+
+    def set_frame(self, frame_index: int):
+        pass
+
+    def configure_main_frame(self):
+        self.title_text.config(text="Question Editor", anchor=tk.W)
+        self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
+        self.title_icon.config(image=self.svgs['admt'])
+        self.title_text.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
+        self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX / 8), pady=self.padY, side=tk.LEFT)
+
+        self.title_frame.pack(fill=tk.X, expand=False, pady=50)
+        self.navbar.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
+        self.main_frame.pack(fill=tk.BOTH, expand=False)
+
+        self.next_btn.pack(fill=tk.X, expand=True, side=tk.RIGHT, pady=self.padY/2, padx=self.padX)
+        self.next_btn.configure(text="Next Step")
+
+        self.prev_btn.pack(fill=tk.X, expand=True, side=tk.LEFT, pady=self.padY/2, padx=self.padX)
+        self.prev_btn.config(text="Previous Step")
+
     def set_data(self, index: SMemInd, data: str):
+        global S_MEM_VAL_OFFSET, S_MEM_M_VAL_MAX_SIZE, S_MEM_D_VAL_MAX_SIZE
+
         assert isinstance(data, str)
-        self.s_mem.set(data, cast(int, index.value)*8192)
+        assert len(data) <= (S_MEM_D_VAL_MAX_SIZE if index in (SMemInd.DATA0, SMemInd.DATA1) else S_MEM_M_VAL_MAX_SIZE)
+
+        self.s_mem.set(data, cast(int, index.value) * S_MEM_VAL_OFFSET)
 
     def setup_smem(self):
+        global S_MEM_VAL_OFFSET
+
         assert self.s_mem.size >= 2048, "S_MEM size invalid"
 
         self.s_mem.set(self.s_mem.NullStr, 0)
-        self.s_mem.set(self.s_mem.NullStr, 512)
-        self.s_mem.set(self.s_mem.NullStr, 512*2)
-        self.s_mem.set(self.s_mem.NullStr, 512*3)
+        self.s_mem.set(self.s_mem.NullStr, S_MEM_VAL_OFFSET)
+        self.s_mem.set(self.s_mem.NullStr, S_MEM_VAL_OFFSET*2)
+        self.s_mem.set(self.s_mem.NullStr, S_MEM_VAL_OFFSET*3)
 
         for i in range(4):
-            assert self.s_mem.get(512*i) == self.s_mem.NullStr
+            assert self.s_mem.get(S_MEM_VAL_OFFSET*i) == self.s_mem.NullStr
 
         sys.stdout.write(f"Successfully configured SharedMemory Object \"{self.s_mem.name}\"\n")
 
@@ -527,9 +594,7 @@ class QEditUI(Thread):
 
                 del lCommand, cleaned_args
 
-    def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
-                         padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG,
-                         uid: Union[str, None] = None) -> None:
+    def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -567,8 +632,7 @@ class QEditUI(Thread):
             ]
         ]
 
-    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
-                        font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None, uid: Union[str, None] = None) -> None:
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
