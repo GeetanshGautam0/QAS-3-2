@@ -265,4 +265,8 @@ Recompile installer?
         _run_command(*'git push -u origin master'.split())
 
     sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} Enabling (resetting) developer mode\n")
+
+    # For dev
     _enable_dev_mode()
+    setup_svh()
+    setup_esvh()

@@ -106,6 +106,14 @@ class QEditUI(Thread):
         self.answer_frame = tk.Frame(self.main_frame)
         self.review_frame = tk.Frame(self.main_frame)
 
+        self.frameMap = {
+            self.QFrameInd: self.question_frame,
+            self.AnsFrameInd: self.answer_frame,
+            self.OptFrameInd: self.options_frame,
+            self.RFrameInd: self.review_frame
+        }
+        self.currentFrame = None
+
         # Title
         self.title_icon = tk.Label(self.title_frame)
         self.title_text = tk.Label(self.title_frame)
@@ -149,14 +157,42 @@ class QEditUI(Thread):
         self.label_formatter(self.title_text, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, uid='title_label')
         self.label_formatter(self.title_icon, uid='title_icon')
 
+        self.prev_btn.config(command=self.prev_page)
+        self.next_btn.config(command=self.next_page)
+
         self.configure_main_frame()
         self.set_frame(self.QFrameInd)
 
         self.setup_smem()
         self.update_ui()
 
+    def prev_page(self) -> None:
+        if not isinstance(self.currentFrame, int):
+            return
+        self.set_frame(self.currentFrame - 1)
+
+    def next_page(self) -> None:
+        if not isinstance(self.currentFrame, int):
+            return
+        self.set_frame(self.currentFrame + 1)
+
     def set_frame(self, frame_index: int) -> None:
-        pass
+        assert frame_index in self.frameMap
+
+        if self.currentFrame is not None:
+            self.frameMap[self.currentFrame].pack_forget()
+        self.frameMap[frame_index].pack(fill=tk.BOTH, expand=True)
+        self.currentFrame = frame_index
+
+        if self.currentFrame == 0:
+            self.prev_btn.config(state=tk.DISABLED)
+        else:
+            self.prev_btn.config(state=tk.NORMAL)
+
+        if self.currentFrame == len(self.frameMap) - 1:
+            self.next_btn.config(state=tk.DISABLED)
+        else:
+            self.next_btn.config(state=tk.NORMAL)
 
     def configure_main_frame(self) -> None:
         self.title_text.config(text="Question Editor", anchor=tk.W)
@@ -732,6 +768,12 @@ class QEditUI(Thread):
         for btn in (self.next_btn, self.prev_btn):
             if btn not in exclude:
                 btn.config(state=tk.NORMAL)
+
+        if self.currentFrame == 0:
+            self.prev_btn.config(state=tk.DISABLED)
+
+        if self.currentFrame == len(self.frameMap) - 1:
+            self.next_btn.config(state=tk.DISABLED)
 
         self.update_ui()
 
