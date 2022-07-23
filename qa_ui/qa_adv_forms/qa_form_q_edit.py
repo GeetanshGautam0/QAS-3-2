@@ -2,7 +2,7 @@ import qa_functions, sys, PIL, tkinter as tk, random  # , os, qa_files
 from enum import Enum
 from tkinter import ttk
 from threading import Thread
-from qa_functions.qa_custom import ThemeUpdateVars, ThemeUpdateCommands, LoggingLevel, HexColor
+from qa_functions.qa_custom import ThemeUpdateVars, ThemeUpdateCommands, LoggingLevel, HexColor, UnexpectedEdgeCase
 from qa_functions.qa_std import gen_short_uid, ANSI, AppLogColors
 from qa_ui import qa_prompts
 from svglib.svglib import svg2rlg
@@ -24,6 +24,26 @@ DEBUG_DEV_FLAG = False
 
 class SMemInd(Enum):
     (QUESTION, ANSWER, DATA0, DATA1) = range(4)
+
+
+class CustomText(tk.Text):
+    def __init__(self, *args, **kwargs):
+        """A text widget that report on internal widget commands"""
+        tk.Text.__init__(self, *args, **kwargs)
+
+        # create a proxy for the underlying widget
+        self._orig = self._w + "_orig"
+        self.tk.call("rename", self._w, self._orig)
+        self.tk.createcommand(self._w, self._proxy)
+
+    def _proxy(self, command, *args):
+        cmd = (self._orig, command) + args
+        result = self.tk.call(cmd)
+
+        if command in ("insert", "delete", "replace"):
+            self.event_generate("<<TextModified>>")
+
+        return result
 
 
 S_MEM_VAL_OFFSET = 512
@@ -96,7 +116,13 @@ class QEditUI(Thread):
         # TKINTER ELEMENT DECLARATIONS
         # -------------------------------------------
 
-        (self.QFrameInd, self.AnsFrameInd, self.OptFrameInd, self.RFrameInd) = range(4)
+        # IMPORTANT NOTE:
+        # The order of items in the following tuple dictates the order in which
+        # the pages will be presented
+        (self.QFrameInd, self.OptFrameInd, self.AnsFrameInd, self.RFrameInd) = range(4)
+
+        # Global
+        self.message_label = tk.Label(self.root)
 
         # Frames
         self.title_frame = tk.Frame(self.root)
@@ -107,11 +133,12 @@ class QEditUI(Thread):
         self.review_frame = tk.Frame(self.main_frame)
 
         self.frameMap = {
-            self.QFrameInd: self.question_frame,
-            self.AnsFrameInd: self.answer_frame,
-            self.OptFrameInd: self.options_frame,
-            self.RFrameInd: self.review_frame
+            self.QFrameInd: [self.question_frame, self.qf_setup, False],
+            self.AnsFrameInd: [self.answer_frame, self.af_setup, False],
+            self.OptFrameInd: [self.options_frame, self.of_setup, False],
+            self.RFrameInd: [self.review_frame, self.rf_setup, False]
         }
+
         self.currentFrame = None
 
         # Title
@@ -122,6 +149,21 @@ class QEditUI(Thread):
         self.navbar = tk.Frame(self.root)
         self.next_btn = ttk.Button(self.navbar)
         self.prev_btn = ttk.Button(self.navbar)
+
+        # Question Frame
+        self.qf_ttl_lbl = tk.Label(self.question_frame)
+        self.qf_inf_lbl = tk.Label(self.question_frame)
+        self.qf_inp_box = CustomText(self.question_frame)
+        self.qf_chr_cnt = tk.Label(self.question_frame)
+
+        # Option Frame
+        self.of_ttl_lbl = tk.Label(self.options_frame)
+
+        # Answer Frame
+        self.af_ttl_lbl = tk.Label(self.answer_frame)
+
+        # Review Frame
+        self.rf_ttl_lbl = tk.Label(self.review_frame)
 
         self.start()
         self.root.mainloop()
@@ -166,22 +208,111 @@ class QEditUI(Thread):
         self.setup_smem()
         self.update_ui()
 
+    def qf_setup(self) -> None:
+        global S_MEM_M_VAL_MAX_SIZE
+
+        self.disable_all_inputs()
+
+        self.qf_ttl_lbl.config(text=f"Step {self.currentFrame + 1}: Question", anchor=tk.W, justify=tk.LEFT)
+        self.qf_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.qf_inf_lbl.config(text="Enter the question in the text field below. Whenever you're done, click on 'Next Page' to proceed.", anchor=tk.W, justify=tk.LEFT)
+        self.qf_inf_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+
+        self.qf_chr_cnt.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX)
+        self.qf_chr_cnt.config(anchor=tk.W, justify=tk.LEFT)
+
+        self.qf_inp_box.pack(fill=tk.BOTH, expand=True, padx=self.padX)
+
+        self.label_formatter(self.qf_inf_lbl)
+        self.label_formatter(self.qf_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='qf_ttl_lbl')
+        self.label_formatter(self.qf_chr_cnt, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL, padding=self.padX, uid="qfTextCharCountLBL")
+
+        self.update_requests[gen_short_uid()] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.qf_inp_box.config(
+                    bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                    relief=tk.GROOVE, selectbackground=args[2], wrap=tk.WORD
+                ),
+                ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+            ]
+        ]
+
+        self.qf_inp_box.bind('<<TextModified>>', self.onQfInpMod)
+        self.onQfInpMod()  # setup character count
+
+        self.frameMap[self.QFrameInd][2] = True
+        self.enable_all_inputs()
+
+        return
+
+    def onQfInpMod(self, *_, **_1):
+        global S_MEM_M_VAL_MAX_SIZE
+
+        text = self.qf_inp_box.get("1.0", "end-1c")
+        chars = len(text)
+        self.qf_chr_cnt.config(text=f"{chars}/{S_MEM_M_VAL_MAX_SIZE} characters")
+
+        if chars > S_MEM_M_VAL_MAX_SIZE:
+            self.qf_inp_box.delete('1.0', tk.END)
+            self.qf_inp_box.insert('1.0', text[:S_MEM_M_VAL_MAX_SIZE])
+
+    def af_setup(self) -> None:
+        self.disable_all_inputs()
+
+        self.af_ttl_lbl.config(text=f"Step {self.currentFrame + 1}: Answer", anchor=tk.W, justify=tk.LEFT)
+        self.label_formatter(self.af_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='af_ttl_lbl')
+        self.af_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.frameMap[self.AnsFrameInd][2] = True
+        self.enable_all_inputs()
+        return
+
+    def of_setup(self) -> None:
+        self.disable_all_inputs()
+
+        self.of_ttl_lbl.config(text=f"Step {self.currentFrame + 1}: Options", anchor=tk.W, justify=tk.LEFT)
+        self.label_formatter(self.of_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='of_ttl_lbl')
+        self.of_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.frameMap[self.OptFrameInd][2] = True
+        self.enable_all_inputs()
+        return
+
+    def rf_setup(self) -> None:
+        self.disable_all_inputs()
+
+        self.rf_ttl_lbl.config(text=f"Step {self.currentFrame + 1}: Review", anchor=tk.W, justify=tk.LEFT)
+        self.label_formatter(self.rf_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='rf_ttl_lbl')
+        self.rf_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.frameMap[self.RFrameInd][2] = True
+        self.enable_all_inputs()
+        return
+
     def prev_page(self) -> None:
         if not isinstance(self.currentFrame, int):
             return
         self.set_frame(self.currentFrame - 1)
+        self.update_ui()
 
     def next_page(self) -> None:
         if not isinstance(self.currentFrame, int):
             return
         self.set_frame(self.currentFrame + 1)
+        self.update_ui()
 
     def set_frame(self, frame_index: int) -> None:
         assert frame_index in self.frameMap
 
         if self.currentFrame is not None:
-            self.frameMap[self.currentFrame].pack_forget()
-        self.frameMap[frame_index].pack(fill=tk.BOTH, expand=True)
+            self.frameMap[self.currentFrame][0].pack_forget()
+
+        frame, setup_function, setup = self.frameMap[frame_index]
+        frame.pack(fill=tk.BOTH, expand=True)
         self.currentFrame = frame_index
 
         if self.currentFrame == 0:
@@ -194,7 +325,15 @@ class QEditUI(Thread):
         else:
             self.next_btn.config(state=tk.NORMAL)
 
+        if not setup:
+            setup_function()
+
     def configure_main_frame(self) -> None:
+        self.message_label.config(text='')
+        self.message_label.pack(fill=tk.X, side=tk.BOTTOM, expand=False, padx=self.padX, pady=(0, self.padY/2))
+
+        self.label_formatter(self.message_label, size=ThemeUpdateVars.FONT_SIZE_SMALL)
+
         self.title_text.config(text="Question Editor", anchor=tk.W)
         self.title_icon.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
         self.title_icon.config(image=self.svgs['admt'])
@@ -205,10 +344,10 @@ class QEditUI(Thread):
         self.navbar.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
         self.main_frame.pack(fill=tk.BOTH, expand=False)
 
-        self.next_btn.pack(fill=tk.X, expand=True, side=tk.RIGHT, pady=self.padY/2, padx=self.padX)
+        self.next_btn.pack(fill=tk.X, expand=True, side=tk.RIGHT, pady=(self.padY/2, 0), padx=self.padX)
         self.next_btn.configure(text="Next Step")
 
-        self.prev_btn.pack(fill=tk.X, expand=True, side=tk.LEFT, pady=self.padY/2, padx=self.padX)
+        self.prev_btn.pack(fill=tk.X, expand=True, side=tk.LEFT, pady=(self.padY/2, 0), padx=self.padX)
         self.prev_btn.config(text="Previous Step")
 
     def set_data(self, index: SMemInd, data: str) -> None:
@@ -217,22 +356,24 @@ class QEditUI(Thread):
         assert isinstance(data, str)
         assert len(data) <= (S_MEM_D_VAL_MAX_SIZE if index in (SMemInd.DATA0, SMemInd.DATA1) else S_MEM_M_VAL_MAX_SIZE)
 
-        self.s_mem.set(data, index.value * S_MEM_VAL_OFFSET)
+        if isinstance(index, int):
+            assert 0 <= index <= 3
+            self.s_mem.set(data, index * S_MEM_VAL_OFFSET)
+        elif isinstance(index, SMemInd):
+            self.s_mem.set(data, index.value * S_MEM_VAL_OFFSET)
+        else:
+            raise UnexpectedEdgeCase("qEdit::set_data - index (!int, !SMemInd)")
 
     def setup_smem(self) -> None:
         global S_MEM_VAL_OFFSET
 
-        assert self.s_mem.size >= 2048, "S_MEM size invalid"
-
-        self.s_mem.set(self.s_mem.NullStr, 0)
-        self.s_mem.set(self.s_mem.NullStr, S_MEM_VAL_OFFSET)
-        self.s_mem.set(self.s_mem.NullStr, S_MEM_VAL_OFFSET*2)
-        self.s_mem.set(self.s_mem.NullStr, S_MEM_VAL_OFFSET*3)
+        assert self.s_mem.size >= 8192, "S_MEM size invalid; min size: 8192"
 
         for i in range(4):
+            self.set_data(i, self.s_mem.NullStr)
             assert self.s_mem.get(S_MEM_VAL_OFFSET*i) == self.s_mem.NullStr
 
-        sys.stdout.write(f"Successfully configured SharedMemory Object \"{self.s_mem.name}\"\n")
+        log(LoggingLevel.SUCCESS, f"Successfully configured SharedMemory Object \"{self.s_mem.name}\"")
 
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
@@ -818,6 +959,7 @@ def log(level: LoggingLevel, data: str) -> None:
 
     if level == LoggingLevel.DEBUG and not DEBUG_NORM:
         return
+
     elif level == LoggingLevel.DEVELOPER and (not (qa_functions.App.DEV_MODE and DEBUG_DEV_FLAG) or not DEBUG_NORM):
         return
 

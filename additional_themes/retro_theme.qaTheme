@@ -18,7 +18,7 @@
         "gray": "#949494",
         "font": {
             "font_face": "Terminal",
-            "alt_font_face": "Century Gothic",
+            "alt_font_face": "Courier",
             "size_small": 10,
             "size_main": 13,
             "size_subtitle": 20,

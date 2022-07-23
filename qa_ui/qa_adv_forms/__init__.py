@@ -1,1 +1,1 @@
-from . qa_form_q_edit import QEditUI as QuestionEditorUI
+from . import qa_form_q_edit as question_editor_form

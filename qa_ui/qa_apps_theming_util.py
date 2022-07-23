@@ -1529,12 +1529,9 @@ def log(level: LoggingLevel, data: str) -> None:
         )])
 
 
-def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs: Optional[Any]) -> tk.Toplevel:
-    qa_prompts.LOGGER_AVAIL = LOGGER_AVAIL
-    qa_prompts.LOGGER_FUNC = LOGGER_FUNC
-    qa_prompts.LOGGING_FILE_NAME = LOGGING_FILE_NAME
-    qa_prompts.DEBUG_NORM = DEBUG_NORM
-    qa_prompts.DEBUG_DEV_FLAG = DEBUG_DEV_FLAG
+def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **kwargs: Any) -> tk.Toplevel:
+    transfer_log_info(qa_prompts)
+
     qa_functions.qa_theme_loader.THEME_LOADER_ENABLE_DEV_DEBUGGING = DEBUG_DEV_FLAG
 
     subprocess.call('', shell=True)
@@ -1542,14 +1539,24 @@ def RunApp(instance_class: object, default_shell: Union[tk.Tk, tk.Toplevel], **k
         k = windll.kernel32
         k.SetConsoleMode(k.GetStdHandle(-11), 7)
 
-        log(LoggingLevel.ERROR, '[USER CHECK] Error message logging available')
-        log(LoggingLevel.SUCCESS, '[USER CHECK] Success message logging available')
-        log(LoggingLevel.INFO, '[USER CHECK] Info message logging available')
-        log(LoggingLevel.WARNING, '[USER CHECK] Warning message logging available')
-        log(LoggingLevel.DEBUG, '[USER CHECK] Debug message logging available')
-        log(LoggingLevel.DEVELOPER, '[USER CHECK] Developer console logging available')
+    log(LoggingLevel.ERROR, '[USER CHECK] Error message logging available')
+    log(LoggingLevel.SUCCESS, '[USER CHECK] Success message logging available')
+    log(LoggingLevel.INFO, '[USER CHECK] Info message logging available')
+    log(LoggingLevel.WARNING, '[USER CHECK] Warning message logging available')
+    log(LoggingLevel.DEBUG, '[USER CHECK] Debug message logging available')
+    log(LoggingLevel.DEVELOPER, '[USER CHECK] Developer console logging available')
 
     ui_root = tk.Toplevel()
     _UI(ui_root, ic=instance_class, ds=default_shell, **kwargs)
 
     return ui_root
+
+
+def transfer_log_info(script: Any) -> None:
+    global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
+
+    script.LOGGER_AVAIL = LOGGER_AVAIL  # type: ignore
+    script.LOGGER_FUNC = LOGGER_FUNC   # type: ignore
+    script.LOGGING_FILE_NAME = LOGGING_FILE_NAME    # type: ignore
+    script.DEBUG_NORM = DEBUG_NORM  # type: ignore
+    script.DEBUG_DEV_FLAG = DEBUG_DEV_FLAG  # type: ignore

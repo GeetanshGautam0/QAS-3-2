@@ -101,7 +101,11 @@ def setup_esvh() -> None:
         SVH_F.close()
 
 
-if __name__ == "__main__":
+if __name__ != "__main__":
+    sys.stderr.write("cannot use builder as module\n")
+    sys.exit(-1)
+
+else:
     subprocess.call('', shell=True)
     if os.name == 'nt':  # Only if we are running on Windows
         k = windll.kernel32
