@@ -1,124 +1,92 @@
 {
     "byLogger": {
-        ".\\TEST_ALL.bat": {
-            "md5": "d234cb378c61fa0f5715208ffd75ac6b",
-            "sha": "2898a1cf2fc32b001062106ec2ff8e5c13b3c5592ce60a07970c2bd3d442d1321212349aab592dfc3b68db5a8d7ebb127c82e755af8ace9a9b0b9692773cbf58"
+        ".\\compile.bat": {
+            "md5": "5ac35bad6e428392ce7f587884fb27d9",
+            "sha": "108e62e3ed8b1a394e8af1c5e6d157712d62ff9d6ea92bed40f0a0bec4bb71d2c11c14d245999f12330d6db491fdb91f01e79168e9a69db89d8cea98938a4f13"
         },
-        ".\\qa_main.py": {
-            "md5": "7f8506ee171d3e597038897792c66a60",
-            "sha": "f6f895db0cec739f99470f1953c5c100ba5af241e20feea2d567a5a16bb2cdbd49c03607ca73a06c3e3c397697565fad3a79f6539ac42d5500a588e2f12e1c74"
-        },
-        ".\\mypy_switches.txt": {
-            "md5": "8a5612034b8b5c259e5f0fd50e210ecc",
-            "sha": "2ffa964291275bb573ab2e58d992186b2fa5b068eed6244c40f01fcdcc0eaae23b9cd5860465d5d008b59c21eec4acf1e6ff49bed8037d5b670cd1c0fdec0c01"
+        ".\\build_new_version.py": {
+            "md5": "19bff4a50f2d6d1893bcbfb151c6d03b",
+            "sha": "dabe8d18651d5940ef3510fe9503c28aa07a990c29fc712896553188b147100ccf946aa1e5e6ca82dacdbd0943ad6c5e980879f6d5e1c9955ab8ecd76e85cdcb"
         },
         ".\\README.md": {
             "md5": "041cae8dddedc14705ac1f5ffd70ff96",
             "sha": "b42a64609204d607b618fbbe73b7d5331832db3b1d8e8d439ff5657ebf65a45efc7c600345e752b003b3f403451005c98f766ae05a6b3b8f16b3d76279f35ba9"
         },
-        ".\\compile.bat": {
-            "md5": "5ac35bad6e428392ce7f587884fb27d9",
-            "sha": "108e62e3ed8b1a394e8af1c5e6d157712d62ff9d6ea92bed40f0a0bec4bb71d2c11c14d245999f12330d6db491fdb91f01e79168e9a69db89d8cea98938a4f13"
-        },
         ".\\requirements.txt": {
             "md5": "68cc84e8887f14ea495db0dbb02f9ed2",
             "sha": "70713eddc8dac28eef1ebb4d50f268088559f2bcaba79ff794592adfe0761e04c947f1e75f6089477f6e2cb5caec683c3b0b6454b3f2fe06759d4e35987246b8"
-        },
-        ".\\build_new_version.py": {
-            "md5": "611fb8f90b8bcb27aee4c010ec422cc8",
-            "sha": "36e352bb0a922191fddda1da23a90401c90b3daf854e42e570e38cef1eaf1128aa30f934c2a24e5e7b62ae41ac23b01425869980bf2286a7168b5577282975f1"
         },
         ".\\pyproject.toml": {
             "md5": "dce91f2bf97dbab81ddf96855bf72aba",
             "sha": "752bdfb7c83cd011811575dfe671e329318fc1527f06b9544b9f189ea909232fbdba58e1927242526adcf800573c36983e885efd931fb36b9e22a489b4abfb3a"
         },
-        ".\\_config.yml": {
-            "md5": "ef1d1777ee8588b9e5551ca7d4e45ff6",
-            "sha": "7e3705ce0bd926ff0ca35fac68d4ad808e992d139209bed03520f5dac3169bc965b7e6e9b4f439432380dd3a7b2691f33b8a0144b7b5fc20823a60e0b046de08"
-        },
         ".\\mypy.ini": {
             "md5": "9d673d7fb2d05f79d70a8687cd60e33d",
             "sha": "e6963c977144ecfbe3478deb3b85817769f4bdd43fa31e37a8c9d4ce18b3a4436d57bb431c89a0a95d463d630aea7d79e700ea5c3fd9d299c5729562a99ff4a7"
         },
-        ".\\qa_functions\\qa_file_handler.py": {
-            "md5": "87a59386532dc9627117ad453292e3f8",
-            "sha": "28f0543af6b9e5ff11aed4da46b00e0822db540eb4d25468f312aae6c018daf8a0d12f7927476601935bbc37814ec83bc57d2120a30654776c2073e2e83945f3"
+        ".\\qa_main.py": {
+            "md5": "7f8506ee171d3e597038897792c66a60",
+            "sha": "f6f895db0cec739f99470f1953c5c100ba5af241e20feea2d567a5a16bb2cdbd49c03607ca73a06c3e3c397697565fad3a79f6539ac42d5500a588e2f12e1c74"
         },
-        ".\\qa_functions\\qa_nv_flags.py": {
-            "md5": "2aff858504aabce87b85ba2a3dcd9725",
-            "sha": "198f9252ac495e7154c73b9aadd6fcc4ad1bb7bb43adb39a6e98a84a23878ff47679bb3b9365366d4936a42d74dcb525517a222965806a88db3e5fcd435e8503"
+        ".\\_config.yml": {
+            "md5": "ef1d1777ee8588b9e5551ca7d4e45ff6",
+            "sha": "7e3705ce0bd926ff0ca35fac68d4ad808e992d139209bed03520f5dac3169bc965b7e6e9b4f439432380dd3a7b2691f33b8a0144b7b5fc20823a60e0b046de08"
         },
-        ".\\qa_functions\\qa_theme_loader.py": {
-            "md5": "a2b8552eba67015f23ca98e6d9c5a30f",
-            "sha": "dd24a5af6a97a4c0233bab7734192e7f9579441244232ea4a0974f03b5fd15bfb74d993c87707b4d527928aaaf25ebf53ada39b159ff48d727d0cb4a2b16c878"
+        ".\\TEST_ALL.bat": {
+            "md5": "d234cb378c61fa0f5715208ffd75ac6b",
+            "sha": "2898a1cf2fc32b001062106ec2ff8e5c13b3c5592ce60a07970c2bd3d442d1321212349aab592dfc3b68db5a8d7ebb127c82e755af8ace9a9b0b9692773cbf58"
         },
-        ".\\qa_functions\\qa_info.py": {
-            "md5": "806475999d24cea40a4aa273b9ae38ed",
-            "sha": "58fe6ba90c8ef7299b6839eab79f3abe30238f48f64634aaede23fadbca0b07685b0d5840c7ba2d5c830060f9c861145f557e88650819d5217430f52c2bc8d78"
+        ".\\mypy_switches.txt": {
+            "md5": "8a5612034b8b5c259e5f0fd50e210ecc",
+            "sha": "2ffa964291275bb573ab2e58d992186b2fa5b068eed6244c40f01fcdcc0eaae23b9cd5860465d5d008b59c21eec4acf1e6ff49bed8037d5b670cd1c0fdec0c01"
         },
-        ".\\qa_functions\\qa_updater_call.py": {
-            "md5": "3b4b2ef34f0e8bc462f8310246d9727a",
-            "sha": "8b5cabf9a73a9344024d47b0de9920932641e0744c894201f6d68090b32f92254dc50e416c39ad650280efd929ff53d3738e87bd07ef88029b6ef40ada682916"
+        ".\\qa_ui\\qa_splash.py": {
+            "md5": "717d1244de4ecfd07d93102e9359d139",
+            "sha": "134a30a5fb93e4fc0d44120854b12cca38cdb8a9ed43d8bbd297fb2c95416b786c950f1a668fcdc4d49030eb4e4b43fbe4776817b85d312b4343341d9d3c1247"
         },
-        ".\\qa_functions\\qa_enum.py": {
-            "md5": "f608d64276fe2d2bc36e7d9ea4eb7e8b",
-            "sha": "03ec10290ae006168ac4b1eac28ef570e1748e05664b73b468cf1d6df04d3587b1550fee8ed53a8113aaf8f049b8004a2398ec710fecf3a9c2fd56e06ab5abce"
+        ".\\qa_ui\\__init__.py": {
+            "md5": "45bd03801bdc6547a9d3d739a82f9803",
+            "sha": "82f9cbc11bb5cc4ca5a5016d0a0bb64ffcb061c46896a011b21382ff8e4cc77a4b6643f4e4c75e85afb95ec7cb04254d0a32fa64d61b7e1ee44e6f9e39c735e8"
         },
-        ".\\qa_functions\\qa_svh.py": {
-            "md5": "fd241b57f986f9ff41e5dd1c04e8c0b1",
-            "sha": "c8b945085238fba01fd6f9ceced7d8388339209eb4b91494b7ec99c8c4c386fd19c016c99b7ea296688c01f6dacfc59645e94d2a79fd7fe856875718425216aa"
+        ".\\qa_ui\\qa_apps_quizzing_form.py": {
+            "md5": "bfe4ce491b9aab2ae686c30e847f4b47",
+            "sha": "e429fd3c5f9a92db049128cf1806b71636c89f8bb3576eebf311797f0bfec0bed07a0b2f9032d898f5b7b365fc97473c12523c23887b0a56abf230563cdf8dbe"
         },
-        ".\\qa_functions\\qa_err.py": {
-            "md5": "617362362954204e156816ba2795c64f",
-            "sha": "843489744aa7bd18f361959362d2d4db650dae6ba99955d6007266f2d2905ba356f7e9815fe2c98dadb3801e631779354f23bfe69cd4cae7e150f3c63c3b9a82"
+        ".\\qa_ui\\qa_apps_recovery_util.py": {
+            "md5": "a033bd4add23d4a48bc96e05caa0b7a4",
+            "sha": "9dd6c0158aa4959c34dcdb70406405647cf889985943bb96b5d1f407961f55c735fe79c533119cd56a922220053cc40dd98a5b4fbbe333e05b27a2c37e473b3b"
         },
-        ".\\qa_functions\\qa_colors.py": {
-            "md5": "ee0f7a68ddb787c344cd772d8360e39a",
-            "sha": "0315c73075a9243d67907b68be07fa65886e8d7efc43a88feb7b0d4448243fffc0ab6ed0cf509b01ecb8b30a77eeb34b2e415937de7323c776fa94876463323e"
+        ".\\qa_ui\\qa_prompts.py": {
+            "md5": "454bbf795995176ba507550b63e9eba4",
+            "sha": "964f0d5b9bfee025b128d91cd4d000da7408e07b3979db7a2250b1d04b2b272924baaf20269c0d01d3400a1f754d51bb37795cb532ca0dd11ee788f7696bd3c0"
         },
-        ".\\qa_functions\\qa_std.py": {
-            "md5": "81ead651a732dc41737ddc6a855ba474",
-            "sha": "11810a49b26ce487c0b8d6b3ec3a1a8259a658d530817fe23de44b9e45ba002247eb8e949135092ed0cf25500582cfe715cc0c0516554f1dc9a416c12ff935ba"
+        ".\\qa_ui\\qa_apps_admin_tools.py": {
+            "md5": "0d0fab635253ddb22d2076af8097313f",
+            "sha": "a1403a82fe08aca6817641e94398d3bbe0b61bab4fb8ee8d5523779142a6f2c7ac9a84bd156e58611f4c33d1793bb03e6e9005ddde6de85d6605df9088b23b80"
         },
-        ".\\qa_functions\\qa_diagnostics.py": {
-            "md5": "677140111dc2ac4c0090663ec2564ff8",
-            "sha": "4191276e757a1b5d213b303ba8d404d14b75edd80f05e8b7aa9aeae1321430141d8e58b358588b5d61481db64e2ef70ed7cce134fc985663b01a15ef239fc2ff"
+        ".\\qa_ui\\qa_apps_theming_util.py": {
+            "md5": "38dc73ae62d6612d83a339be47edadde",
+            "sha": "a28cabfa2ff7acb73f5995f0be61a1f1e4b7b330d6d9e20f196c6fb0ad99f122bc206fb1e99c7f28bb1ed87a584c703fc391bf01049b5f41e508b0e75d718a35"
         },
-        ".\\qa_functions\\qa_logger.py": {
-            "md5": "369fac7f2a97d52ac6e2b66ca121631c",
-            "sha": "95586c2ab0b3ffee1eaf8381050db481d23ca445493d75ced4a3e49278f58768234b9dc9b2182f914969fa3ad3171818e73b6316129efc1c0b9b7032d43cf029"
+        ".\\qa_ui\\qa_adv_forms\\__init__.py": {
+            "md5": "5df2ea6b7a460b1eecc26cdbb5932ba2",
+            "sha": "b305aeb9df58f8eee7e4fc9e16776495e8860d12de704376c7a0564d48ed2b0e2da1384f5e5026df6dc21e3ea8e6c6730ba51ae19d4652c6cc8fdf4225690f1a"
         },
-        ".\\qa_functions\\qa_custom.py": {
-            "md5": "eb0338156f0ccb11cfbc39de0b680050",
-            "sha": "ca5e434d0de7ceaed4f3455d6ff60c31983860e9d23c4b734978c327c4db74cf98aa602c74e7f577b8be7fe22a1d37fc6c68c74d864e38ccbf00e1114afe97a7"
-        },
-        ".\\qa_functions\\__init__.py": {
-            "md5": "a434a3813a30caf0e6a5affb9d1ecf8b",
-            "sha": "15cd358cd3960e30efaf59f81035b112b96527dfe582fc8be2bfd2c23eb487780b30aec090f2a30af9539ef81f65bc79f918e76435856a602364a89326c8b7fd"
-        },
-        ".\\qa_installer_functions\\addons_installer.py": {
-            "md5": "45f82648367ba728b737df0e0b5fbe2d",
-            "sha": "adda408462f5d80b30e22f19af5178a249c0d17bfe737584037fd5c3118afb0ddc1c758284c0bc42e0482ee2fe9c7dea85cd3c9513a3d7a17e7d16644894a40c"
-        },
-        ".\\qa_installer_functions\\__init__.py": {
-            "md5": "b5914056c1766f26000276ffbf2779e7",
-            "sha": "5032cc397d9f77403d0b6d5f6320fe5dc2df3e309aafc1130f9872ac48f6415663ffe4b711107caa9826118210737d06d54ed48eca52f3981d8c12d58004d37e"
-        },
-        ".\\qa_installer_functions\\qa_update_app.py": {
-            "md5": "07db7b41aa54c258988ccb5843ec0173",
-            "sha": "cc0975f5d3b564fca43fd322d1c3c4e89020f4dedd0ba4b931941e432b777e9f28c56428dbb748f9ce30318d2ad7997ca70185c7e162455cb3ed07cf3e995cc3"
+        ".\\qa_ui\\qa_adv_forms\\qa_form_q_edit.py": {
+            "md5": "67290a34e9219f57c84a3e5181a4e83f",
+            "sha": "f63726c4624dab963fcd020ba1f1de1f737125418d1017287d5ad069cf0c5e0371cb92bacc5b88682a6f71d3b46c0ffaff4434b1cbdf614fa007fafce5702bb7"
         },
         ".\\qa_files\\__init__.py": {
             "md5": "4ede27ce91a352fddc737f96c1de9df7",
             "sha": "02a28dafe78be9b1cd1c7e8de5dbeb41ccfb45a501991497b0f551268d7ff10c80aa5d1c215d9770687498a841dabe1bf4567614fa037c321b59d35391a9fac6"
         },
-        ".\\qa_files\\qa_files_ltbl.py": {
-            "md5": "53f864e4735127544082fd85118b6619",
-            "sha": "441eea0d009a249cdfb5d39503933bad69b33f11285d46d8184a56f1258079076561c3d51ee27f04edb1814e64387ad7d82c400c396af4b6446fc1b3adef66f8"
-        },
         ".\\qa_files\\qa_file_std.py": {
             "md5": "fe94df4cd448d33f528efdf15d1c7ffe",
             "sha": "b92cebb4a243c5e770ff97f4d0e537c85da1914421aa1a80758e953480f6c9d2c1eff34be1e6eaeef3ecc077694d15292f7cd6de7ae536e4f786e803b430531b"
+        },
+        ".\\qa_files\\qa_files_ltbl.py": {
+            "md5": "53f864e4735127544082fd85118b6619",
+            "sha": "441eea0d009a249cdfb5d39503933bad69b33f11285d46d8184a56f1258079076561c3d51ee27f04edb1814e64387ad7d82c400c396af4b6446fc1b3adef66f8"
         },
         ".\\.github\\workflows\\tests.yml": {
             "md5": "e5cc82f93d090c1217e7b3e29b8b698c",
@@ -132,29 +100,29 @@
             "md5": "8f385766bc762a8f99c9ebef35d12b04",
             "sha": "a99e4eed86790c92587496c0925250004afd627bf77c50572be6e3518a509615b46461d5a230eff5fec24efd2dd54856e44fcd852dea0b19caadea471e890abd"
         },
-        ".\\.config\\esvh.json": {
-            "md5": "026e6e05b80a9b4c9d05af833a2c39ff",
-            "sha": "2b2d246e79a409a4458f950b1bea3cac53d8674db2803eff838cf945b24806ae25b639fa1fe11723d36e6653ab44b70e499d58a7fcf5c557934b734b74c90d1c"
+        ".\\qa_auto_tests\\test_all.py": {
+            "md5": "42c9e0fbb5d613c4f103531e593f3691",
+            "sha": "8eeebe3abfe1a9f62e787e9c76e11af770af4223ebfd83b3a925d129008d1a236d2e655045d3805f3f68601991249e565281193157d7e54bf5c3036294718a40"
         },
-        ".\\.config\\main_config.json": {
-            "md5": "14c91f56080e89c36f3fef3c89ecef70",
-            "sha": "dca2e60cabc44d35e9371c7af4ded22555636fb27e70361aeadc643c06cebdc90607e6d3e36fd4866b2f9f2eb8b0ab34ef564e68154abf6f2af38ed677991ebe"
+        ".\\qa_auto_tests\\__init__.py": {
+            "md5": "d41d8cd98f00b204e9800998ecf8427e",
+            "sha": "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26"
         },
-        ".\\.config\\update_commands.json": {
-            "md5": "50e68044b4976ee3891f1dc1801739a4",
-            "sha": "24b77b6c14aa05a50dd7ea9dee5586beda383d817fc2767f03e25e0729d837dbcf743b4f0f4194c3682347e2a65ce19d2ed69f7a43baa74011a9f63b698a6160"
+        ".\\.src\\.icons\\.warning\\base_icon.svg": {
+            "md5": "87c72ad038770c5496148675dee83ca4",
+            "sha": "f71cba25427c2bb6fbe6444b5483a6ef7575136344466598600cae435d33b40a6badde770a3f857f494cc15e929d9db3f6f9de28b09c4ced1ce950fcce1d36d3"
         },
-        ".\\.config\\update_manifest.json": {
-            "md5": "03a38290a4c5c4b99e20794ed06adc31",
-            "sha": "9bb9d19fceb93a23c13d566daf68e67264a9f8bf21f63d1c39a11fe15aee175019200dc5f9ba46174bc052a5073c0b7a59e4abbc1fe8fb60aba08f2d5ffd8006"
+        ".\\.src\\.icons\\.progress\\blank.svg": {
+            "md5": "004f0360a74654f0eb0727490b384c19",
+            "sha": "8761c603116d55e341b9f21c53a06016b246f8cf64495a2ac976802cc1c1641228dd949e33bcccdafcfe8c0f8a65569efd49d21f99b31318c93fc9bc54fc16a8"
         },
-        ".\\.src\\.defaults\\.themes\\hashes.json": {
-            "md5": "11ef593b66beefde5a26183a768cd40a",
-            "sha": "5727be9b26032fe07466ad3961d90dc280f8085e9c98c2d97974a62ab2b497900f24b6ae628ff95df054ffcab15a460ed42c48a12701039a9a51461208b37a74"
+        ".\\.src\\.icons\\.progress\\checkmark.svg": {
+            "md5": "50b024e66552a9f1844839ef9e066b6b",
+            "sha": "9a424605d74bd2ea1439baf1d3733b070b1af40143b9ad2fe8dc2063086c57a071ab9e4d149a49870c348ecce5a18e71d2ed32cd0a9420cee07cb68a2b60c5ce"
         },
-        ".\\.src\\.defaults\\.themes\\default.json": {
-            "md5": "3d2e6fad72d60d65f86dcd273e47476a",
-            "sha": "4e8bc2f5922bb92354a6dbadaf1dc0b9de19fdf4913a2429e605926a97b76fa9dd05c756f1136689147ed5a588f2d80cb5b6c2b31f96411898c2bd4ef22712b9"
+        ".\\.src\\.icons\\.progress\\exclamation.svg": {
+            "md5": "4eeb081b988c5eb84b1922fe32d9ec2d",
+            "sha": "9a185a5767a4847d140d331877e82e10c9a2cb56d943d27b2ff985e9b548ee5b83623f157af6be07790e370084563730434c6972ea85420245a623869ca532a8"
         },
         ".\\.src\\.icons\\.info\\base_icon.svg": {
             "md5": "b4f5e6ff8f8d0428119a896534dc857c",
@@ -164,17 +132,17 @@
             "md5": "f9abc7afb61b6ab6e5395e5df62d1cec",
             "sha": "a62c64160a726e2f699f96df553c6618e849c55663da79d325746229949f3115f4adef60f63ac062d604befcaf0d40b13720431a4c32eb7247f3f3cafe8f1a52"
         },
-        ".\\.src\\.icons\\.misc\\question.svg": {
-            "md5": "611be29201822013c7656c576cc8cf5f",
-            "sha": "b29e99b09b2e9dd00fbf76a8e7ddc3969d45c40d0a35faccb7d5f8a62c81216a634ac7ca1959a0f7bef3115fb8a199fa2cc11f3c24a3bf83a17d80af49c86b17"
+        ".\\.src\\.icons\\.misc\\settings.svg": {
+            "md5": "bce2878dde7a3c24427ec45d00dcb9d1",
+            "sha": "101fe8622f02d19b60811ceb55a4f3b41617e046d8334dd8a3bc361cd11c8781e0fcaaa785665200e99684a0cc5bbfc63ec333538851c5e9e32bce44288af99a"
         },
         ".\\.src\\.icons\\.misc\\www.svg": {
             "md5": "a67ccad60cdd4f40cc712d2ebec86836",
             "sha": "79a39bbe2913a161e4353a23a31fc09bd927b6bbd5d2ac9086e44d7e7d7d863268bd15f0a7c7c7bf1f2f4f5959607770ad6a11204eea45aa5f527638b95da988"
         },
-        ".\\.src\\.icons\\.misc\\settings.svg": {
-            "md5": "bce2878dde7a3c24427ec45d00dcb9d1",
-            "sha": "101fe8622f02d19b60811ceb55a4f3b41617e046d8334dd8a3bc361cd11c8781e0fcaaa785665200e99684a0cc5bbfc63ec333538851c5e9e32bce44288af99a"
+        ".\\.src\\.icons\\.misc\\question.svg": {
+            "md5": "611be29201822013c7656c576cc8cf5f",
+            "sha": "b29e99b09b2e9dd00fbf76a8e7ddc3969d45c40d0a35faccb7d5f8a62c81216a634ac7ca1959a0f7bef3115fb8a199fa2cc11f3c24a3bf83a17d80af49c86b17"
         },
         ".\\.src\\.icons\\.misc\\right_arrow.svg": {
             "md5": "9c1d2604385515d83611ac01f50103e7",
@@ -184,65 +152,97 @@
             "md5": "00fe994dc2809891b4482dd1a1119ca6",
             "sha": "abe76250aa07b5a9061ed0591ba25569970420bd569aabc7d0dcc51ff794ecf7b540a2b3cede446880222a0cfb9454473b499c8ebd9ae09820d5477a6137671f"
         },
-        ".\\.src\\.icons\\.progress\\checkmark.svg": {
-            "md5": "50b024e66552a9f1844839ef9e066b6b",
-            "sha": "9a424605d74bd2ea1439baf1d3733b070b1af40143b9ad2fe8dc2063086c57a071ab9e4d149a49870c348ecce5a18e71d2ed32cd0a9420cee07cb68a2b60c5ce"
+        ".\\.src\\.defaults\\.themes\\default.json": {
+            "md5": "bbe9e9cd5460f0a63a7ed5ac7795b48f",
+            "sha": "8a495f3e5a1b0c970d80c272442377a110477929b1a6c6a1e162fe484f364207ed59de1da6b7c1b221ea8e24365a5a4bf6f43e2106dc8d40c6338d8e0c86f807"
         },
-        ".\\.src\\.icons\\.progress\\blank.svg": {
-            "md5": "004f0360a74654f0eb0727490b384c19",
-            "sha": "8761c603116d55e341b9f21c53a06016b246f8cf64495a2ac976802cc1c1641228dd949e33bcccdafcfe8c0f8a65569efd49d21f99b31318c93fc9bc54fc16a8"
+        ".\\.src\\.defaults\\.themes\\hashes.json": {
+            "md5": "50f0578b3b99b43c2d4239abf76ea56a",
+            "sha": "d8fe87ec40d00c202fda2eb02e32f99f4460d2f7874ee1c8c646ec0d47d4229dc13036dfcf26339b326dbc2baa63202f60c837ee79c9c3298d7ceacf3f9cd41c"
         },
-        ".\\.src\\.icons\\.progress\\exclamation.svg": {
-            "md5": "4eeb081b988c5eb84b1922fe32d9ec2d",
-            "sha": "9a185a5767a4847d140d331877e82e10c9a2cb56d943d27b2ff985e9b548ee5b83623f157af6be07790e370084563730434c6972ea85420245a623869ca532a8"
+        ".\\qa_functions\\qa_svh.py": {
+            "md5": "fd241b57f986f9ff41e5dd1c04e8c0b1",
+            "sha": "c8b945085238fba01fd6f9ceced7d8388339209eb4b91494b7ec99c8c4c386fd19c016c99b7ea296688c01f6dacfc59645e94d2a79fd7fe856875718425216aa"
         },
-        ".\\.src\\.icons\\.warning\\base_icon.svg": {
-            "md5": "87c72ad038770c5496148675dee83ca4",
-            "sha": "f71cba25427c2bb6fbe6444b5483a6ef7575136344466598600cae435d33b40a6badde770a3f857f494cc15e929d9db3f6f9de28b09c4ced1ce950fcce1d36d3"
+        ".\\qa_functions\\qa_std.py": {
+            "md5": "81ead651a732dc41737ddc6a855ba474",
+            "sha": "11810a49b26ce487c0b8d6b3ec3a1a8259a658d530817fe23de44b9e45ba002247eb8e949135092ed0cf25500582cfe715cc0c0516554f1dc9a416c12ff935ba"
         },
-        ".\\qa_ui\\qa_apps_theming_util.py": {
-            "md5": "114dec0443a942f135dee7a7df031d1c",
-            "sha": "42b2609504b4b620858b44bb1d8977647625f00c73af7ef68d0b21aa0e9172bbb1b5942188546b8828d2e4356c36f5d2b9922cefee01f4e0ce8026ce87a5e1cf"
+        ".\\qa_functions\\__init__.py": {
+            "md5": "a434a3813a30caf0e6a5affb9d1ecf8b",
+            "sha": "15cd358cd3960e30efaf59f81035b112b96527dfe582fc8be2bfd2c23eb487780b30aec090f2a30af9539ef81f65bc79f918e76435856a602364a89326c8b7fd"
         },
-        ".\\qa_ui\\qa_apps_admin_tools.py": {
-            "md5": "522121f124c20d6795ee81b960fcd361",
-            "sha": "99a0a00d6fbbaa71329f5c6d5d4e68f4ee55d1e283735cbce80cfab68e072da29f71bc963b5a464ac4258bde56b5a020a61d18df0459ebca202d35b154bfe479"
+        ".\\qa_functions\\qa_diagnostics.py": {
+            "md5": "677140111dc2ac4c0090663ec2564ff8",
+            "sha": "4191276e757a1b5d213b303ba8d404d14b75edd80f05e8b7aa9aeae1321430141d8e58b358588b5d61481db64e2ef70ed7cce134fc985663b01a15ef239fc2ff"
         },
-        ".\\qa_ui\\qa_prompts.py": {
-            "md5": "454bbf795995176ba507550b63e9eba4",
-            "sha": "964f0d5b9bfee025b128d91cd4d000da7408e07b3979db7a2250b1d04b2b272924baaf20269c0d01d3400a1f754d51bb37795cb532ca0dd11ee788f7696bd3c0"
+        ".\\qa_functions\\qa_theme_loader.py": {
+            "md5": "a2b8552eba67015f23ca98e6d9c5a30f",
+            "sha": "dd24a5af6a97a4c0233bab7734192e7f9579441244232ea4a0974f03b5fd15bfb74d993c87707b4d527928aaaf25ebf53ada39b159ff48d727d0cb4a2b16c878"
         },
-        ".\\qa_ui\\qa_apps_quizzing_form.py": {
-            "md5": "0eb9c80f9b82841f334a5f72c66644cc",
-            "sha": "967fe0852e940a3eac7acbe7aea422cb85768805c61327d2b9b8c147503a89683cbca595f3f212f6a4766cdb6401a6185a840be1ffd04bb429009d5b2eae0b2b"
+        ".\\qa_functions\\qa_info.py": {
+            "md5": "806475999d24cea40a4aa273b9ae38ed",
+            "sha": "58fe6ba90c8ef7299b6839eab79f3abe30238f48f64634aaede23fadbca0b07685b0d5840c7ba2d5c830060f9c861145f557e88650819d5217430f52c2bc8d78"
         },
-        ".\\qa_ui\\qa_apps_recovery_util.py": {
-            "md5": "11322f76429cf56768f0e56ad682a238",
-            "sha": "7450cb994f87bdfb52c2a44bd578bc09f23901fb6e28a11ad100b400c09db3d83b5f8324328ba212861f404a15bcbf792c0c780ab7ad7805e5d70e5cd3eef88e"
+        ".\\qa_functions\\qa_nv_flags.py": {
+            "md5": "2aff858504aabce87b85ba2a3dcd9725",
+            "sha": "198f9252ac495e7154c73b9aadd6fcc4ad1bb7bb43adb39a6e98a84a23878ff47679bb3b9365366d4936a42d74dcb525517a222965806a88db3e5fcd435e8503"
         },
-        ".\\qa_ui\\qa_splash.py": {
-            "md5": "717d1244de4ecfd07d93102e9359d139",
-            "sha": "134a30a5fb93e4fc0d44120854b12cca38cdb8a9ed43d8bbd297fb2c95416b786c950f1a668fcdc4d49030eb4e4b43fbe4776817b85d312b4343341d9d3c1247"
+        ".\\qa_functions\\qa_colors.py": {
+            "md5": "ee0f7a68ddb787c344cd772d8360e39a",
+            "sha": "0315c73075a9243d67907b68be07fa65886e8d7efc43a88feb7b0d4448243fffc0ab6ed0cf509b01ecb8b30a77eeb34b2e415937de7323c776fa94876463323e"
         },
-        ".\\qa_ui\\__init__.py": {
-            "md5": "45bd03801bdc6547a9d3d739a82f9803",
-            "sha": "82f9cbc11bb5cc4ca5a5016d0a0bb64ffcb061c46896a011b21382ff8e4cc77a4b6643f4e4c75e85afb95ec7cb04254d0a32fa64d61b7e1ee44e6f9e39c735e8"
+        ".\\qa_functions\\qa_enum.py": {
+            "md5": "f608d64276fe2d2bc36e7d9ea4eb7e8b",
+            "sha": "03ec10290ae006168ac4b1eac28ef570e1748e05664b73b468cf1d6df04d3587b1550fee8ed53a8113aaf8f049b8004a2398ec710fecf3a9c2fd56e06ab5abce"
         },
-        ".\\qa_ui\\qa_adv_forms\\qa_form_q_edit.py": {
-            "md5": "7ce27926b8fc77a6edaeeaabb914d1ab",
-            "sha": "c85b271207d2a89e597f75735da0722f6e0415b221800658b19f225a19c14625b82f4facbd7152271aa255d8c51b7b8324c8647dbeaf0ae4af25a4e4c25fe768"
+        ".\\qa_functions\\qa_logger.py": {
+            "md5": "369fac7f2a97d52ac6e2b66ca121631c",
+            "sha": "95586c2ab0b3ffee1eaf8381050db481d23ca445493d75ced4a3e49278f58768234b9dc9b2182f914969fa3ad3171818e73b6316129efc1c0b9b7032d43cf029"
         },
-        ".\\qa_ui\\qa_adv_forms\\__init__.py": {
-            "md5": "dc21e21ebf6cb14ad32dc2683fb07071",
-            "sha": "7ccf0928578bf694dff6934f269f61e4bff56bb956f95949785bf1e6c54a21ec628e726877dabf2dca0cb7f0658461e7b7a8f4e223a01ac76378429be256ed0e"
+        ".\\qa_functions\\qa_updater_call.py": {
+            "md5": "3b4b2ef34f0e8bc462f8310246d9727a",
+            "sha": "8b5cabf9a73a9344024d47b0de9920932641e0744c894201f6d68090b32f92254dc50e416c39ad650280efd929ff53d3738e87bd07ef88029b6ef40ada682916"
         },
-        ".\\qa_auto_tests\\__init__.py": {
-            "md5": "d41d8cd98f00b204e9800998ecf8427e",
-            "sha": "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26"
+        ".\\qa_functions\\qa_file_handler.py": {
+            "md5": "87a59386532dc9627117ad453292e3f8",
+            "sha": "28f0543af6b9e5ff11aed4da46b00e0822db540eb4d25468f312aae6c018daf8a0d12f7927476601935bbc37814ec83bc57d2120a30654776c2073e2e83945f3"
         },
-        ".\\qa_auto_tests\\test_all.py": {
-            "md5": "42c9e0fbb5d613c4f103531e593f3691",
-            "sha": "8eeebe3abfe1a9f62e787e9c76e11af770af4223ebfd83b3a925d129008d1a236d2e655045d3805f3f68601991249e565281193157d7e54bf5c3036294718a40"
+        ".\\qa_functions\\qa_custom.py": {
+            "md5": "eb0338156f0ccb11cfbc39de0b680050",
+            "sha": "ca5e434d0de7ceaed4f3455d6ff60c31983860e9d23c4b734978c327c4db74cf98aa602c74e7f577b8be7fe22a1d37fc6c68c74d864e38ccbf00e1114afe97a7"
+        },
+        ".\\qa_functions\\qa_err.py": {
+            "md5": "617362362954204e156816ba2795c64f",
+            "sha": "843489744aa7bd18f361959362d2d4db650dae6ba99955d6007266f2d2905ba356f7e9815fe2c98dadb3801e631779354f23bfe69cd4cae7e150f3c63c3b9a82"
+        },
+        ".\\qa_installer_functions\\addons_installer.py": {
+            "md5": "45f82648367ba728b737df0e0b5fbe2d",
+            "sha": "adda408462f5d80b30e22f19af5178a249c0d17bfe737584037fd5c3118afb0ddc1c758284c0bc42e0482ee2fe9c7dea85cd3c9513a3d7a17e7d16644894a40c"
+        },
+        ".\\qa_installer_functions\\__init__.py": {
+            "md5": "b5914056c1766f26000276ffbf2779e7",
+            "sha": "5032cc397d9f77403d0b6d5f6320fe5dc2df3e309aafc1130f9872ac48f6415663ffe4b711107caa9826118210737d06d54ed48eca52f3981d8c12d58004d37e"
+        },
+        ".\\qa_installer_functions\\qa_update_app.py": {
+            "md5": "07db7b41aa54c258988ccb5843ec0173",
+            "sha": "cc0975f5d3b564fca43fd322d1c3c4e89020f4dedd0ba4b931941e432b777e9f28c56428dbb748f9ce30318d2ad7997ca70185c7e162455cb3ed07cf3e995cc3"
+        },
+        ".\\.config\\update_commands.json": {
+            "md5": "50e68044b4976ee3891f1dc1801739a4",
+            "sha": "24b77b6c14aa05a50dd7ea9dee5586beda383d817fc2767f03e25e0729d837dbcf743b4f0f4194c3682347e2a65ce19d2ed69f7a43baa74011a9f63b698a6160"
+        },
+        ".\\.config\\main_config.json": {
+            "md5": "14c91f56080e89c36f3fef3c89ecef70",
+            "sha": "dca2e60cabc44d35e9371c7af4ded22555636fb27e70361aeadc643c06cebdc90607e6d3e36fd4866b2f9f2eb8b0ab34ef564e68154abf6f2af38ed677991ebe"
+        },
+        ".\\.config\\esvh.json": {
+            "md5": "75160e694da8641b8570f877b1d41a20",
+            "sha": "4238cb54db582363a52e7d7eaec7c01e01c736ee853871bf9ced86502d3310a2790fad843b8c92c01345017bdf65053aaff27c6bfc91e3f89ef4d9a00ebd8328"
+        },
+        ".\\.config\\update_manifest.json": {
+            "md5": "03a38290a4c5c4b99e20794ed06adc31",
+            "sha": "9bb9d19fceb93a23c13d566daf68e67264a9f8bf21f63d1c39a11fe15aee175019200dc5f9ba46174bc052a5073c0b7a59e4abbc1fe8fb60aba08f2d5ffd8006"
         }
     }
 }

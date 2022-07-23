@@ -134,7 +134,9 @@ else:
 
         _run_command('mypy', '--pretty', '.')
         _run_command('mypy', *mp_flags, '.')
-        _run_command(f'pytest', '-vv')
+        _run_command(f'pytest', '-vv', '-s')
+
+        if '--checks-only' in sys.argv: sys.exit(0)
 
         if input(f"""Do you want to continue with the build?
         ({ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}1{ANSI.RESET}) Yes
@@ -142,8 +144,6 @@ else:
     > """) != '1':
             sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_RED}EXITING{ANSI.RESET}")
             sys.exit(0)
-
-        if '--checks-only' in sys.argv: sys.exit(0)
 
     lvl = ''
     push = False
