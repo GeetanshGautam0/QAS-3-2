@@ -71,7 +71,7 @@ S_MEM_D_VAL_MAX_SIZE = 1024  # Data Value (Data0 / Data1)
 
 
 class QEditUI(Thread):
-    def __init__(self, shared_mem_obj: qa_functions.SMem, **kwargs: Any) -> None:
+    def __init__(self, shared_mem_obj: qa_functions.SMem, edit_mode: bool = False, **kwargs: Any) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
@@ -281,6 +281,15 @@ class QEditUI(Thread):
             self.qf_inp_box.delete('1.0', tk.END)
             self.qf_inp_box.insert('1.0', text[:S_MEM_M_VAL_MAX_SIZE])
 
+    def configNavButtons(self) -> None:
+        if self.currentFrame == 0:
+            self.prev_btn.config(state=tk.DISABLED, style="LG.TButton")
+
+        if self.currentFrame == len(self.frameMap) - 1:
+            self.next_btn.config(text="Submit Question", style="Accent2LG.TButton", command=self.submit_question, state=tk.NORMAL)
+        else:
+            self.next_btn.config(text="Next Step", style="LG.TButton", command=self.next_page, state=tk.NORMAL)
+
     def af_setup(self) -> None:
         self.disable_all_inputs()
 
@@ -318,6 +327,7 @@ class QEditUI(Thread):
         if not isinstance(self.currentFrame, int):
             return
         self.set_frame(self.currentFrame - 1)
+        self.configNavButtons()
         self.update_ui()
 
     def _clear_info(self) -> None:
@@ -399,8 +409,7 @@ class QEditUI(Thread):
             self.set_frame(0)
 
         if self.currentFrame == self.RFrameInd:  # Submit
-            self.submit_question()
-            return
+            raise UnexpectedEdgeCase('qEditUI.nextPg(fn)::<RFrame?Call>')
 
         if self.currentFrame == self.QFrameInd:
             if len(self.qf_inp_box.get("1.0", "end-1c").strip()) <= 0:
@@ -408,6 +417,7 @@ class QEditUI(Thread):
                 return
 
         self.set_frame(self.currentFrame + 1)
+        self.configNavButtons()
         self.update_ui()
 
     def set_frame(self, frame_index: int) -> None:
@@ -454,6 +464,8 @@ class QEditUI(Thread):
 
         self.prev_btn.pack(fill=tk.X, expand=True, side=tk.LEFT, pady=(self.padY/2, 0), padx=self.padX)
         self.prev_btn.config(text="Previous Step")
+
+        self.configNavButtons()
 
     def set_data(self, index: SMemInd, data: str) -> None:
         global S_MEM_VAL_OFFSET, S_MEM_M_VAL_MAX_SIZE, S_MEM_D_VAL_MAX_SIZE
@@ -712,6 +724,42 @@ class QEditUI(Thread):
         self.ttk_style.map(
             'Active.TButton',
             background=[('active', self.theme.accent.color), ('disabled', self.theme.accent.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
+        )
+
+        self.ttk_style.configure(
+            'Accent2.TButton',
+            background=self.theme.warning.color,
+            foreground=self.theme.background.color,
+            font=(self.theme.font_face, self.theme.font_main_size),
+            focuscolor=self.theme.background.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Accent2.TButton',
+            background=[('active', self.theme.warning.color), ('disabled', self.theme.warning.color), ('readonly', self.theme.gray.color)],
+            foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
+        )
+
+        self.ttk_style.configure(
+            'Accent2LG.TButton',
+            background=self.theme.warning.color,
+            foreground=self.theme.background.color,
+            font=(self.theme.font_face, self.theme.font_large_size),
+            focuscolor=self.theme.background.color,
+            bordercolor=self.theme.border_color.color,
+            borderwidth=self.theme.border_size,
+            highlightcolor=self.theme.border_color.color,
+            highlightthickness=self.theme.border_size
+        )
+
+        self.ttk_style.map(
+            'Accent2LG.TButton',
+            background=[('active', self.theme.warning.color), ('disabled', self.theme.warning.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
@@ -1015,12 +1063,7 @@ class QEditUI(Thread):
             if btn not in exclude:
                 btn.config(state=tk.NORMAL)
 
-        if self.currentFrame == 0:
-            self.prev_btn.config(state=tk.DISABLED)
-
-        if self.currentFrame == len(self.frameMap) - 1:
-            self.next_btn.config(text="Submit Question")
-
+        self.configNavButtons()
         self.update_ui()
 
 

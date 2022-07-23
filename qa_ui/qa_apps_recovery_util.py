@@ -354,7 +354,7 @@ class _UI(Thread):
         self.activity_box.config(
             bg=self.theme.background.color,
             fg=self.theme.foreground.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
+            font=(self.theme.font_face, self.theme.font_small_size),
             selectmode=tk.EXTENDED,
             selectbackground=self.theme.accent.color,
             selectforeground=self.theme.background.color
@@ -531,66 +531,67 @@ class _UI(Thread):
             qa_prompts.InputPrompts.ButtonPrompt(s_mem, 'Fix Errors?', ('Yes', 'y'), ('No', 'n'), default='<cancel>', message=f'Found {fail_acc} errors; do you want to fix these errors now?')
 
             raw = s_mem.get()
-            assert isinstance(raw, str)
+            if s_mem.get() is not None:
+                assert isinstance(raw, str)
 
-            if raw == 'y':
-                log(LoggingLevel.INFO, f'User agreed to fix errors.')
+                if raw == 'y':
+                    log(LoggingLevel.INFO, f'User agreed to fix errors.')
 
-                self.insert_into_lb("")
-                self.insert_into_lb("-"*100)
-                self.insert_into_lb("Running FIX commands")
+                    self.insert_into_lb("")
+                    self.insert_into_lb("-"*100)
+                    self.insert_into_lb("Running FIX commands")
 
-                log(LoggingLevel.INFO, f"UC:\n\t\t\t\"[UPDATE_EXE]\" {uc_functions}")
+                    log(LoggingLevel.INFO, f"UC:\n\t\t\t\"[UPDATE_EXE]\" {uc_functions}")
 
-                if len(uc_functions.strip()) > 0:
-                    self.insert_into_lb(f"Running UC: [UPDATE_EXE] {uc_functions}")
-                    os.system(f'.qa_update\\qa_update_app.exe update {uc_functions} --Title Recovery')
-                    log(LoggingLevel.INFO, "Finished executing UC commands (status unknown)")
-
-                else:
-                    self.insert_into_lb("No UC commands needed.")
-
-                if len(norm_call_functions):
-                    for func in norm_call_functions:
-                        log(LoggingLevel.INFO, f"Running function {func}")
-
-                        try:
-                            func()
-                            log(LoggingLevel.INFO, "\tSuccessfully ran function.")
-                        except Exception as E:
-                            log(LoggingLevel.ERROR, f"\tFailed to run function: \n\t{traceback.format_exc()}")
-                            self.insert_into_lb("    Failed to run function", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
-
-                if len(uc_restart_functions) > 0:
-                    log(LoggingLevel.INFO, "Creating UC_RESTART_FUNCTIONS flags")
-                    for func in uc_restart_functions:
-                        self.insert_into_lb(f'\tCreated NVF: L_UPDATE:{func}')
-                        log(LoggingLevel.INFO, f"\t\t>CREATED FLAG: {func}")
-                        qa_functions.CreateNVFlag("L_UPDATE", func)
-
-                    log(LoggingLevel.INFO, "Prompting user to restart now.")
-                    s_mem = qa_functions.SMem()
-                    qa_prompts.InputPrompts.ButtonPrompt(
-                        s_mem, "App Restart Required", ('Now', '<now>'), ('Later', '<later>'),
-                        message="The application needs to restart to finish the errors; restart NOW or LATER (when the app is closed)?",
-                        default='<none>'
-                    )
-                    raw = s_mem.get()
-                    assert isinstance(raw, str)
-
-                    log(LoggingLevel.INFO, f'User responded: {raw.strip()}')
-
-                    if raw.strip().lower() == "<now>":
-                        log(LoggingLevel.INFO, "Restarting app...")
-                        subprocess.Popen(['.qa_update\\qa_update_app.exe', 'update', '--ReadFlags', '--noAdmin', '--Console'])
-                        sys.exit()
+                    if len(uc_functions.strip()) > 0:
+                        self.insert_into_lb(f"Running UC: [UPDATE_EXE] {uc_functions}")
+                        os.system(f'.qa_update\\qa_update_app.exe update {uc_functions} --Title Recovery')
+                        log(LoggingLevel.INFO, "Finished executing UC commands (status unknown)")
 
                     else:
-                        log(LoggingLevel.INFO, 'Created NVF ticket for updater.')
-                        self.insert_into_lb('NVF: L_UPDATE ticket(s) created.')
+                        self.insert_into_lb("No UC commands needed.")
 
-            else:
-                log(LoggingLevel.INFO, 'User denied access to fix errors.')
+                    if len(norm_call_functions):
+                        for func in norm_call_functions:
+                            log(LoggingLevel.INFO, f"Running function {func}")
+
+                            try:
+                                func()
+                                log(LoggingLevel.INFO, "\tSuccessfully ran function.")
+                            except Exception as E:
+                                log(LoggingLevel.ERROR, f"\tFailed to run function: \n\t{traceback.format_exc()}")
+                                self.insert_into_lb("    Failed to run function", fg=ThemeUpdateVars.ERROR, sbg=ThemeUpdateVars.ERROR)
+
+                    if len(uc_restart_functions) > 0:
+                        log(LoggingLevel.INFO, "Creating UC_RESTART_FUNCTIONS flags")
+                        for func in uc_restart_functions:
+                            self.insert_into_lb(f'\tCreated NVF: L_UPDATE:{func}')
+                            log(LoggingLevel.INFO, f"\t\t>CREATED FLAG: {func}")
+                            qa_functions.CreateNVFlag("L_UPDATE", func)
+
+                        log(LoggingLevel.INFO, "Prompting user to restart now.")
+                        s_mem = qa_functions.SMem()
+                        qa_prompts.InputPrompts.ButtonPrompt(
+                            s_mem, "App Restart Required", ('Now', '<now>'), ('Later', '<later>'),
+                            message="The application needs to restart to finish the errors; restart NOW or LATER (when the app is closed)?",
+                            default='<none>'
+                        )
+                        raw = s_mem.get()
+                        assert isinstance(raw, str)
+
+                        log(LoggingLevel.INFO, f'User responded: {raw.strip()}')
+
+                        if raw.strip().lower() == "<now>":
+                            log(LoggingLevel.INFO, "Restarting app...")
+                            subprocess.Popen(['.qa_update\\qa_update_app.exe', 'update', '--ReadFlags', '--noAdmin', '--Console'])
+                            sys.exit()
+
+                        else:
+                            log(LoggingLevel.INFO, 'Created NVF ticket for updater.')
+                            self.insert_into_lb('NVF: L_UPDATE ticket(s) created.')
+
+                else:
+                    log(LoggingLevel.INFO, 'User denied access to fix errors.')
 
             del s_mem, raw
 
