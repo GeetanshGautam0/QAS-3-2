@@ -38,7 +38,7 @@ class SMemInd(Enum):
 
 
 class CustomText(tk.Text):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """A text widget that report on internal widget commands"""
         tk.Text.__init__(self, *args, **kwargs)
 
@@ -47,12 +47,20 @@ class CustomText(tk.Text):
         self.tk.call("rename", self._w, self._orig)
         self.tk.createcommand(self._w, self._proxy)
 
-    def _proxy(self, command, *args):
+    def _proxy(self, command, *args) -> Any:
+        # avoid error when copying
+        if command == 'get' and (args[0] == 'sel.first' and args[1] == 'sel.last') and not self.tag_ranges('sel'):
+            return
+
+        # avoid error when deleting
+        if command == 'delete' and (args[0] == 'sel.first' and args[1] == 'sel.last') and not self.tag_ranges('sel'):
+            return
+
         cmd = (self._orig, command) + args
         result = self.tk.call(cmd)
 
-        if command in ("insert", "delete", "replace"):
-            self.event_generate("<<TextModified>>")
+        if command in ('insert', 'delete', 'replace'):
+            self.event_generate('<<TextModified>>')
 
         return result
 
@@ -262,7 +270,7 @@ class QEditUI(Thread):
 
         return
 
-    def onQfInpMod(self, *_, **_1):
+    def onQfInpMod(self, *_, **_1) -> None:
         global S_MEM_M_VAL_MAX_SIZE
 
         text = self.qf_inp_box.get("1.0", "end-1c").strip()
