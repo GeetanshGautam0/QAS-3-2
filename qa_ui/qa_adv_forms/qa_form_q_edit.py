@@ -10,6 +10,7 @@ from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
 from typing import *
+from dataclasses import dataclass
 
 
 script_name = "APP_AT::QEdit"
@@ -20,6 +21,16 @@ LOGGING_FILE_NAME = ''
 LOGGING_SCRIPT_NAME = script_name
 DEBUG_NORM = False
 DEBUG_DEV_FLAG = False
+
+
+class Levels(Enum):
+    (NORMAL, OKAY, WARNING, ERROR) = range(4)
+
+
+@dataclass
+class Message:
+    LVL: Levels
+    MSG: str
 
 
 class SMemInd(Enum):
@@ -63,6 +74,9 @@ class QEditUI(Thread):
         self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}
 
         self.root = tk.Toplevel()
+
+        self.gi_cl = True
+        self._job: Union[None, str] = None
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
         wd_w = 850 if 850 <= self.screen_dim[0] else self.screen_dim[0]
@@ -227,7 +241,6 @@ class QEditUI(Thread):
         self.label_formatter(self.qf_inf_lbl)
         self.label_formatter(self.qf_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='qf_ttl_lbl')
         self.label_formatter(self.qf_chr_cnt, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL, padding=self.padX, uid="qfTextCharCountLBL")
-
         self.update_requests[gen_short_uid()] = [
             None,
             ThemeUpdateCommands.CUSTOM,
@@ -252,7 +265,7 @@ class QEditUI(Thread):
     def onQfInpMod(self, *_, **_1):
         global S_MEM_M_VAL_MAX_SIZE
 
-        text = self.qf_inp_box.get("1.0", "end-1c")
+        text = self.qf_inp_box.get("1.0", "end-1c").strip()
         chars = len(text)
         self.qf_chr_cnt.config(text=f"{chars}/{S_MEM_M_VAL_MAX_SIZE} characters")
 
@@ -299,9 +312,50 @@ class QEditUI(Thread):
         self.set_frame(self.currentFrame - 1)
         self.update_ui()
 
+    def _clear_info(self) -> None:
+        if not self.gi_cl:
+            return
+
+        try:
+            self.late_update_requests.pop(self.message_label)
+        except KeyError:
+            pass
+
+        self.message_label.config(text="")
+        self.gi_cl = False
+        if self._job is not None:
+            self.root.after_cancel(self._job)
+
+    def show_message(self, data: Message, timeout: int = 3000) -> None:
+        if timeout < 10:  # Useless
+            return
+
+        if 0 >= len(data.MSG) or 100 < len(data.MSG):  # Skip
+            return
+
+        self.gi_cl = True
+
+        self.message_label.config(text=data.MSG)
+        self.late_update_requests[self.message_label] = [
+            [ThemeUpdateCommands.FG, [{
+                                          Levels.ERROR: ThemeUpdateVars.ERROR,
+                                          Levels.OKAY: ThemeUpdateVars.OKAY,
+                                          Levels.WARNING: ThemeUpdateVars.WARNING,
+                                          Levels.NORMAL: ThemeUpdateVars.ACCENT
+                                      }[data.LVL]]]
+        ]
+        self._job = self.root.after(timeout, self._clear_info)
+        self.update_ui()
+
     def next_page(self) -> None:
         if not isinstance(self.currentFrame, int):
-            return
+            self.set_frame(0)
+
+        if self.currentFrame == self.QFrameInd:
+            if len(self.qf_inp_box.get("1.0", "end-1c").strip()) <= 0:
+                self.show_message(Message(Levels.ERROR, 'You must enter a question to proceed'))
+                return
+
         self.set_frame(self.currentFrame + 1)
         self.update_ui()
 
