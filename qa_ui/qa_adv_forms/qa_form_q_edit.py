@@ -334,9 +334,10 @@ class QEditUI(Thread):
         if self._job is not None:
             self.root.after_cancel(self._job)
 
-    def show_message(self, data: Message, timeout: int = 3000) -> None:
-        if timeout < 10:  # Useless
-            return
+    def show_message(self, data: Message, timeout: Union[int, None] = 3000) -> None:
+        if isinstance(timeout, int):
+            if timeout < 10:  # Useless
+                return
 
         if 0 >= len(data.MSG) or 100 < len(data.MSG):  # Skip
             return
@@ -352,12 +353,54 @@ class QEditUI(Thread):
                                           Levels.NORMAL: ThemeUpdateVars.ACCENT
                                       }[data.LVL]]]
         ]
-        self._job = self.root.after(timeout, self._clear_info)
+        if isinstance(timeout, int):
+            self._job = self.root.after(timeout, self._clear_info)
+
         self.update_ui()
+
+    def submit_question(self) -> None:
+        # Vars
+        global S_MEM_M_VAL_MAX_SIZE, S_MEM_VAL_OFFSET
+        question = self.qf_inp_box.get("1.0", "end-1c").strip()
+
+        # Checks
+        try:
+            # assert 0 < len(question) <= S_MEM_M_VAL_MAX_SIZE
+            assert 0 < len(question), "No question found"
+            assert len(question) <= S_MEM_M_VAL_MAX_SIZE, f"Question cannot contain more than {S_MEM_M_VAL_MAX_SIZE} characters"
+        except Exception as E:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(
+                    f'Failed to submit question; please resolve the following error and try again: {E}',
+                    "GO BACK",
+                    "Question Entry Error"
+                )
+            )
+
+        try:
+            self.set_data(SMemInd.QUESTION, question)
+
+        except Exception as E:
+            qa_prompts.MessagePrompts.show_error(
+                qa_prompts.InfoPacket(
+                    f'Failed to submit question (internal error)',
+                    "GO BACK",
+                    "Question Entry Error (System)"
+                )
+            )
+
+        else:
+            # All good
+            self.show_message(Message(Levels.OKAY, 'Successfully submitted question'), None)
+            self.close()
 
     def next_page(self) -> None:
         if not isinstance(self.currentFrame, int):
             self.set_frame(0)
+
+        if self.currentFrame == self.RFrameInd:  # Submit
+            self.submit_question()
+            return
 
         if self.currentFrame == self.QFrameInd:
             if len(self.qf_inp_box.get("1.0", "end-1c").strip()) <= 0:
@@ -976,7 +1019,7 @@ class QEditUI(Thread):
             self.prev_btn.config(state=tk.DISABLED)
 
         if self.currentFrame == len(self.frameMap) - 1:
-            self.next_btn.config(state=tk.DISABLED)
+            self.next_btn.config(text="Submit Question")
 
         self.update_ui()
 
