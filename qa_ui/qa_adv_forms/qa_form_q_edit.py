@@ -134,14 +134,21 @@ class QEditUI(Thread):
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_large_size, 'MyLarge')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
 
-        # -------------------------------------------
-        # TKINTER ELEMENT DECLARATIONS
-        # -------------------------------------------
-
         # IMPORTANT NOTE:
         # The order of items in the following tuple dictates the order in which
         # the pages will be presented
         (self.QFrameInd, self.OptFrameInd, self.AnsFrameInd, self.RFrameInd) = range(4)
+
+        self.screen_data = {
+            self.QFrameInd: {},
+            self.OptFrameInd: {},
+            self.AnsFrameInd: {},
+            self.RFrameInd: {},
+        }
+
+        # -------------------------------------------
+        # TKINTER ELEMENT DECLARATIONS
+        # -------------------------------------------
 
         # Global
         self.message_label = tk.Label(self.root)
@@ -180,6 +187,29 @@ class QEditUI(Thread):
 
         # Option Frame
         self.of_ttl_lbl = tk.Label(self.options_frame)
+        self.of_ans_tp_cont = tk.LabelFrame(self.options_frame)
+        self.of_ans_mc = ttk.Button(self.of_ans_tp_cont)
+        self.of_ans_tf = ttk.Button(self.of_ans_tp_cont)
+        self.of_ans_nm = ttk.Button(self.of_ans_tp_cont)
+
+        self.of_nm_options = tk.LabelFrame(self.options_frame)
+
+        self.of_nm_opt_canv = tk.Canvas(self.of_nm_options)
+        self.of_nm_opt_vsb = ttk.Scrollbar(self.of_nm_options)
+
+        self.of_nm_opt_main_frame = tk.Frame(self.of_nm_opt_canv)
+
+        self.of_nm_opt_auto_cont = tk.LabelFrame(self.of_nm_opt_main_frame, text='Automatic v.s. Manual')
+        self.of_nm_opt_auto_lbl = tk.Label(self.of_nm_opt_auto_cont)
+        self.of_nm_opt_auto_enb = ttk.Button(self.of_nm_opt_auto_cont)
+
+        self.of_nm_opt_fuzzy_cont = tk.LabelFrame(self.of_nm_opt_main_frame, text='Exact v.s. Approximate Match')
+        self.of_nm_opt_fuzzy_enb = ttk.Button(self.of_nm_opt_fuzzy_cont)
+        self.of_nm_opt_fuzzy_lbl = tk.Label(self.of_nm_opt_fuzzy_cont)
+
+        self.of_nm_opt_fuzzy_thrs_cont = tk.LabelFrame(self.of_nm_opt_fuzzy_cont, text='Threshold')
+        self.of_nm_opt_fuzzy_thrs_lbl = tk.Label(self.of_nm_opt_fuzzy_thrs_cont)
+        self.of_nm_opt_fuzzy_thrs_ent = ttk.Entry(self.of_nm_opt_fuzzy_thrs_cont)
 
         # Answer Frame
         self.af_ttl_lbl = tk.Label(self.answer_frame)
@@ -227,8 +257,30 @@ class QEditUI(Thread):
         self.configure_main_frame()
         self.set_frame(self.QFrameInd)
 
+        self.of_nm_opt_vsb.config(command=self.of_nm_opt_canv.yview)
+        self.of_nm_opt_canv.configure(yscrollcommand=self.of_nm_opt_vsb.set)
+
+        self.of_nm_opt_canv.create_window((0, 0), window=self.of_nm_opt_main_frame, anchor=tk.NW, tags='self.of_nm_opt_main_frame')
+
+        self.of_nm_opt_main_frame.bind("<Configure>", self.onFrameConfig)
+        self.of_nm_opt_canv.bind("<MouseWheel>", self._on_mousewheel)
+
         self.setup_smem()
         self.update_ui()
+
+    def _on_mousewheel(self, event: Any) -> None:
+        """
+        Straight out of stackoverflow
+        Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
+        Change: added "int" around the first arg
+        """
+        if self.currentFrame != self.OptFrameInd:
+            return
+
+        self.of_nm_opt_canv.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def onFrameConfig(self, _: Any) -> None:
+        self.of_nm_opt_canv.configure(scrollregion=self.of_nm_opt_canv.bbox("all"))
 
     def qf_setup(self) -> None:
         global S_MEM_M_VAL_MAX_SIZE
@@ -255,7 +307,8 @@ class QEditUI(Thread):
             [
                 lambda *args, **kwargs: self.qf_inp_box.config(
                     bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
-                    relief=tk.GROOVE, selectbackground=args[2], wrap=tk.WORD
+                    relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
+                    wrap=tk.WORD
                 ),
                 ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
                 ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
@@ -309,9 +362,226 @@ class QEditUI(Thread):
         self.label_formatter(self.of_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='of_ttl_lbl')
         self.of_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
+        self.of_ans_tp_cont.config(text="Question Type")
+        self.of_ans_mc.config(
+            text="Multiple Choice",
+            command=lambda: self.root.focus_get().event_generate('<<MultipleChoice>>')
+        )
+        self.of_ans_tf.config(
+            text="True/False",
+            command=lambda: self.root.focus_get().event_generate('<<TrueFalse>>')
+        )
+        self.of_ans_nm.config(
+            text="Written Response",
+            command=lambda: self.root.focus_get().event_generate('<<Written>>')
+        )
+
+        self.of_ans_mc.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+        self.of_ans_tf.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+        self.of_ans_nm.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+
+        self.of_ans_tp_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.update_requests[gen_short_uid()] = [
+            self.of_ans_tp_cont,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.of_ans_tp_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+            ]
+        ]
+
+        self.root.bind('<<MultipleChoice>>', self.mc_tp_sel)
+        self.root.bind('<<TrueFalse>>', self.tf_tp_sel)
+        self.root.bind('<<Written>>', self.nm_tp_sel)
+
         self.frameMap[self.OptFrameInd] = (self.frameMap[self.OptFrameInd][0], self.frameMap[self.OptFrameInd][1], True)
         self.enable_all_inputs()
         return
+
+    def configure_tp_btns(self) -> None:
+        self.of_ans_mc.configure(style='')
+        self.of_ans_nm.configure(style='')
+        self.of_ans_tf.configure(style='')
+
+        if self.screen_data[self.OptFrameInd].get('qType') not in ('mc', 'tf', 'nm'):
+            return
+
+        cast(ttk.Button, {
+            'mc': self.of_ans_mc,
+            'tf': self.of_ans_tf,
+            'nm': self.of_ans_nm
+        }[self.screen_data[self.OptFrameInd]['qType']]).configure(style='Active.TButton')
+
+    def configure_nm_options(self) -> None:
+        self.of_nm_options.config(text="More Options")
+        self.of_nm_options.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+
+        self.of_nm_opt_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT)
+        self.of_nm_opt_vsb.configure(style='MyAdmin.TScrollbar')
+        self.of_nm_opt_canv.pack(fill=tk.BOTH, expand=True)
+
+        self.of_nm_opt_auto_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_auto_lbl.config(text="Should the application mark the response automatically, or require the administrator to mark it manually? (Automatic marks can be overridden by admin afterwards)", anchor=tk.W, justify=tk.LEFT)
+        self.of_nm_opt_auto_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_auto_enb.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_auto_enb.config(command=self.nm_aut_cl)
+
+        self.of_nm_opt_fuzzy_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_fuzzy_lbl.config(text="Should the application look for an exact match when marking, or an approximate match? (Applicable only when question set to 'Automatic Marking')", anchor=tk.W, justify=tk.LEFT)
+        self.of_nm_opt_fuzzy_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_fuzzy_enb.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
+
+        self.of_nm_opt_fuzzy_thrs_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+        self.of_nm_opt_fuzzy_thrs_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_fuzzy_thrs_ent.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.of_nm_opt_fuzzy_thrs_lbl.config(text='Enter the threshold percentage (0% to 100%) for similarities between the provided answer and the expected answer for a mark to be granted.\n\nNOTE: Do NOT include the \'%\' sign', anchor=tk.W, justify=tk.LEFT)
+
+        self.of_nm_opt_fuzzy_enb.config(command=self.nm_fuz_cl)
+        self.of_nm_opt_fuzzy_thrs_ent.configure(style='MyLarge.TEntry')
+
+        self.label_formatter(self.of_nm_opt_fuzzy_lbl, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL, padding=self.padX*3)
+        self.label_formatter(self.of_nm_opt_auto_lbl, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL, padding=self.padX*3)
+        self.label_formatter(self.of_nm_opt_fuzzy_thrs_lbl, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL, padding=self.padX*4)
+        self.update_requests[gen_short_uid()] = [
+            self.of_nm_options,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.of_nm_options.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests[gen_short_uid()] = [
+            self.of_nm_opt_fuzzy_cont,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.of_nm_opt_fuzzy_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests[gen_short_uid()] = [
+            self.of_nm_opt_auto_cont,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.of_nm_opt_auto_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests[gen_short_uid()] = [
+            self.of_nm_opt_fuzzy_thrs_cont,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.of_nm_opt_fuzzy_thrs_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+            ]
+        ]
+        self.update_requests[gen_short_uid()] = [
+            self.of_nm_opt_fuzzy_thrs_ent,
+            ThemeUpdateCommands.FONT,
+            [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN]
+        ]
+        self.update_requests[gen_short_uid()] = [
+            self.of_nm_opt_canv,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.of_nm_opt_canv.config(bg=args[0], bd=0, highlightthickness=0),
+                ThemeUpdateVars.BG
+            ]
+        ]
+        self.update_requests[gen_short_uid()] = [self.of_nm_opt_main_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+        self.screen_data[self.OptFrameInd]['conf::nm_options'] = True
+        self.screen_data[self.OptFrameInd]['nm::autoMark'] = True
+        self.screen_data[self.OptFrameInd]['nm::fuzzy'] = True
+
+        self.update_requests['OptFr(NM):Canv{Dim}'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.of_nm_options.config(width=args[0] - args[2], height=args[1] - args[3]),
+                ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                ('<LOOKUP>', 'padX'), ('<LOOKUP>', 'padY')
+            ]
+        ]
+
+        self.update_requests['OptFr(NM):Canv{Dim}{b}'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.of_nm_opt_canv.config(width=args[0] - args[2] * 2, height=args[1] - args[3]),
+                ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                ('<LOOKUP>', 'padX'), ('<LOOKUP>', 'padY')
+            ]
+        ]
+
+    def configure_options(self) -> None:
+        if self.screen_data[self.OptFrameInd].get('qType') not in ('mc', 'tf', 'nm'):
+            return
+
+        if self.screen_data[self.OptFrameInd]['qType'] == 'mc':
+            self.of_nm_options.pack_forget()
+
+        elif self.screen_data[self.OptFrameInd]['qType'] == 'tf':
+            self.of_nm_options.pack_forget()
+
+        elif self.screen_data[self.OptFrameInd]['qType'] == 'nm':
+            self.of_nm_options.pack()
+            if self.screen_data[self.OptFrameInd].get('conf::nm_options') in (None, False):
+                self.configure_nm_options()
+
+            self.of_nm_opt_fuzzy_cont.pack_forget()
+            self.of_nm_opt_fuzzy_thrs_cont.pack_forget()
+
+            if self.screen_data[self.OptFrameInd]['nm::autoMark']:
+                self.of_nm_opt_auto_enb.config(text="Mark Automatically", style='Active.TButton')
+                self.of_nm_opt_fuzzy_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+                if self.screen_data[self.OptFrameInd]['nm::fuzzy']:
+                    self.of_nm_opt_fuzzy_enb.config(text="Approximate Match Required", style='Active.TButton')
+                    self.of_nm_opt_fuzzy_thrs_ent.config(state=tk.NORMAL)
+                    self.of_nm_opt_fuzzy_thrs_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+                else:
+                    self.of_nm_opt_fuzzy_enb.config(text="Exact Match Required", style='')
+                    self.of_nm_opt_fuzzy_thrs_ent.config(state=tk.DISABLED)
+
+            else:
+                self.of_nm_opt_auto_enb.config(text="Mark Manually", style='')
+
+        else:
+            raise UnexpectedEdgeCase('configure_options<?!asserted, + !mc, !tf, !nm : assertion passed??>')
+
+        self.update_ui()
+
+    def nm_aut_cl(self) -> None:
+        if self.screen_data[self.OptFrameInd].get('nm::autoMark') is None:
+            self.screen_data[self.OptFrameInd]['nm::autoMark'] = True
+        else:
+            self.screen_data[self.OptFrameInd]['nm::autoMark'] = not self.screen_data[self.OptFrameInd]['nm::autoMark']
+
+        self.configure_options()
+
+    def nm_fuz_cl(self) -> None:
+        if self.screen_data[self.OptFrameInd].get('nm::fuzzy') is None:
+            self.screen_data[self.OptFrameInd]['nm::fuzzy'] = True
+        else:
+            self.screen_data[self.OptFrameInd]['nm::fuzzy'] = not self.screen_data[self.OptFrameInd]['nm::fuzzy']
+
+        self.configure_options()
+
+    def mc_tp_sel(self, *_: Any, **_0: Any) -> None:
+        self.screen_data[self.OptFrameInd]['qType'] = 'mc'
+        self.configure_tp_btns()
+        self.configure_options()
+
+    def tf_tp_sel(self, *_: Any, **_0: Any) -> None:
+        self.screen_data[self.OptFrameInd]['qType'] = 'tf'
+        self.configure_tp_btns()
+        self.configure_options()
+
+    def nm_tp_sel(self, *_: Any, **_0: Any) -> None:
+        self.screen_data[self.OptFrameInd]['qType'] = 'nm'
+        self.configure_tp_btns()
+        self.configure_options()
 
     def rf_setup(self) -> None:
         self.disable_all_inputs()
@@ -323,13 +593,6 @@ class QEditUI(Thread):
         self.frameMap[self.RFrameInd] = (self.frameMap[self.RFrameInd][0], self.frameMap[self.RFrameInd][1], True)
         self.enable_all_inputs()
         return
-
-    def prev_page(self) -> None:
-        if not isinstance(self.currentFrame, int):
-            return
-        self.set_frame(self.currentFrame - 1)
-        self.configNavButtons()
-        self.update_ui()
 
     def _clear_info(self) -> None:
         if not self.gi_cl:
@@ -357,12 +620,17 @@ class QEditUI(Thread):
 
         self.message_label.config(text=data.MSG)
         self.late_update_requests[self.message_label] = [
-            [ThemeUpdateCommands.FG, [{
-                                          Levels.ERROR: ThemeUpdateVars.ERROR,
-                                          Levels.OKAY: ThemeUpdateVars.OKAY,
-                                          Levels.WARNING: ThemeUpdateVars.WARNING,
-                                          Levels.NORMAL: ThemeUpdateVars.ACCENT
-                                      }[data.LVL]]]
+            [
+                ThemeUpdateCommands.FG,
+                [
+                    {
+                        Levels.ERROR: ThemeUpdateVars.ERROR,
+                        Levels.OKAY: ThemeUpdateVars.OKAY,
+                        Levels.WARNING: ThemeUpdateVars.WARNING,
+                        Levels.NORMAL: ThemeUpdateVars.ACCENT
+                    }[data.LVL]
+                ]
+            ]
         ]
         if isinstance(timeout, int):
             self._job = self.root.after(timeout, self._clear_info)
@@ -405,7 +673,13 @@ class QEditUI(Thread):
             self.show_message(Message(Levels.OKAY, 'Successfully submitted question'), None)
             self.close()
 
-    def next_page(self) -> None:
+    def _pp(self) -> None:
+        if not isinstance(self.currentFrame, int):
+            return
+
+        self.set_frame(self.currentFrame - 1)
+
+    def _np(self) -> None:
         if not isinstance(self.currentFrame, int):
             self.set_frame(0)
 
@@ -417,9 +691,22 @@ class QEditUI(Thread):
                 self.show_message(Message(Levels.ERROR, 'You must enter a question to proceed'))
                 return
 
+        elif self.currentFrame == self.OptFrameInd:
+            if self.screen_data[self.OptFrameInd].get('qType') not in ('mc', 'tf', 'nm'):
+                self.show_message(Message(Levels.ERROR, 'You must select a question type to proceed'))
+                return
+
         assert isinstance(self.currentFrame, int)
 
         self.set_frame(self.currentFrame + 1)
+
+    def prev_page(self) -> None:
+        self._pp()
+        self.configNavButtons()
+        self.update_ui()
+
+    def next_page(self) -> None:
+        self._np()
         self.configNavButtons()
         self.update_ui()
 
@@ -498,6 +785,9 @@ class QEditUI(Thread):
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 
+        self.window_size = [self.root.winfo_width(), self.root.winfo_height()]
+        self.screen_pos = [self.root.winfo_x(), self.root.winfo_y()]
+
         def tr(com: Any, *a: Any, **k: Any) -> Tuple[bool, str]:
             try:
                 return True, com(*a, **k)
@@ -518,7 +808,32 @@ class QEditUI(Thread):
             lCommand = [False, '', -1]
             cleaned_args = []
             for index, arg in enumerate(args):
-                cleaned_args.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                cleaned_arg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+
+                if isinstance(arg, tuple):
+                    if len(arg) >= 2:
+                        if arg[0] == '<EXECUTE>':
+                            ps, res = (tr(arg[1]) if len(args) == 2 else tr(arg[1], arg[2::]))
+                            if ps:
+                                cleaned_arg = res
+                            else:
+                                log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
+
+                        if arg[0] == '<LOOKUP>':
+                            rs_b: int = cast(int, {
+                                'padX': self.padX,
+                                'padY': self.padY,
+                                'root_width': self.root.winfo_width(),
+                                'root_height': self.root.winfo_height(),
+                                'uid': elID
+                            }.get(cast(str, arg[1])))
+
+                            if rs_b is not None:
+                                cleaned_arg = rs_b
+                            else:
+                                log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
+
+                cleaned_args.append(cleaned_arg)
 
                 if isinstance(cleaned_args[index], qa_functions.HexColor):
                     cleaned_args[index] = cleaned_args[index].color
@@ -606,6 +921,9 @@ class QEditUI(Thread):
 
                 else:
                     lCommand = [True, 'Invalid args provided', 2]
+
+            else:
+                lCommand = [True, f'<Err:UnexpectedCommand ({command})>', -2]
 
             if lCommand[0] is True:
                 log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
@@ -818,7 +1136,7 @@ class QEditUI(Thread):
                                     'padX': self.padX,
                                     'padY': self.padY,
                                     'root_width': self.root.winfo_width(),
-                                    'root_height': self.root.winfo_height(),
+                                    'root_height': self.root.winfo_height()
                                 }.get(cast(str, arg[1])))
 
                                 if rs_b is not None:
@@ -915,6 +1233,9 @@ class QEditUI(Thread):
                     else:
                         lCommand = [True, 'Invalid args provided', 2]
 
+                else:
+                    lCommand = [True, f'<Err:UnexpectedCommand ({command})>', -2]
+
                 if lCommand[0] is True:
                     log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
                 elif DEBUG_NORM:
@@ -957,10 +1278,13 @@ class QEditUI(Thread):
                 (afg if not accent else ThemeUpdateVars.ACCENT),
                 font, size,
                 self.window_size[0] - 2 * padding
+            ] if isinstance(button, tk.Button) else [
+                lambda *args: log(LoggingLevel.WARNING, f'{args[0]} : (from ButtonFormatter) !Btn'),
+                ('<LOOKUP>', 'uid')
             ]
         ]
 
-    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None, uid: Union[str, None] = None) -> None:
+    def label_formatter(self, label: Union[tk.Label, tk.LabelFrame], bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int, float] = None, uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -976,14 +1300,15 @@ class QEditUI(Thread):
             None,
             ThemeUpdateCommands.CUSTOM,
             [
-                lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=self.window_size[0] - 2 * args[4]),
-                bg, fg, font, size, padding
+                lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=args[5] - 2 * args[4]),
+                bg, fg, font, size, padding, ('<LOOKUP>', 'root_width')
             ] if isinstance(label, tk.Label) else (
                 [
                     lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
                     bg, fg, font, size, padding
                 ] if isinstance(label, tk.LabelFrame) else [
-                    lambda *args: None
+                    lambda *args: log(LoggingLevel.WARNING, f'{args[0]} : (from LabelFormatter) !Lbl, !LblF'),
+                    ('<LOOKUP>', 'uid')
                 ]
             )
         ]
