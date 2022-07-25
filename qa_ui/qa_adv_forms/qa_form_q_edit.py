@@ -1,4 +1,4 @@
-import qa_functions, sys, PIL, tkinter as tk, random  # , os, qa_files
+import qa_functions, sys, PIL, tkinter as tk, random, re, traceback  # , os, qa_files
 from enum import Enum
 from tkinter import ttk
 from threading import Thread
@@ -26,6 +26,31 @@ DEBUG_DEV_FLAG = False
 class Levels(Enum):
     (NORMAL, OKAY, WARNING, ERROR) = range(4)
 
+
+class DataType(Enum):
+    (boolean, integer, string) = range(3)
+
+
+@dataclass
+class DataEntry:
+    name: str
+    index: int
+    size: int
+    type: DataType
+
+
+class Data0:
+    # Entries
+    AutoMark  = DataEntry('auto_mark', 0, 1, DataType.boolean)
+    Fuzzy     = DataEntry('fuzzy', 1, 1, DataType.boolean)
+    FuzzyThrs = DataEntry('fuzzy:threshold', 2, 2, DataType.integer)
+
+    entries = [AutoMark, Fuzzy, FuzzyThrs]
+
+class Data1:
+    QuestionType = DataEntry('qType', 0, 2, DataType.boolean)
+
+    entries = [QuestionType]
 
 @dataclass
 class Message:
@@ -193,6 +218,9 @@ class QEditUI(Thread):
         self.of_ans_nm = ttk.Button(self.of_ans_tp_cont)
 
         self.of_nm_options = tk.LabelFrame(self.options_frame)
+        self.of_nm_opt_fuz_ent_sv = tk.StringVar()
+        self.of_nm_opt_fuz_ent_sv.set('50')
+        self.of_nm_opt_fuz_ent_sv.trace('w', lambda *args, **kwargs: self.SVCallback(*args, **kwargs))
 
         self.of_nm_opt_canv = tk.Canvas(self.of_nm_options)
         self.of_nm_opt_vsb = ttk.Scrollbar(self.of_nm_options)
@@ -209,7 +237,7 @@ class QEditUI(Thread):
 
         self.of_nm_opt_fuzzy_thrs_cont = tk.LabelFrame(self.of_nm_opt_fuzzy_cont, text='Threshold')
         self.of_nm_opt_fuzzy_thrs_lbl = tk.Label(self.of_nm_opt_fuzzy_thrs_cont)
-        self.of_nm_opt_fuzzy_thrs_ent = ttk.Entry(self.of_nm_opt_fuzzy_thrs_cont)
+        self.of_nm_opt_fuzzy_thrs_ent = ttk.Entry(self.of_nm_opt_fuzzy_thrs_cont, textvariable=self.of_nm_opt_fuz_ent_sv)
 
         # Answer Frame
         self.af_ttl_lbl = tk.Label(self.answer_frame)
@@ -264,9 +292,25 @@ class QEditUI(Thread):
 
         self.of_nm_opt_main_frame.bind("<Configure>", self.onFrameConfig)
         self.of_nm_opt_canv.bind("<MouseWheel>", self._on_mousewheel)
+        self.of_nm_opt_vsb.bind("<MouseWheel>", self._on_mousewheel)
 
         self.setup_smem()
         self.update_ui()
+
+    @staticmethod
+    def get_children(widget: tk.Widget) -> List[tk.Widget]:
+        def rc(_w: tk.Widget) -> List[tk.Widget]:
+            el: List[tk.Widget] = []
+
+            for child in _w.winfo_children():
+                if child.winfo_children():
+                    el.extend(rc(child))
+                else:
+                    el.append(child)
+
+            return el
+
+        return rc(widget)
 
     def _on_mousewheel(self, event: Any) -> None:
         """
@@ -274,13 +318,33 @@ class QEditUI(Thread):
         Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
         Change: added "int" around the first arg
         """
-        if self.currentFrame != self.OptFrameInd:
-            return
-
         self.of_nm_opt_canv.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def onFrameConfig(self, _: Any) -> None:
         self.of_nm_opt_canv.configure(scrollregion=self.of_nm_opt_canv.bbox("all"))
+
+    def SVCallback(self, *_0, **_1) -> None:
+        v = self.of_nm_opt_fuz_ent_sv.get()
+        c = ''.join(re.findall(r'\d+', v.strip()))
+        try:
+            integralVal = int(c)
+        except ValueError:
+            integralVal = 0
+
+        if 1 <= integralVal <= 99:
+            if c != v:
+                self.of_nm_opt_fuz_ent_sv.set(c)
+            else:
+                return
+
+        elif integralVal < 1:
+            self.of_nm_opt_fuz_ent_sv.set('')
+
+        elif integralVal >= 100:
+            self.of_nm_opt_fuz_ent_sv.set(str(integralVal)[:2])
+
+        else:
+            raise UnexpectedEdgeCase(f'SVCallback (!1le, 99le ++ !1l, !100ge) : {integralVal}')
 
     def qf_setup(self) -> None:
         global S_MEM_M_VAL_MAX_SIZE
@@ -435,7 +499,7 @@ class QEditUI(Thread):
         self.of_nm_opt_fuzzy_thrs_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
         self.of_nm_opt_fuzzy_thrs_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
         self.of_nm_opt_fuzzy_thrs_ent.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
-        self.of_nm_opt_fuzzy_thrs_lbl.config(text='Enter the threshold percentage (0% to 100%) for similarities between the provided answer and the expected answer for a mark to be granted.\n\nNOTE: Do NOT include the \'%\' sign', anchor=tk.W, justify=tk.LEFT)
+        self.of_nm_opt_fuzzy_thrs_lbl.config(text='Enter the threshold percentage (integral values between 1% and 99% (inclusive)) for similarities between the provided answer and the expected answer for a mark to be granted.\n\nNOTE: Do NOT include the \'%\' sign\n\nNOTE: For 100% match, use \'Exact Match\' mode.', anchor=tk.W, justify=tk.LEFT)
 
         self.of_nm_opt_fuzzy_enb.config(command=self.nm_fuz_cl)
         self.of_nm_opt_fuzzy_thrs_ent.configure(style='MyLarge.TEntry')
@@ -455,7 +519,7 @@ class QEditUI(Thread):
             self.of_nm_opt_fuzzy_cont,
             ThemeUpdateCommands.CUSTOM,
             [
-                lambda *args, **kwargs: self.of_nm_opt_fuzzy_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                lambda *args, **kwargs: self.of_nm_opt_fuzzy_cont.config(bd='0', bg=args[0], fg=args[1], font=(args[2], args[3])),
                 ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
             ]
         ]
@@ -463,7 +527,7 @@ class QEditUI(Thread):
             self.of_nm_opt_auto_cont,
             ThemeUpdateCommands.CUSTOM,
             [
-                lambda *args, **kwargs: self.of_nm_opt_auto_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                lambda *args, **kwargs: self.of_nm_opt_auto_cont.config(bd='0', bg=args[0], fg=args[1], font=(args[2], args[3])),
                 ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
             ]
         ]
@@ -471,7 +535,7 @@ class QEditUI(Thread):
             self.of_nm_opt_fuzzy_thrs_cont,
             ThemeUpdateCommands.CUSTOM,
             [
-                lambda *args, **kwargs: self.of_nm_opt_fuzzy_thrs_cont.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                lambda *args, **kwargs: self.of_nm_opt_fuzzy_thrs_cont.config(bd='0', bg=args[0], fg=args[1], font=(args[2], args[3])),
                 ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
             ]
         ]
@@ -494,7 +558,7 @@ class QEditUI(Thread):
         self.screen_data[self.OptFrameInd]['nm::autoMark'] = True
         self.screen_data[self.OptFrameInd]['nm::fuzzy'] = True
 
-        self.update_requests['OptFr(NM):Canv{Dim}'] = [
+        self.update_requests['OptFr(NM):Canv{Dim}{a}'] = [
             None,
             ThemeUpdateCommands.CUSTOM,
             [
@@ -503,7 +567,6 @@ class QEditUI(Thread):
                 ('<LOOKUP>', 'padX'), ('<LOOKUP>', 'padY')
             ]
         ]
-
         self.update_requests['OptFr(NM):Canv{Dim}{b}'] = [
             None,
             ThemeUpdateCommands.CUSTOM,
@@ -647,6 +710,18 @@ class QEditUI(Thread):
             # assert 0 < len(question) <= S_MEM_M_VAL_MAX_SIZE
             assert 0 < len(question), "No question found"
             assert len(question) <= S_MEM_M_VAL_MAX_SIZE, f"Question cannot contain more than {S_MEM_M_VAL_MAX_SIZE} characters"
+            if self.screen_data[self.OptFrameInd]['qType'] == 'nm':
+                assert isinstance(self.screen_data[self.OptFrameInd]['nm::autoMark'], (bool, int)), 'Please select either AUTOMATIC marking or MANUAL marking (Options Page)'
+                assert isinstance(self.screen_data[self.OptFrameInd]['nm::fuzzy'], (bool, int)), 'Please select whether to look for an APPROXIMATE or EXACT match when marking (Options Page)'
+
+                if self.screen_data[self.OptFrameInd]['nm::fuzzy']:
+                    try:
+                        v = int(self.of_nm_opt_fuz_ent_sv.get().strip())
+                    except:
+                        assert False, 'Please enter an integral value for match threshold (Options Page)'
+                    else:
+                        assert 1 <= v <= 99, 'Please enter an integral value for match threshold between 1 and 99 (Options Page)'
+
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket(
@@ -659,7 +734,48 @@ class QEditUI(Thread):
         try:
             self.set_data(SMemInd.QUESTION, question)
 
+            data1: List[Union[int, str]] = ['' for _ in Data1.entries]
+            data0: List[Union[int, str]] = ['' for _ in Data0.entries]
+
+            data1[Data1.QuestionType.index] = self.screen_data[self.OptFrameInd]['qType']
+
+            if data1[Data1.QuestionType.index] == 'nm':  # Written
+                data0[Data0.AutoMark.index] = int(self.screen_data[self.OptFrameInd]['nm::autoMark'])
+                if data0[Data0.AutoMark.index] == 1:
+                    data0[Data0.Fuzzy.index] = int(self.screen_data[self.OptFrameInd]['nm::fuzzy'])
+                    if data0[Data0.Fuzzy.index]:
+                        threshold = self.of_nm_opt_fuz_ent_sv.get().strip()
+                        if len(threshold) == 1:
+                            threshold = '0%s' % threshold
+                        elif len(threshold) == 2:
+                            pass
+                        else:
+                            raise UnexpectedEdgeCase(f'!threshold:: <!1, !2; aftCheck> ({threshold})')
+
+                        data0[Data0.FuzzyThrs.index] = threshold
+                    else:
+                        data0[Data0.FuzzyThrs.index] = '00'
+
+                else:
+                    data0[Data0.Fuzzy.index] = 0
+                    data0[Data0.FuzzyThrs.index] = '00'
+
+            else:
+                data0[Data0.AutoMark.index] = 1
+                data0[Data0.Fuzzy.index] = 0
+                data0[Data0.FuzzyThrs.index] = '00'
+
+            assert len(str(data0[Data0.AutoMark.index])) == Data0.AutoMark.size
+            assert len(str(data0[Data0.Fuzzy.index])) == Data0.Fuzzy.size
+            assert len(str(data0[Data0.FuzzyThrs.index])) == Data0.FuzzyThrs.size
+
+            assert len(str(data1[Data1.QuestionType.index])) == Data1.QuestionType.size
+
+            self.set_data(SMemInd.DATA0, ''.join(str(i) for i in data0))
+            self.set_data(SMemInd.DATA1, ''.join(str(i) for i in data1))
+
         except Exception as E:
+            log(LoggingLevel.ERROR, traceback.format_exc())
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket(
                     f'Failed to submit question (internal error)',
@@ -682,6 +798,7 @@ class QEditUI(Thread):
     def _np(self) -> None:
         if not isinstance(self.currentFrame, int):
             self.set_frame(0)
+            return
 
         if self.currentFrame == self.RFrameInd:  # Submit
             raise UnexpectedEdgeCase('qEditUI.nextPg(fn)::<RFrame?Call>')
@@ -695,6 +812,19 @@ class QEditUI(Thread):
             if self.screen_data[self.OptFrameInd].get('qType') not in ('mc', 'tf', 'nm'):
                 self.show_message(Message(Levels.ERROR, 'You must select a question type to proceed'))
                 return
+
+            if self.screen_data[self.OptFrameInd].get('nm::autoMark') and self.screen_data[self.OptFrameInd]['nm::fuzzy']:
+                try:
+                    if not (1 <= int(self.of_nm_opt_fuz_ent_sv.get()) <= 99):
+                        self.show_message(Message(Levels.ERROR, 'Please enter a threshold percentage to proceed'))
+                        return
+                except Exception as E:
+                    log(
+                        LoggingLevel.ERROR,
+                        f'_np:OptF, autoMark + fuzzy :: !{E}'
+                    )
+                    self.show_message(Message(Levels.ERROR, 'Please enter a threshold percentage to proceed {deCL:1}'))
+                    return
 
         assert isinstance(self.currentFrame, int)
 

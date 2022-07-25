@@ -2559,7 +2559,7 @@ class InputPrompts:
 
             self.update_ui()
 
-        def select(self)-> None:
+        def select(self) -> None:
             self.select_button.config(state=tk.DISABLED)
             self.close_button.config(state=tk.DISABLED)
             self.entry1.config(state=tk.DISABLED)
