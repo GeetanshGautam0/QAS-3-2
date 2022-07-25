@@ -164,7 +164,7 @@ class QEditUI(Thread):
         # the pages will be presented
         (self.QFrameInd, self.OptFrameInd, self.AnsFrameInd, self.RFrameInd) = range(4)
 
-        self.screen_data = {
+        self.screen_data: Dict[int, Dict[Any, Any]] = {
             self.QFrameInd: {},
             self.OptFrameInd: {},
             self.AnsFrameInd: {},
@@ -288,7 +288,7 @@ class QEditUI(Thread):
         self.of_nm_opt_vsb.config(command=self.of_nm_opt_canv.yview)
         self.of_nm_opt_canv.configure(yscrollcommand=self.of_nm_opt_vsb.set)
 
-        self.of_nm_opt_canv.create_window((0, 0), window=self.of_nm_opt_main_frame, anchor=tk.NW, tags='self.of_nm_opt_main_frame')
+        self.of_nm_opt_canv.create_window((0, 0), window=self.of_nm_opt_main_frame, anchor=tk.NW, tags='self.of_nm_opt_main_frame')  # type: ignore
 
         self.of_nm_opt_main_frame.bind("<Configure>", self.onFrameConfig)
         self.of_nm_opt_canv.bind("<MouseWheel>", self._on_mousewheel)
@@ -323,7 +323,7 @@ class QEditUI(Thread):
     def onFrameConfig(self, _: Any) -> None:
         self.of_nm_opt_canv.configure(scrollregion=self.of_nm_opt_canv.bbox("all"))
 
-    def SVCallback(self, *_0, **_1) -> None:
+    def SVCallback(self, *_0: Any, **_1: Any) -> None:
         v = self.of_nm_opt_fuz_ent_sv.get()
         c = ''.join(re.findall(r'\d+', v.strip()))
         try:
@@ -429,15 +429,15 @@ class QEditUI(Thread):
         self.of_ans_tp_cont.config(text="Question Type")
         self.of_ans_mc.config(
             text="Multiple Choice",
-            command=lambda: self.root.focus_get().event_generate('<<MultipleChoice>>')
+            command=lambda: self.root.focus_get().event_generate('<<MultipleChoice>>')  # type: ignore
         )
         self.of_ans_tf.config(
             text="True/False",
-            command=lambda: self.root.focus_get().event_generate('<<TrueFalse>>')
+            command=lambda: self.root.focus_get().event_generate('<<TrueFalse>>')  # type: ignore
         )
         self.of_ans_nm.config(
             text="Written Response",
-            command=lambda: self.root.focus_get().event_generate('<<Written>>')
+            command=lambda: self.root.focus_get().event_generate('<<Written>>')  # type: ignore
         )
 
         self.of_ans_mc.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
@@ -471,11 +471,11 @@ class QEditUI(Thread):
         if self.screen_data[self.OptFrameInd].get('qType') not in ('mc', 'tf', 'nm'):
             return
 
-        cast(ttk.Button, {
+        ttk.Button, {
             'mc': self.of_ans_mc,
             'tf': self.of_ans_tf,
             'nm': self.of_ans_nm
-        }[self.screen_data[self.OptFrameInd]['qType']]).configure(style='Active.TButton')
+        }[self.screen_data[self.OptFrameInd]['qType']].configure(style='Active.TButton')
 
     def configure_nm_options(self) -> None:
         self.of_nm_options.config(text="More Options")
@@ -1262,15 +1262,15 @@ class QEditUI(Thread):
                                     log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
 
                             if arg[0] == '<LOOKUP>':
-                                rs_b: int = cast(int, {
+                                rs_ba: int = cast(int, {
                                     'padX': self.padX,
                                     'padY': self.padY,
                                     'root_width': self.root.winfo_width(),
                                     'root_height': self.root.winfo_height()
                                 }.get(cast(str, arg[1])))
 
-                                if rs_b is not None:
-                                    cleaned_arg = rs_b
+                                if rs_ba is not None:
+                                    cleaned_arg = rs_ba
                                 else:
                                     log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
 
