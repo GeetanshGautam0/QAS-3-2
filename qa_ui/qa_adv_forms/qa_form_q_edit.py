@@ -31,6 +31,20 @@ class DataType(Enum):
     (boolean, integer, string) = range(3)
 
 
+class Codes:
+    (FALSE, TRUE) = (str(a) for a in range(2))
+
+    valMap = {
+        True: TRUE,
+        False: FALSE,
+        None: qa_functions.SMem().NullStr
+    }
+
+    @staticmethod
+    def substitute(value):
+        return Codes.valMap[value] if value in Codes.valMap else value
+
+
 @dataclass
 class DataEntry:
     name: str
@@ -47,10 +61,12 @@ class Data0:
 
     entries = [AutoMark, Fuzzy, FuzzyThrs]
 
+
 class Data1:
     QuestionType = DataEntry('qType', 0, 2, DataType.boolean)
 
     entries = [QuestionType]
+
 
 @dataclass
 class Message:
@@ -241,6 +257,9 @@ class QEditUI(Thread):
 
         # Answer Frame
         self.af_ttl_lbl = tk.Label(self.answer_frame)
+        self.af_tf_lbl = tk.Label(self.answer_frame)
+        self.af_tf_sel_T = ttk.Button(self.answer_frame)
+        self.af_tf_sel_F = ttk.Button(self.answer_frame)
 
         # Review Frame
         self.rf_ttl_lbl = tk.Label(self.review_frame)
@@ -411,13 +430,65 @@ class QEditUI(Thread):
     def af_setup(self) -> None:
         self.disable_all_inputs()
 
+        assert self.screen_data[self.OptFrameInd].get('qType') in ('nm', 'tf', 'mc'), 'AnsFSetup: <!err;> OptF not setup properly'
+        self.screen_data[self.AnsFrameInd]['qType'] = self.screen_data[self.OptFrameInd]['qType']
+
+        self.screen_data[self.AnsFrameInd]['A::final'] = None
+        self.screen_data[self.AnsFrameInd]['NM'] = {}
+        self.screen_data[self.AnsFrameInd]['MC'] = {}
+        self.screen_data[self.AnsFrameInd]['TF'] = {}
+
         self.af_ttl_lbl.config(text=f"Step {cast(int, self.currentFrame) + 1}: Answer", anchor=tk.W, justify=tk.LEFT)
         self.label_formatter(self.af_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='af_ttl_lbl')
         self.af_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
+        if self.screen_data[self.AnsFrameInd]['qType'] == 'tf':
+            self.af_tf_lbl.config(text='Select whether the correct response is TRUE or FALSE', anchor=tk.W, justify=tk.LEFT)
+            self.af_tf_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+            self.af_tf_sel_T.config(text='The answer is TRUE', command=self.aF_tf_T_clk)
+            self.af_tf_sel_F.config(text='The answer is FALSE', command=self.aF_tf_F_clk)
+
+            self.af_tf_sel_T.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+            self.af_tf_sel_F.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
         self.frameMap[self.AnsFrameInd] = (self.frameMap[self.AnsFrameInd][0], self.frameMap[self.AnsFrameInd][1], True)
+        self.label_formatter(self.af_tf_lbl, size=ThemeUpdateVars.FONT_SIZE_MAIN)
+
         self.enable_all_inputs()
         return
+
+    def configure_aF_tf_btns(self) -> None:
+        if self.screen_data[self.AnsFrameInd].get('qType') != 'tf':
+            return
+
+        if self.screen_data[self.AnsFrameInd]['TF'].get('sel') is None:
+            return
+
+        selection = self.screen_data[self.AnsFrameInd]['TF']['sel']
+
+        if selection:
+            self.af_tf_sel_T.config(style='Active.TButton')
+            self.af_tf_sel_F.config(style='')
+        else:
+            self.af_tf_sel_F.config(style='Active.TButton')
+            self.af_tf_sel_T.config(style='')
+
+        self.screen_data[self.AnsFrameInd]['A::final'] = selection
+
+    def aF_tf_T_clk(self) -> None:
+        if self.screen_data[self.AnsFrameInd].get('qType') != 'tf':
+            return
+
+        self.screen_data[self.AnsFrameInd]['TF']['sel'] = True
+        self.configure_aF_tf_btns()
+
+    def aF_tf_F_clk(self) -> None:
+        if self.screen_data[self.AnsFrameInd].get('qType') != 'tf':
+            return
+
+        self.screen_data[self.AnsFrameInd]['TF']['sel'] = False
+        self.configure_aF_tf_btns()
 
     def of_setup(self) -> None:
         self.disable_all_inputs()
@@ -581,6 +652,10 @@ class QEditUI(Thread):
         if self.screen_data[self.OptFrameInd].get('qType') not in ('mc', 'tf', 'nm'):
             return
 
+        if self.screen_data[self.AnsFrameInd].get('qType') in ('mc', 'tf', 'nm'):
+            if self.screen_data[self.AnsFrameInd]['qType'] != self.screen_data[self.OptFrameInd]['qType']:
+                self.frameMap[self.AnsFrameInd] = (self.frameMap[self.AnsFrameInd][0], self.frameMap[self.AnsFrameInd][1], False)
+
         if self.screen_data[self.OptFrameInd]['qType'] == 'mc':
             self.of_nm_options.pack_forget()
 
@@ -721,7 +796,9 @@ class QEditUI(Thread):
                         assert False, 'Please enter an integral value for match threshold (Options Page)'
                     else:
                         assert 1 <= v <= 99, 'Please enter an integral value for match threshold between 1 and 99 (Options Page)'
-
+            
+            assert self.screen_data[self.AnsFrameInd]['A::final'] is not None, 'Please provide an answer before submitting the question'
+            
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket(
@@ -733,6 +810,7 @@ class QEditUI(Thread):
 
         try:
             self.set_data(SMemInd.QUESTION, question)
+            self.set_data(SMemInd.ANSWER, Codes.substitute(self.screen_data[self.AnsFrameInd]['A::final']))
 
             data1: List[Union[int, str]] = ['' for _ in Data1.entries]
             data0: List[Union[int, str]] = ['' for _ in Data0.entries]
@@ -825,6 +903,29 @@ class QEditUI(Thread):
                     )
                     self.show_message(Message(Levels.ERROR, 'Please enter a threshold percentage to proceed {deCL:1}'))
                     return
+
+        elif self.currentFrame == self.AnsFrameInd:
+            qType = self.screen_data[self.AnsFrameInd]['qType']
+            if qType == 'tf':
+                try:
+                    assert self.screen_data[self.AnsFrameInd]['TF'].get('sel') in (True, False), 'strA'
+
+                except Exception as _:
+                    log(
+                        LoggingLevel.ERROR,
+                        f'_np:AnsF, TF :: !selection not apparent'
+                    )
+                    self.show_message(Message(Levels.ERROR, 'Please select either TRUE or FALSE to continue'))
+                    return
+
+            elif qType == 'nm':
+                pass
+
+            elif qType == 'mc':
+                pass
+
+            else:
+                raise UnexpectedEdgeCase(f'_np (currF == AnsF) : qType <!nm, !mn, !tf>; ({qType})')
 
         assert isinstance(self.currentFrame, int)
 
