@@ -257,9 +257,14 @@ class QEditUI(Thread):
 
         # Answer Frame
         self.af_ttl_lbl = tk.Label(self.answer_frame)
-        self.af_tf_lbl = tk.Label(self.answer_frame)
+
+        self.af_tp_lbl = tk.Label(self.answer_frame)
+
         self.af_tf_sel_T = ttk.Button(self.answer_frame)
         self.af_tf_sel_F = ttk.Button(self.answer_frame)
+
+        self.af_nm_ent = CustomText(self.answer_frame)
+        self.af_nm_chr_cnt = tk.Label(self.answer_frame)
 
         # Review Frame
         self.rf_ttl_lbl = tk.Label(self.review_frame)
@@ -430,6 +435,14 @@ class QEditUI(Thread):
     def af_setup(self) -> None:
         self.disable_all_inputs()
 
+        # Housekeeping, prep
+        for widget in self.get_children(self.answer_frame):
+            try:
+                widget.pack_forget()
+                pass
+            except Exception as E:
+                log(LoggingLevel.ERROR, f'<internalError> [af_setup] failed to pack_forget widget {widget} : {E}')
+
         assert self.screen_data[self.OptFrameInd].get('qType') in ('nm', 'tf', 'mc'), 'AnsFSetup: <!err;> OptF not setup properly'
         self.screen_data[self.AnsFrameInd]['qType'] = self.screen_data[self.OptFrameInd]['qType']
 
@@ -438,13 +451,15 @@ class QEditUI(Thread):
         self.screen_data[self.AnsFrameInd]['MC'] = {}
         self.screen_data[self.AnsFrameInd]['TF'] = {}
 
+        # Setup
         self.af_ttl_lbl.config(text=f"Step {cast(int, self.currentFrame) + 1}: Answer", anchor=tk.W, justify=tk.LEFT)
         self.label_formatter(self.af_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='af_ttl_lbl')
         self.af_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
+        self.af_tp_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
         if self.screen_data[self.AnsFrameInd]['qType'] == 'tf':
-            self.af_tf_lbl.config(text='Select whether the correct response is TRUE or FALSE', anchor=tk.W, justify=tk.LEFT)
-            self.af_tf_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+            self.af_tp_lbl.config(text='Select whether the correct response is TRUE or FALSE', anchor=tk.W, justify=tk.LEFT)
 
             self.af_tf_sel_T.config(text='The answer is TRUE', command=self.aF_tf_T_clk)
             self.af_tf_sel_F.config(text='The answer is FALSE', command=self.aF_tf_F_clk)
@@ -452,11 +467,47 @@ class QEditUI(Thread):
             self.af_tf_sel_T.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
             self.af_tf_sel_F.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
+        elif self.screen_data[self.AnsFrameInd]['qType'] == 'nm':
+            self.af_tp_lbl.config(text='Please enter the correct answer below', anchor=tk.W, justify=tk.LEFT)
+            self.af_nm_chr_cnt.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.BOTTOM)
+            self.af_nm_chr_cnt.config(anchor=tk.W, justify=tk.LEFT)
+            self.af_nm_ent.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+
         self.frameMap[self.AnsFrameInd] = (self.frameMap[self.AnsFrameInd][0], self.frameMap[self.AnsFrameInd][1], True)
-        self.label_formatter(self.af_tf_lbl, size=ThemeUpdateVars.FONT_SIZE_MAIN)
+        self.label_formatter(self.af_tp_lbl, size=ThemeUpdateVars.FONT_SIZE_MAIN)
+
+        self.update_requests[gen_short_uid()] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.af_nm_ent.config(
+                    bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                    relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
+                    wrap=tk.WORD
+                ),
+                ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+            ]
+        ]
+
+        self.af_nm_ent.bind('<<TextModified>>', self.onAfInpMod)
+        self.onAfInpMod()  # setup character count
+
+        self.label_formatter(self.af_nm_chr_cnt, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL, padding=self.padX, uid="aFNmTextCharCountLBL")
 
         self.enable_all_inputs()
         return
+
+    def onAfInpMod(self, *_: Any, **_1: Any) -> None:
+        global S_MEM_M_VAL_MAX_SIZE
+
+        text = self.af_nm_ent.get("1.0", "end-1c").strip()
+        chars = len(text)
+        self.af_nm_chr_cnt.config(text=f"{chars}/{S_MEM_M_VAL_MAX_SIZE} characters")
+
+        if chars > S_MEM_M_VAL_MAX_SIZE:
+            self.af_nm_ent.delete('1.0', tk.END)
+            self.af_nm_ent.insert('1.0', text[:S_MEM_M_VAL_MAX_SIZE])
 
     def configure_aF_tf_btns(self) -> None:
         if self.screen_data[self.AnsFrameInd].get('qType') != 'tf':
@@ -874,6 +925,8 @@ class QEditUI(Thread):
         self.set_frame(self.currentFrame - 1)
 
     def _np(self) -> None:
+        global S_MEM_M_VAL_MAX_SIZE
+
         if not isinstance(self.currentFrame, int):
             self.set_frame(0)
             return
@@ -919,7 +972,20 @@ class QEditUI(Thread):
                     return
 
             elif qType == 'nm':
-                pass
+                try:
+                    chrCount = len(self.af_nm_ent.get("1.0", "end-1c").strip())
+                    assert isinstance(chrCount, int) and (0 < chrCount <= S_MEM_M_VAL_MAX_SIZE)
+
+                except Exception as _:
+                    log(
+                        LoggingLevel.ERROR,
+                        f'_np:AnsF, NM :: !no answer'
+                    )
+                    self.show_message(Message(Levels.ERROR, 'Please enter an answer in the provided text area to continue'))
+                    return
+
+                else:
+                    self.screen_data[self.AnsFrameInd]['A::final'] = self.af_nm_ent.get("1.0", "end-1c").strip()
 
             elif qType == 'mc':
                 pass
