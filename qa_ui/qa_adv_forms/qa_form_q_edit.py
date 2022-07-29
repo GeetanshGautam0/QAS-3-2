@@ -1,4 +1,4 @@
-import qa_functions, sys, PIL, tkinter as tk, random, re, traceback, math  # , os, qa_files
+import json, qa_functions, sys, PIL, tkinter as tk, random, re, traceback, math  # , os, qa_files
 from enum import Enum
 from tkinter import ttk
 from threading import Thread
@@ -147,8 +147,11 @@ class CustomText(tk.Text):
 
         self.tag_config("<accent>", foreground=theme_map[ThemeUpdateVars.ACCENT].color)
         self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color)
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color)
         self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color)
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color)
         self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color)
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color)
         self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)
         self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color)
         self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color)
@@ -728,7 +731,7 @@ class QEditUI(Thread):
 
             else:
                 cor = bool(int(SMem.get()[0]))
-                val = SMem.get()[1::]
+                val = SMem.get()[1::].strip()
                 del SMem
 
                 if self._add_ident(index, ident, val, cor):
@@ -752,7 +755,7 @@ class QEditUI(Thread):
 
         else:
             cor = bool(int(SMem.get()[0]))
-            nVal = SMem.get()[1::]
+            nVal = SMem.get()[1::].strip()
             del SMem
 
             m = cast(CustomText, self.af_mc_data['el'][f'{uid}[M]'])
@@ -777,6 +780,8 @@ class QEditUI(Thread):
             else:
                 if uid in self.af_mc_data['corr']:
                     self.af_mc_data['corr'].pop(self.af_mc_data['corr'].index(uid))
+
+        self.update_ui()
 
     def _del_ident(self, uid: str) -> None:
         bSMem = qa_functions.SMem()
@@ -853,11 +858,12 @@ class QEditUI(Thread):
                 self.af_mc_data['el'] = {
                     f"{UID}[C]": cont,
                     f"{UID}[M]": m,
-                    f"{UID}": [identifier, value, is_correct]
+                    UID: [identifier, value, is_correct]
                 }
             else:
                 self.af_mc_data['el'][f"{UID}[C]"] = cont
                 self.af_mc_data['el'][f"{UID}[M]"] = m
+                self.af_mc_data['el'][UID] = [identifier, value, is_correct]
 
             if 'opt' not in self.af_mc_data:
                 self.af_mc_data['opt'] = [UID]
@@ -1257,6 +1263,27 @@ class QEditUI(Thread):
             self.rf_a_lbl.insert('end', str(self.screen_data[self.AnsFrameInd]['A::final']), '<accent>')
             self.rf_a_lbl.insert('end', '"')
 
+        elif Options_qTp == 'Multiple Choice':
+            self.rf_a_lbl.insert('1.0', 'NOTE: The labels (A, B, C, etc.) in this list and the ones listed in the answer entry\npage MAY be different; the following labels are the ones that will be used', '<warning_bg>')
+            self.rf_a_lbl.insert('end', '\n\n')
+
+            ind = 0
+            for k, v in self.af_mc_data['el'].items():
+                if k[-3::] not in ('[M]', '[C]'):
+                    ind += 1
+                    ident = mc_label_gen(ind)
+                    _, val, corr = cast(Tuple[str, str, bool], v)
+
+                    self.rf_a_lbl.insert('end', 'Option ')
+                    self.rf_a_lbl.insert('end', ident, '<accent>')
+                    self.rf_a_lbl.insert('end', f') {val.strip()}', '<indent_body>')
+                    if corr:
+                        self.rf_a_lbl.insert('end', f'\n    \u2022 This option is correct\n\n', '<okay>')
+                    else:
+                        self.rf_a_lbl.insert('end', f'\n    \u2022 This option is incorrect\n\n', '<error>')
+        else:
+            raise UnexpectedEdgeCase('[rf_setup] :: oqtp <!mc, !nm, !tf>')
+
         self.rf_a_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
 
         self.update_requests[gen_short_uid()] = [
@@ -1387,6 +1414,27 @@ class QEditUI(Thread):
         self.update_ui()
 
     def submit_question(self) -> None:
+        if self.screen_data[self.AnsFrameInd]['qType'] == 'mc':
+            nAf = {
+                'C': self.af_mc_data['corr'],
+                'N': self.get_mc_data('mc::N')
+            }
+
+            uidMap = {}
+            for opt in self.af_mc_data['opt']:
+                uidMap[opt] = len(uidMap)
+
+            for k, v in self.af_mc_data['el'].items():
+                if k[-3::] not in ('[M]', '[C]'):
+                    nAf[uidMap[k]] = v[1].strip()
+
+            nC = [uidMap[uid] for uid in nAf['C']]
+            nAf['C'] = nC
+            del nC, uidMap
+
+            self.screen_data[self.AnsFrameInd]['A::final'] = json.dumps(nAf).strip()
+            log(LoggingLevel.DEBUG, f'nAf (af::MC) -> {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{self.screen_data[self.AnsFrameInd]["A::final"]}{ANSI.RESET}')
+
         # Vars
         global S_MEM_M_VAL_MAX_SIZE, S_MEM_VAL_OFFSET
         question = self.qf_inp_box.get("1.0", "end-1c").strip()
@@ -1548,7 +1596,20 @@ class QEditUI(Thread):
                     self.screen_data[self.AnsFrameInd]['A::final'] = self.af_nm_ent.get("1.0", "end-1c").strip()
 
             elif qType == 'mc':
-                pass
+                if self.get_mc_data('mc::N') < 2:
+                    self.show_message(Message(Levels.ERROR, 'You must enter AT LEAST two options to continue'))
+                    log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf opt')
+                    return
+
+                elif not isinstance(self.af_mc_data.get('corr'), list):
+                    self.show_message(Message(Levels.ERROR, 'AT LEAST one of the options must be correct to continue'))
+                    log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
+                    return
+
+                elif len(self.af_mc_data.get('corr')) < 1:
+                    self.show_message(Message(Levels.ERROR, 'AT LEAST one of the options must be correct to continue'))
+                    log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
+                    return
 
             else:
                 raise UnexpectedEdgeCase(f'_np (currF == AnsF) : qType <!nm, !mn, !tf>; ({qType})')
