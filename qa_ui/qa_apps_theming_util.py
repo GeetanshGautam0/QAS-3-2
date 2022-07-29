@@ -664,8 +664,8 @@ class _UI(Thread):
         self.showcase_primary.pack(fill=tk.BOTH, expand=True)
         self.showcase_alt.pack(fill=tk.BOTH, expand=True)
 
-        self.showcase_primary_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0))
-        self.showcase_alt_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0))
+        self.showcase_primary_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0), padx=self.padX)
+        self.showcase_alt_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0), padx=self.padX)
 
         self.showcase_primary.config(text="Primary Font")
         self.showcase_alt.config(text="Alternative Font")
@@ -1398,7 +1398,7 @@ Technical Information:
         self.disable_all_inputs()
 
         s_mem = qa_functions.SMem()
-        qa_prompts.InputPrompts.OptionPrompt(s_mem, {*font.families()}, "Pick a font")
+        qa_prompts.InputPrompts.OptionPrompt(s_mem, sorted({*font.families()}, key=str.lower), "Pick a font")  # type: ignore
         self.enable_all_inputs()
 
         raw = s_mem.get()

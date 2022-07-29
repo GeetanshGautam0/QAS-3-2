@@ -1,4 +1,4 @@
-import qa_functions, sys, PIL, tkinter as tk, random, re, traceback  # , os, qa_files
+import qa_functions, sys, PIL, tkinter as tk, random, re, traceback, math  # , os, qa_files
 from enum import Enum
 from tkinter import ttk
 from threading import Thread
@@ -79,7 +79,7 @@ class SMemInd(Enum):
 
 
 class CustomText(tk.Text):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, logger: object, *args: Any, **kwargs: Any) -> None:
         """A text widget that report on internal widget commands"""
         tk.Text.__init__(self, *args, **kwargs)
 
@@ -87,6 +87,10 @@ class CustomText(tk.Text):
         self._orig = self._w + "_orig"  # type: ignore
         self.tk.call("rename", self._w, self._orig)  # type: ignore
         self.tk.createcommand(self._w, self._proxy)  # type: ignore
+
+        self._custom_as_enb = False
+        self._custom_stg = False
+        self.log = logger
 
     def _proxy(self, command: Any, *args: Any) -> Any:
         # avoid error when copying
@@ -105,6 +109,53 @@ class CustomText(tk.Text):
 
         return result
 
+    def clear_all(self) -> None:
+        self.delete('1.0', tk.END)
+
+    def enable_auto_size(self) -> None:
+        self._custom_as_enb = True
+        self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled auto sizing')  # type: ignore
+        self.bind('<Key>', self._custom_update_size)
+
+    def auto_size(self) -> None:
+        if not self._custom_as_enb:
+            self.enable_auto_size()
+
+        self._custom_update_size(None)
+
+    def _custom_update_size(self, _: Any) -> None:
+        if not self._custom_as_enb:
+            return
+
+        widget_width = 0
+        widget_height = float(self.index(tk.END))
+
+        for line in self.get("1.0", tk.END).split("\n"):
+            if len(line) > widget_width:
+                widget_width = len(line) + 1
+            widget_height += 1
+
+        self.config(width=widget_width, height=widget_height)
+
+    def setup_color_tags(self, theme_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]], tab_len: int = 5) -> None:
+        if self._custom_stg:
+            return
+
+        self._custom_stg = True
+
+        self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')  # type: ignore
+
+        self.tag_config("<accent>", foreground=theme_map[ThemeUpdateVars.ACCENT].color)
+        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color)
+        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color)
+        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color)
+        self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color)
+        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color)
+        self.tag_config('<underline>', underline=1)
+        self.tag_config('<indented_first>', lmargin1=tab_len)
+        self.tag_config('<indented_body>', lmargin2=tab_len)
+
 
 S_MEM_VAL_OFFSET = 512
 S_MEM_M_VAL_MAX_SIZE = 2048  # Major Value (Question / Answer)
@@ -112,11 +163,17 @@ S_MEM_D_VAL_MAX_SIZE = 1024  # Data Value (Data0 / Data1)
 
 
 class QEditUI(Thread):
-    def __init__(self, shared_mem_obj: qa_functions.SMem, edit_mode: bool = False, **kwargs: Any) -> None:
+    def __init__(self, logger: object, shared_mem_obj: qa_functions.SMem, edit_mode: bool = False, **kwargs: Any) -> None:
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
 
+        # TODO: Remove the following declarations
+        global DEBUG_DEV_FLAG, DEBUG_NORM
+        DEBUG_DEV_FLAG = kwargs['debug_dev']
+        DEBUG_NORM = kwargs['debug'] or kwargs['debug_all']
+
+        self.log = log
         self.s_mem, self.edit_mode, self.kwargs = shared_mem_obj, edit_mode, kwargs
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -223,7 +280,7 @@ class QEditUI(Thread):
         # Question Frame
         self.qf_ttl_lbl = tk.Label(self.question_frame)
         self.qf_inf_lbl = tk.Label(self.question_frame)
-        self.qf_inp_box = CustomText(self.question_frame)
+        self.qf_inp_box = CustomText(self.log, self.question_frame)
         self.qf_chr_cnt = tk.Label(self.question_frame)
 
         # Option Frame
@@ -263,11 +320,36 @@ class QEditUI(Thread):
         self.af_tf_sel_T = ttk.Button(self.answer_frame)
         self.af_tf_sel_F = ttk.Button(self.answer_frame)
 
-        self.af_nm_ent = CustomText(self.answer_frame)
+        self.af_nm_ent = CustomText(self.log, self.answer_frame)
         self.af_nm_chr_cnt = tk.Label(self.answer_frame)
+
+        self.af_mc_main_frame = tk.Frame(self.answer_frame)
+        self.af_mc_btn_add_new = ttk.Button(self.af_mc_main_frame)
+        self.af_mc_canv = tk.Canvas(self.af_mc_main_frame)
+        self.af_mc_frame = tk.Frame(self.af_mc_canv)
+        self.af_mc_vsb = ttk.Scrollbar(self.af_mc_main_frame, style='MyAdmin.TScrollbar')
+        self.af_mc_xsb = ttk.Scrollbar(self.af_mc_main_frame, style='MyHorizAdmin.TScrollbar', orient=tk.HORIZONTAL)
+
+        self.af_mc_cl_warn_lbl = tk.Label(self.af_mc_frame, text='WARNING: Changing the question-type and returning to this step WILL clear all options')
+
+        self.af_mc_data = {}
 
         # Review Frame
         self.rf_ttl_lbl = tk.Label(self.review_frame)
+
+        self.rf_main_frame = tk.Frame(self.review_frame)
+        self.rf_canv = tk.Canvas(self.rf_main_frame)
+        self.rf_vsb = ttk.Scrollbar(self.rf_main_frame, style='MyAdmin.TScrollbar')
+        self.rf_xsb = ttk.Scrollbar(self.rf_main_frame, orient=tk.HORIZONTAL, style='MyHorizAdmin.TScrollbar')
+        self.rf_frame = tk.Frame(self.rf_canv)
+
+        self.rf_questions = tk.LabelFrame(self.rf_frame, text='Review Question')
+        self.rf_options = tk.LabelFrame(self.rf_frame, text='Review Options')
+        self.rf_answers = tk.LabelFrame(self.rf_frame, text='Review Answer')
+
+        self.rf_q_lbl = CustomText(self.log, self.rf_questions)
+        self.rf_o_lbl = CustomText(self.log, self.rf_options)
+        self.rf_a_lbl = CustomText(self.log, self.rf_answers)
 
         self.start()
         self.root.mainloop()
@@ -311,15 +393,52 @@ class QEditUI(Thread):
 
         self.of_nm_opt_vsb.config(command=self.of_nm_opt_canv.yview)
         self.of_nm_opt_canv.configure(yscrollcommand=self.of_nm_opt_vsb.set)
-
         self.of_nm_opt_canv.create_window((0, 0), window=self.of_nm_opt_main_frame, anchor=tk.NW, tags='self.of_nm_opt_main_frame')  # type: ignore
 
         self.of_nm_opt_main_frame.bind("<Configure>", self.onFrameConfig)
         self.of_nm_opt_canv.bind("<MouseWheel>", self._on_mousewheel)
         self.of_nm_opt_vsb.bind("<MouseWheel>", self._on_mousewheel)
 
+        self.rf_vsb.config(command=self.rf_canv.yview)
+        self.rf_xsb.config(command=self.rf_canv.xview)
+        self.rf_canv.configure(yscrollcommand=self.rf_vsb.set, xscrollcommand=self.rf_xsb.set)
+        self.rf_canv.create_window((0, 0), window=self.rf_frame, anchor=tk.NW, tags='rf_frame')  # type: ignore
+
+        self.rf_frame.bind("<Configure>", self.RF_onFrameConfig)
+        self.rf_canv.bind("<MouseWheel>", self._RF_on_mousewheel)
+        self.rf_vsb.bind("<MouseWheel>", self._RF_on_mousewheel)
+        self.rf_xsb.bind("<MouseWheel>", self._RF_on_x_mousewheel)
+
+        self.af_mc_vsb.config(command=self.af_mc_canv.yview)
+        self.af_mc_xsb.config(command=self.af_mc_canv.xview)
+        self.af_mc_canv.configure(yscrollcommand=self.af_mc_vsb.set, xscrollcommand=self.af_mc_xsb.set)
+        self.af_mc_canv.create_window((0, 0), window=self.af_mc_frame, anchor=tk.NW, tags='af_mc_frame')  # type: ignore
+
+        self.af_mc_frame.bind("<Configure>", self.AF_MC_onFrameConfig)
+        self.af_mc_canv.bind("<MouseWheel>", self._AF_MC_on_mousewheel)
+        self.af_mc_vsb.bind("<MouseWheel>", self._AF_MC_on_mousewheel)
+        self.af_mc_xsb.bind("<MouseWheel>", self._AF_MC_on_x_mousewheel)
+
         self.setup_smem()
         self.update_ui()
+
+    def RF_onFrameConfig(self, *_: Any, **_1: Any) -> None:
+        self.rf_canv.configure(scrollregion=self.rf_canv.bbox("all"))
+
+    def _RF_on_mousewheel(self, event: Any, *_: Any, **_1: Any) -> None:
+        self.rf_canv.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _RF_on_x_mousewheel(self, event: Any, *_: Any, **_1: Any) -> None:
+        self.rf_canv.xview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def AF_MC_onFrameConfig(self, *_: Any, **_1: Any) -> None:
+        self.af_mc_canv.configure(scrollregion=self.af_mc_canv.bbox("all"))
+
+    def _AF_MC_on_mousewheel(self, event: Any, *_: Any, **_1: Any) -> None:
+        self.af_mc_canv.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _AF_MC_on_x_mousewheel(self, event: Any, *_: Any, **_1: Any) -> None:
+        self.af_mc_canv.xview_scroll(int(-1 * (event.delta / 120)), "units")
 
     @staticmethod
     def get_children(widget: tk.Widget) -> List[tk.Widget]:
@@ -328,6 +447,7 @@ class QEditUI(Thread):
 
             for child in _w.winfo_children():
                 if child.winfo_children():
+                    el.append(child)
                     el.extend(rc(child))
                 else:
                     el.append(child)
@@ -396,10 +516,12 @@ class QEditUI(Thread):
                 lambda *args, **kwargs: self.qf_inp_box.config(
                     bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
                     relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
-                    wrap=tk.WORD
+                    wrap=tk.WORD, highlightthickness=args[5], highlightcolor=args[6],
+                    bd=(args[5] if args[5] > 0 else 1)
                 ),
                 ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
-                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN,
+                ThemeUpdateVars.BORDER_SIZE, ThemeUpdateVars.BORDER_COLOR
             ]
         ]
 
@@ -439,9 +561,8 @@ class QEditUI(Thread):
         for widget in self.get_children(self.answer_frame):
             try:
                 widget.pack_forget()
-                pass
             except Exception as E:
-                log(LoggingLevel.ERROR, f'<internalError> [af_setup] failed to pack_forget widget {widget} : {E}')
+                self.log(LoggingLevel.ERROR, f'<internalError> [af_setup] failed to pack_forget widget {widget} : {E}')
 
         assert self.screen_data[self.OptFrameInd].get('qType') in ('nm', 'tf', 'mc'), 'AnsFSetup: <!err;> OptF not setup properly'
         self.screen_data[self.AnsFrameInd]['qType'] = self.screen_data[self.OptFrameInd]['qType']
@@ -473,6 +594,69 @@ class QEditUI(Thread):
             self.af_nm_chr_cnt.config(anchor=tk.W, justify=tk.LEFT)
             self.af_nm_ent.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
 
+        elif self.screen_data[self.AnsFrameInd]['qType'] == 'mc':
+            if isinstance(self.af_mc_data.get('opt'), (list, tuple, set)):
+                for uid in self.af_mc_data['opt']:
+                    try:
+                        self.update_requests.pop(f'{uid}[C]')
+                    except:
+                        pass
+
+                    try:
+                        self.update_requests.pop(f'{uid}[M]')
+                    except:
+                        pass
+
+            self.af_mc_data = {
+                # Key    [var?  [value, type, (Tuple[checks])]]
+                'mc::N': [True, [0, int, ((lambda arg: int(arg) if int(arg) >= 0 else 0), )]],
+            }  # Clear old MC data
+            self.log(LoggingLevel.INFO, '[af_setup] Flushed MC_DATA dict (refr)')
+
+            self.af_tp_lbl.config(text='Add AT LEAST two options below', anchor=tk.W, justify=tk.LEFT)
+
+            self.af_mc_btn_add_new.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+            self.af_mc_btn_add_new.config(text='Add new option', command=self.AF_MC_addNew)
+
+            self.af_mc_main_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+            self.af_mc_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT)
+            self.af_mc_xsb.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
+            self.af_mc_canv.pack(fill=tk.BOTH, expand=True)
+
+            self.af_mc_cl_warn_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+            self.label_formatter(self.af_mc_cl_warn_lbl, fg=ThemeUpdateVars.BG, bg=ThemeUpdateVars.WARNING, size=ThemeUpdateVars.FONT_SIZE_MAIN)
+            self.update_requests['af_mc_main_frame-0'] = [
+                self.af_mc_main_frame,
+                ThemeUpdateCommands.BG,
+                [ThemeUpdateVars.BG]
+            ]
+            self.update_requests['af_mc_frame-0'] = [
+                self.af_mc_frame,
+                ThemeUpdateCommands.BG,
+                [ThemeUpdateVars.BG]
+            ]
+            self.update_requests['af_mc_canv-0'] = [
+                self.af_mc_canv,
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: self.af_mc_canv.config(bg=args[0], bd='0', highlightthickness='0'),
+                    ThemeUpdateVars.BG
+                ]
+            ]
+            self.update_requests['AfFr::(MC):Canv{Dim}{a}'] = [
+                None,
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: self.af_mc_canv.config(width=args[0] - args[2], height=args[1] - args[3]),
+                    ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                    ('<LOOKUP>', 'padX'), ('<LOOKUP>', 'padY')
+                ]
+            ]
+
+        else:
+            raise UnexpectedEdgeCase('AnsSetup : <internal ERR> - qType <!nm, !mc, !tf>')
+
         self.frameMap[self.AnsFrameInd] = (self.frameMap[self.AnsFrameInd][0], self.frameMap[self.AnsFrameInd][1], True)
         self.label_formatter(self.af_tp_lbl, size=ThemeUpdateVars.FONT_SIZE_MAIN)
 
@@ -483,10 +667,12 @@ class QEditUI(Thread):
                 lambda *args, **kwargs: self.af_nm_ent.config(
                     bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
                     relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
-                    wrap=tk.WORD
+                    wrap=tk.WORD, highlightthickness=args[5], highlightcolor=args[6],
+                    bd=(args[5] if args[5] > 0 else 1)
                 ),
                 ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
-                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN,
+                ThemeUpdateVars.BORDER_SIZE, ThemeUpdateVars.BORDER_COLOR
             ]
         ]
 
@@ -498,8 +684,227 @@ class QEditUI(Thread):
         self.enable_all_inputs()
         return
 
+    def get_mc_data(self, key: str) -> Any:
+        if key not in self.af_mc_data:
+            return None
+        V, val = self.af_mc_data[key]
+        if V:
+            nVal, tp, funcs = val
+            assert isinstance(nVal, tp)
+            if isinstance(funcs, (tuple, list, set)):
+                for func in funcs:
+                    nVal = func(nVal)
+            return nVal
+
+        else:
+            return val
+
+    def set_mc_data(self, key: str, data: Any) -> None:
+        assert key in self.af_mc_data, 'Hint: manually add configuration for variable/data before using set_mc_data method'
+        V, val = self.af_mc_data[key]
+
+        if V:
+            _, tp, funcs = val
+            if isinstance(funcs, (tuple, list, set)):
+                for func in funcs:
+                    data = func(data)
+
+            assert isinstance(data, tp)
+            self.af_mc_data[key][1][0] = data
+
+        else:
+            self.af_mc_data[key][1] = data
+
+    def AF_MC_addNew(self) -> None:
+        try:
+            SMem = qa_functions.SMem()
+            index = cast(int, self.get_mc_data('mc::N')) + 1
+            ident = mc_label_gen(index)
+            qa_prompts.InputPrompts.MCInp(SMem, f'Please enter the text for option "{ident}"')
+
+            if SMem.get() == SMem.NullStr:
+                del SMem
+                return
+
+            else:
+                cor = bool(int(SMem.get()[0]))
+                val = SMem.get()[1::]
+                del SMem
+
+                if self._add_ident(index, ident, val, cor):
+                    self.show_message(Message(Levels.OKAY, 'Successfully added question'))
+                else:
+                    self.show_message(Message(Levels.ERROR, 'Failed to add question'))
+
+        except Exception as E:
+            self.show_message(Message(Levels.ERROR, 'Failed to add question'))
+            self.log(LoggingLevel.ERROR, f"Failed to add question: {E}")
+            self.log(LoggingLevel.DEBUG, traceback.format_exc())
+
+    def _edit_ident(self, uid: str) -> None:
+        SMem = qa_functions.SMem()
+        ident, val, isCorr = self.af_mc_data['el'][uid]
+        qa_prompts.InputPrompts.MCInp(SMem, f'Please enter the text for option "{ident}"', val, isCorr)
+
+        if SMem.get() == SMem.NullStr:
+            del SMem
+            return
+
+        else:
+            cor = bool(int(SMem.get()[0]))
+            nVal = SMem.get()[1::]
+            del SMem
+
+            m = cast(CustomText, self.af_mc_data['el'][f'{uid}[M]'])
+
+            m.config(state=tk.NORMAL)
+            m.delete('1.0', 'end')
+            m.insert('1.0', 'Value: "')
+            m.insert('end', nVal, '<accent>')
+            m.insert('end', '"\nFlags:')
+            m.insert('end', '\n    \u2022 is_correct: ')
+            m.insert('end', str(cor), '<okay>' if cor else '<error>')
+            m.insert('end', '\n    \u2022 identifier: ')
+            m.insert('end', ident, '<accent>')
+            m.config(state=tk.DISABLED)
+
+            self.af_mc_data['el'][uid] = [ident, nVal, cor]
+            if not isinstance(self.af_mc_data.get('corr'), list):
+                self.af_mc_data['corr'] = []
+
+            if cor:
+                self.af_mc_data['corr'].append(uid)
+            else:
+                if uid in self.af_mc_data['corr']:
+                    self.af_mc_data['corr'].pop(self.af_mc_data['corr'].index(uid))
+
+    def _del_ident(self, uid: str) -> None:
+        bSMem = qa_functions.SMem()
+        ident, _, _1 = self.af_mc_data['el'][uid]
+        qa_prompts.InputPrompts.ButtonPrompt(bSMem, 'Confirm Deletion', ('Delete', 'y'), ('Don\'t Delete', 'n'), default='n', message=f'Are you sure you want to delete option "{ident}"')
+
+        if bSMem.get() is None:
+            del bSMem
+            return
+
+        elif cast(str, bSMem.get()) != 'y':
+            del bSMem
+            return
+
+        cont = self.af_mc_data['el'][f'{uid}[C]']
+        cont.pack_forget()
+        del cont, bSMem
+
+        for rt, nm in (('el', uid), ('el', f'{uid}[C]'), ('el', f'{uid}[C]'), ('opt', uid), ('corr', uid)):
+            if nm in self.af_mc_data[rt]:
+                if isinstance(self.af_mc_data[rt], list):
+                    self.af_mc_data[rt].pop(self.af_mc_data[rt].index(nm))
+                elif isinstance(self.af_mc_data[rt], dict):
+                    self.af_mc_data[rt].pop(nm)
+                else:
+                    pass  # Cannot pop
+
+        self.update_requests.pop(f'{uid}[C]')
+        self.update_requests.pop(f'{uid}[M]')
+
+        qa_prompts.MessagePrompts.show_info(
+            qa_prompts.InfoPacket(
+                'The identifiers (labels) may be messed up in the list (i.e., "A" may be followed up by "C" if you delete "B", etc.) Note, however, that these identifiers are re-generated later and will therefore be fixed automatically AFTER the question is submitted.'
+            )
+        )
+
+        self.update_ui()
+
+    def _add_ident(self, index: int, identifier: str, value: str, is_correct: bool, inc: bool = True) -> bool:
+        self.log(LoggingLevel.DEBUG, f'{identifier} ({is_correct}) :: {value}')
+
+        try:
+            UID = gen_short_uid()
+
+            cont = tk.LabelFrame(self.af_mc_frame, text=f'Option {identifier}')
+            m = CustomText(self.log, cont)
+            eB = ttk.Button(cont, text='Edit', command=lambda: self._edit_ident(UID))
+            dB = ttk.Button(cont, text='Delete', command=lambda: self._del_ident(UID))
+
+            m.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+            cont.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+            eB.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+            dB.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+
+            m.setup_color_tags(self.theme_update_map)
+            m.delete('1.0', 'end')
+            m.insert('1.0', 'Value: "')
+            m.insert('end', value, '<accent>')
+            m.insert('end', '"\nFlags:')
+            m.insert('end', '\n    \u2022 is_correct: ')
+            m.insert('end', str(is_correct), '<okay>' if is_correct else '<error>')
+            m.insert('end', '\n    \u2022 identifier: ')
+            m.insert('end', identifier, '<accent>')
+
+            m.auto_size()
+
+            if not isinstance(self.af_mc_data.get('corr'), list):
+                self.af_mc_data['corr'] = []
+
+            if is_correct:
+                self.af_mc_data['corr'].append(UID)
+
+            if 'el' not in self.af_mc_data:
+                self.af_mc_data['el'] = {
+                    f"{UID}[C]": cont,
+                    f"{UID}[M]": m,
+                    f"{UID}": [identifier, value, is_correct]
+                }
+            else:
+                self.af_mc_data['el'][f"{UID}[C]"] = cont
+                self.af_mc_data['el'][f"{UID}[M]"] = m
+
+            if 'opt' not in self.af_mc_data:
+                self.af_mc_data['opt'] = [UID]
+            else:
+                cast(List[str], self.af_mc_data['opt']).append(UID)
+
+            self.update_requests[f"{UID}[C]"] = [
+                None,
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: cast(tk.LabelFrame, self.af_mc_data['el'][args[0]]).config(
+                        bg=args[1], fg=args[2], font=(args[3], args[4])
+                    ),
+                    ('<LOOKUP>', 'uid'),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+                ]
+            ]
+
+            self.update_requests[f'{UID}[M]'] = [
+                None,
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: cast(CustomText, self.af_mc_data['el'][args[0]]).config(
+                        state=tk.DISABLED, bd=0, highlightthickness=0, bg=args[1],
+                        fg=args[2], font=(args[3], args[4])
+                    ),
+                    ('<LOOKUP>', 'uid'), ThemeUpdateVars.BG, ThemeUpdateVars.FG,
+                    ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+                ]
+            ]
+
+            if inc:
+                self.set_mc_data('mc::N', index)
+
+        except Exception as E:
+            self.log(LoggingLevel.DEBUG, traceback.format_exc())
+            self.log(LoggingLevel.ERROR, f"_add_ident: {E}")
+            return False
+
+        else:
+            self.update_ui()
+            return True
+
     def onAfInpMod(self, *_: Any, **_1: Any) -> None:
         global S_MEM_M_VAL_MAX_SIZE
+
+        if self.screen_data[self.AnsFrameInd]['qType'] != 'nm': return
 
         text = self.af_nm_ent.get("1.0", "end-1c").strip()
         chars = len(text)
@@ -775,11 +1180,166 @@ class QEditUI(Thread):
     def rf_setup(self) -> None:
         self.disable_all_inputs()
 
+        for widget in self.get_children(self.review_frame):
+            try:
+                if widget not in [self.rf_vsb, self.rf_xsb]:
+                    widget.pack_forget()
+            except Exception as E:
+                self.log(LoggingLevel.ERROR, f'<internalError> [rf_setup] failed to pack_forget widget {widget} : {E}')
+
         self.rf_ttl_lbl.config(text=f"Step {cast(int, self.currentFrame) + 1}: Review", anchor=tk.W, justify=tk.LEFT)
         self.label_formatter(self.rf_ttl_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, padding=self.padX, uid='rf_ttl_lbl')
         self.rf_ttl_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
-        self.frameMap[self.RFrameInd] = (self.frameMap[self.RFrameInd][0], self.frameMap[self.RFrameInd][1], True)
+        self.rf_main_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+
+        self.rf_xsb.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
+        self.rf_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT)
+        self.rf_canv.pack(fill=tk.BOTH, expand=True)
+
+        self.rf_questions.pack(fill=tk.BOTH, expand=True)
+        self.rf_options.pack(fill=tk.BOTH, expand=True)
+        self.rf_answers.pack(fill=tk.BOTH, expand=True)
+
+        self.rf_q_lbl.config(state=tk.NORMAL)
+        self.rf_a_lbl.config(state=tk.NORMAL)
+        self.rf_o_lbl.config(state=tk.NORMAL)
+
+        self.rf_q_lbl.clear_all()
+        self.rf_a_lbl.clear_all()
+        self.rf_o_lbl.clear_all()
+
+        self.rf_q_lbl.setup_color_tags(self.theme_update_map)
+        self.rf_o_lbl.setup_color_tags(self.theme_update_map)
+        self.rf_a_lbl.setup_color_tags(self.theme_update_map)
+
+        self.rf_q_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+        self.rf_q_lbl.insert('1.0', 'Question: "')
+        self.rf_q_lbl.insert('end', self.qf_inp_box.get("1.0", "end-1c").strip(), '<accent>')
+        self.rf_q_lbl.insert('end', '"')
+
+        self.rf_o_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+        Options_qTp, OQT_err = {
+            'nm': ('Written Response', False),
+            'tf': ('True/False', False),
+            'mc': ('Multiple Choice', False),
+            None: ('QUESTION TYPE NOT SELECTED', True),
+        }[self.screen_data[self.OptFrameInd].get('qType')]
+
+        self.rf_o_lbl.insert('1.0', f"Selected Question Type: ")
+        self.rf_o_lbl.insert('end', Options_qTp, '<error>' if OQT_err else '<okay>')
+
+        if Options_qTp == 'Written Response':
+            self.rf_o_lbl.insert('end', '\n\n')
+            self.rf_o_lbl.insert('end', 'Question-type-specific options:', 'accent')
+            self.rf_o_lbl.insert('end', '\n\u2022 Automatic Marking: ', ('<indent_first>', '<indent_body>'))
+            self.rf_o_lbl.insert('end', 'Enabled' if self.screen_data[self.OptFrameInd]['nm::autoMark'] else 'Disabled (manual marking selected)', ('<okay>', '<indent_body>'))
+
+            if self.screen_data[self.OptFrameInd]['nm::autoMark']:
+                self.rf_o_lbl.insert('end', f'\n\u2022 Auto Mark: Exact v/s Approximate Match: ')
+                self.rf_o_lbl.insert('end', 'Approximate match required' if self.screen_data[self.OptFrameInd]['nm::fuzzy'] else 'Exact match required', ('<okay>', '<indent_body>'))
+                if self.screen_data[self.OptFrameInd]['nm::fuzzy']:
+                    self.rf_o_lbl.insert('end', f'\n\u2022 Auto Mark: Approximate Match: % Similarity Required: ')
+                    self.rf_o_lbl.insert('end', f"{self.of_nm_opt_fuz_ent_sv.get().strip()}% match required", ('<okay>', '<indent_body>'))
+                else:
+                    self.rf_o_lbl.insert('end', '\n\u2022 Auto Mark: Approximate Match: % Similarity Required: <Option Unavailable>', ('<gray_fg>', '<indent_body>'))
+            else:
+                self.rf_o_lbl.insert('end', '\n\u2022 Auto Mark: Exact v/s Approximate Match: <Option Unavailable>', ('<gray_fg>', '<indent_body>'))
+                self.rf_o_lbl.insert('end', '\n\u2022 Auto Mark: Approximate Match: % Similarity Required: <Option Unavailable>', ('<gray_fg>', '<indent_body>'))
+
+            # Written answer
+            self.rf_a_lbl.insert('1.0', 'Correct Answer: "')
+            self.rf_a_lbl.insert('end', self.screen_data[self.AnsFrameInd]['A::final'], '<accent>')
+            self.rf_a_lbl.insert('end', '"')
+
+        elif Options_qTp == 'True/False':
+            self.rf_a_lbl.insert('1.0', 'Correct Answer: "')
+            self.rf_a_lbl.insert('end', str(self.screen_data[self.AnsFrameInd]['A::final']), '<accent>')
+            self.rf_a_lbl.insert('end', '"')
+
+        self.rf_a_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+
+        self.update_requests[gen_short_uid()] = [
+            self.rf_canv,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.rf_canv.config(bg=args[0], bd=0, highlightthickness=0),
+                ThemeUpdateVars.BG
+            ]
+        ]
+        self.update_requests['ReviewFr(NM):Canv{Dim}{a}'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.rf_canv.config(width=args[0] - args[2], height=args[1] - args[3]),
+                ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                ('<LOOKUP>', 'padX'), ('<LOOKUP>', 'padY')
+            ]
+        ]
+        self.update_requests['ReviewFr(NM):Canv{Dim}{b}'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.rf_canv.config(width=args[0] - args[2] * 2, height=args[1] - args[3]),
+                ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                ('<LOOKUP>', 'padX'), ('<LOOKUP>', 'padY')
+            ]
+        ]
+
+        for frame in (self.rf_questions, self.rf_options, self.rf_answers):
+            self.label_formatter(frame, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_SMALL)
+
+        self.rf_q_lbl.auto_size()
+        self.rf_o_lbl.auto_size()
+        self.rf_a_lbl.auto_size()
+
+        self.rf_q_lbl.config(state=tk.DISABLED)
+        self.rf_o_lbl.config(state=tk.DISABLED)
+        self.rf_a_lbl.config(state=tk.DISABLED)
+
+        self.update_requests['rf_q_lbl'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.rf_q_lbl.config(
+                    bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                    relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
+                    wrap=tk.WORD, highlightthickness=0, bd='0'
+                ),
+                ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+            ]
+        ]
+        self.update_requests['rf_a_lbl'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.rf_a_lbl.config(
+                    bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                    relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
+                    wrap=tk.WORD, highlightthickness=0, bd='0'
+                ),
+                ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+            ]
+        ]
+        self.update_requests['rf_o_lbl'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.rf_o_lbl.config(
+                    bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                    relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0],
+                    wrap=tk.WORD, highlightthickness=0, bd='0'
+                ),
+                ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
+            ]
+        ]
+
+        # self.frameMap[self.RFrameInd] = (self.frameMap[self.RFrameInd][0], self.frameMap[self.RFrameInd][1], True)
+        # (need to reset the review page everytime to keep information up to date)
+
         self.enable_all_inputs()
         return
 
@@ -904,7 +1464,7 @@ class QEditUI(Thread):
             self.set_data(SMemInd.DATA1, ''.join(str(i) for i in data1))
 
         except Exception as E:
-            log(LoggingLevel.ERROR, traceback.format_exc())
+            self.log(LoggingLevel.ERROR, traceback.format_exc())
             qa_prompts.MessagePrompts.show_error(
                 qa_prompts.InfoPacket(
                     f'Failed to submit question (internal error)',
@@ -1077,7 +1637,7 @@ class QEditUI(Thread):
             self.set_data(i, self.s_mem.NullStr)
             assert self.s_mem.get(S_MEM_VAL_OFFSET*i) == self.s_mem.NullStr
 
-        log(LoggingLevel.SUCCESS, f"Successfully configured SharedMemory Object \"{self.s_mem.name}\"")
+        self.log(LoggingLevel.SUCCESS, f"Successfully configured SharedMemory Object \"{self.s_mem.name}\"")
 
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
@@ -1092,10 +1652,10 @@ class QEditUI(Thread):
                 return False, f"{E.__class__.__name__}({E})"
 
         def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
-            log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
+            self.log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
 
         def log_norm(com: str, el: tk.Widget) -> None:
-            log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
+            self.log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
 
         for elID, (_e, _c, _a) in self.update_requests.items():
             command = cast(ThemeUpdateCommands, _c)
@@ -1114,7 +1674,7 @@ class QEditUI(Thread):
                             if ps:
                                 cleaned_arg = res
                             else:
-                                log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
+                                self.log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
 
                         if arg[0] == '<LOOKUP>':
                             rs_b: int = cast(int, {
@@ -1128,7 +1688,7 @@ class QEditUI(Thread):
                             if rs_b is not None:
                                 cleaned_arg = rs_b
                             else:
-                                log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
+                                self.log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
 
                 cleaned_args.append(cleaned_arg)
 
@@ -1426,7 +1986,7 @@ class QEditUI(Thread):
                                 if ps:
                                     cleaned_arg = res
                                 else:
-                                    log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
+                                    self.log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
 
                             if arg[0] == '<LOOKUP>':
                                 rs_ba: int = cast(int, {
@@ -1439,7 +1999,7 @@ class QEditUI(Thread):
                                 if rs_ba is not None:
                                     cleaned_arg = rs_ba
                                 else:
-                                    log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
+                                    self.log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
 
                     cleaned_args.append(cleaned_arg)
 
@@ -1576,7 +2136,7 @@ class QEditUI(Thread):
                 font, size,
                 self.window_size[0] - 2 * padding
             ] if isinstance(button, tk.Button) else [
-                lambda *args: log(LoggingLevel.WARNING, f'{args[0]} : (from ButtonFormatter) !Btn'),
+                lambda *args: self.log(LoggingLevel.WARNING, f'{args[0]} : (from ButtonFormatter) !Btn'),
                 ('<LOOKUP>', 'uid')
             ]
         ]
@@ -1604,7 +2164,7 @@ class QEditUI(Thread):
                     lambda *args: label.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
                     bg, fg, font, size, padding
                 ] if isinstance(label, tk.LabelFrame) else [
-                    lambda *args: log(LoggingLevel.WARNING, f'{args[0]} : (from LabelFormatter) !Lbl, !LblF'),
+                    lambda *args: self.log(LoggingLevel.WARNING, f'{args[0]} : (from LabelFormatter) !Lbl, !LblF'),
                     ('<LOOKUP>', 'uid')
                 ]
             )
@@ -1676,7 +2236,7 @@ class QEditUI(Thread):
                 self.svgs[a][b] = get_svg(tmp, background.color, (size, size), name)
 
             except Exception as E:
-                log(LoggingLevel.ERROR, f'admt::load_png - Failed to load requested svg ({src}): {E}')
+                self.log(LoggingLevel.ERROR, f'admt::load_png - Failed to load requested svg ({src}): {E}')
 
     def disable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button], ...]) -> None:
         for btn in (self.next_btn, self.prev_btn):
@@ -1746,6 +2306,13 @@ def log(level: LoggingLevel, data: str) -> None:
             level, data,
             LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
         )])
+
+
+def mc_label_gen(index: int) -> str:
+    chars = 'abcdefghijklmnopqrstuvwxyz'.upper()
+    c1 = chars[(index % len(chars)) - 1]
+    c2 = math.floor((index - (index % len(chars))) / len(chars)) - (0 if c1 != 'z' else 1)
+    return f"{c1}{c2}" if c2 > 0 else c1
 
 
 if __name__ == "__main__":

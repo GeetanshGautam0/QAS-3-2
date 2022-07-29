@@ -11,23 +11,23 @@
         "display_name": "High Contrast",
         "background": "#000000",
         "foreground": "#FFFFFF",
-        "accent": "#00FF00",
+        "accent": "#80FFFF",
         "error": "#FF0000",
         "warning": "#FFFF00",
         "ok": "#00FF00",
         "gray": "#949494",
         "font": {
-            "font_face": "Montserrat",
-            "alt_font_face": "Century Gothic",
-            "size_small": 10,
-            "size_main": 13,
+            "font_face": "Courier New",
+            "alt_font_face": "Consolas",
+            "size_small": 12,
+            "size_main": 15,
             "size_subtitle": 20,
             "size_title": 28,
             "size_xl_title": 40
         },
         "border": {
             "size": 1,
-            "colour": "#FFFFFF"
+            "colour": "#FF8000"
         }
     }
 }

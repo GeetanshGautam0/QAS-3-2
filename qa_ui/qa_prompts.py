@@ -2585,7 +2585,7 @@ class InputPrompts:
             self.thread.join(self, 0)
 
     class ButtonPrompt(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, title: str, *buttons: Optional[Tuple[str, str]], default: str = '<default>', message: str = "") -> None:
+        def __init__(self, s_mem: qa_functions.SMem, title: str, *buttons: Tuple[str, str], default: str = '<default>', message: str = "") -> None:
             global TTK_THEME
             super().__init__()
             self.thread = threading.Thread
@@ -2889,6 +2889,358 @@ class InputPrompts:
                 cast(tk.Button, btn[0]).config(state=tk.DISABLED)
 
             self.s_mem.set(cast(str, self.button_dict[uid][1]))
+            self.close()
+
+        def exit(self) -> None:
+            self.s_mem.set(self.default)
+            self.close()
+
+        def __del__(self) -> None:
+            self.thread.join(self, 0)
+
+    class MCInp(threading.Thread):
+        def __init__(self, s_mem: qa_functions.SMem, label_text: str, default: str = None, is_correct: bool = False) -> None:
+            global TTK_THEME
+
+            super().__init__()
+            self.thread = threading.Thread
+            self.thread.__init__(self)
+
+            assert isinstance(s_mem, qa_functions.SMem)
+            assert isinstance(label_text, str)
+
+            self.root = tk.Toplevel()
+            self.s_mem = s_mem
+            self.label = label_text
+            self.default = cast(str, (default if isinstance(default, str) else self.s_mem.NullStr))
+
+            self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
+            ratio = 2 / 3
+            wd_w = 500 if 500 <= self.screen_dim[0] else self.screen_dim[0]
+            self.window_size = [wd_w, int(ratio * wd_w)]
+            self.screen_pos = [
+                int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
+                int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
+            ]
+
+            self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
+            self.theme_update_map: Dict[ThemeUpdateVars, Union[str, int, float, qa_functions.HexColor]] = {}
+
+            self.padX = 20
+            self.padY = 10
+
+            self.load_theme()
+            self.update_requests: Dict[
+                str,
+                List[Union[Union[tk.Tk, tk.Toplevel, None, tk.Widget, tk.BaseWidget], ThemeUpdateCommands, List[Any]]]
+            ] = {}
+
+            self.ttk_style = ttk.Style()
+            self.ttk_style.theme_use(TTK_THEME)
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = configure_button_style(self.ttk_style, self.theme)
+            self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
+
+            self.title_frame = tk.Frame(self.root)
+            self.title_label = tk.Label(self.title_frame)
+            self.lbl1 = tk.Label(self.root)
+            self.button_panel = tk.Frame(self.root)
+            self.select_button = ttk.Button(self.button_panel, command=self.select)
+            self.close_button = ttk.Button(self.button_panel, command=self.close)
+            self.error_label = tk.Label(self.root)
+
+            self.cVar = tk.IntVar()
+            self.cVar.set(int(is_correct))
+            self.is_correct = tk.Checkbutton(self.root, text='This is a correct answer', var=self.cVar)
+
+            self.entry1 = ttk.Entry(self.root, style='My.TEntry')
+
+            self.err_acc = 0
+
+            self.start()
+            self.root.mainloop()
+
+        def close(self) -> None:
+            self.thread.join(self, 0)
+            self.root.after(0, self.root.quit)
+            self.root.withdraw()
+            self.root.title('Quizzing Application | Closed Prompt')
+
+        def update_ui(self) -> None:
+            self.load_theme()
+
+            def tr(com: Callable[[], Any]) -> Tuple[bool, str]:
+                try:
+                    com()
+                    return True, '<no errors>'
+                except Exception as E:
+                    log(LoggingLevel.DEVELOPER, traceback.format_exc())
+                    return False, str(E)
+
+            def log_error(com: str, el: tk.Widget, reason: str, ind: int) -> None:
+                log(LoggingLevel.ERROR, f'[UPDATE_UI] Failed to apply command \'{com}\' to {el}: {reason} ({ind}) <{elID}>')
+
+            def log_norm(com: str, el: tk.Widget) -> None:
+                log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
+
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                element = cast(tk.Button, _e)
+                command = cast(ThemeUpdateCommands, _c)
+                args = cast(List[Any], _a)
+
+                lCommand = [False, '', -1]
+                cargs = []
+                for index, arg in enumerate(args):
+                    cargs.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+
+                    if isinstance(cargs[index], qa_functions.HexColor):
+                        cargs[index] = cargs[index].color
+
+                if command in self.theme_update_map:
+                    sys.stderr.write(
+                        "[WARNING] {}: Provided ThemeUpdateVars member instead of ThemeUpdateCommands member\n".format(element)
+                    )
+                    continue
+
+                if command == ThemeUpdateCommands.BG:  # Background
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(bg=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.FG:  # Foreground
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(fg=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(activebackground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(activeforeground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(highlightthickness=cargs[0], bd=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.FONT:  # Font
+                    if len(cargs) == 2:
+                        ok, rs = tr(lambda: element.config(font=(cargs[0], cargs[1])))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                elif command == ThemeUpdateCommands.CUSTOM:  # Custom
+                    if len(cargs) <= 0:
+                        lCommand = [True, 'Function not provided', 1]
+                    elif len(cargs) == 1:
+                        ok, rs = tr(cargs[0])
+                        if not ok:
+                            lCommand = [True, rs, 0]
+                    elif len(cargs) > 1:
+                        ok, rs = tr(lambda: cargs[0](*cargs[1::]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
+                    if len(cargs) == 1:
+                        ok, rs = tr(lambda: element.config(wraplength=cargs[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
+
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
+
+                if lCommand[0] is True:
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
+                elif DEBUG_NORM:
+                    log_norm(command.name, element)
+
+                del lCommand, cargs
+
+            self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'Prompts')
+            self.ttk_style = configure_button_style(self.ttk_style, self.theme)
+            self.ttk_style = configure_entry_style(self.ttk_style, self.theme)
+
+            self.ttk_style.configure(
+                'TMenubutton',
+                background=self.theme.background.color,
+                foreground=self.theme.accent.color,
+                font=(self.theme.font_face, self.theme.font_main_size),
+                arrowcolor=self.theme.accent.color,
+                borderwidth=0
+            )
+
+            self.ttk_style.map(
+                'TMenubutton',
+                background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color)],
+                foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)],
+                arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
+            )
+
+        def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, padding: Union[None, int] = None) -> None:
+            if padding is None:
+                padding = self.padX
+
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FG, [ThemeUpdateVars.FG if not accent else ThemeUpdateVars.BG]]
+
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_BG, [ThemeUpdateVars.ACCENT if not accent else ThemeUpdateVars.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.ACTIVE_FG, [ThemeUpdateVars.BG if not accent else ThemeUpdateVars.ACCENT]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_SIZE, [ThemeUpdateVars.BORDER_SIZE]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.BORDER_COLOR, [ThemeUpdateVars.BORDER_COLOR]]
+
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [button, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+
+        def label_formatter(self, label: tk.Widget, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, padding: Union[None, int] = None) -> None:
+            if padding is None:
+                padding = self.padX
+
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.BG, [bg]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FG, [fg]]
+
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.FONT, [font, size]]
+            self.update_requests[gsuid('qa_prompts')] = [label, ThemeUpdateCommands.WRAP_LENGTH, [self.window_size[0] - 2 * padding]]
+
+        def load_theme(self) -> None:
+            self.theme = qa_functions.LoadTheme.auto_load_pref_theme()
+
+            self.theme_update_map = {
+                ThemeUpdateVars.BG: self.theme.background,
+                ThemeUpdateVars.FG: self.theme.foreground,
+                ThemeUpdateVars.ACCENT: self.theme.accent,
+                ThemeUpdateVars.ERROR: self.theme.error,
+                ThemeUpdateVars.WARNING: self.theme.warning,
+                ThemeUpdateVars.OKAY: self.theme.okay,
+                ThemeUpdateVars.GRAY: self.theme.gray,
+                ThemeUpdateVars.DEFAULT_FONT_FACE: self.theme.font_face,
+                ThemeUpdateVars.ALT_FONT_FACE: self.theme.font_alt_face,
+                ThemeUpdateVars.FONT_SIZE_TITLE: self.theme.font_title_size,
+                ThemeUpdateVars.FONT_SIZE_LARGE: self.theme.font_large_size,
+                ThemeUpdateVars.FONT_SIZE_MAIN: self.theme.font_main_size,
+                ThemeUpdateVars.FONT_SIZE_SMALL: self.theme.font_small_size,
+                ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
+                ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
+            }
+
+        def run(self) -> None:
+            TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+            self.root.geometry(f"{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}")
+            self.root.title("Quizzing Application | Prompt")
+            self.root.protocol("WM_DELETE_WINDOW", self.close)
+            self.root.focus_get()
+            self.update_requests[gsuid('qa_prompts')] = [self.root, TUC.BG, [TUV.BG]]
+
+            self.title_frame.pack(fill=tk.X, expand=False)
+            self.title_label.config(text="Information Required", justify=tk.LEFT, anchor=tk.W)
+            self.title_label.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+
+            self.button_panel.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY)
+            self.close_button.config(text="Cancel", command=self.exit)
+            self.select_button.config(text="Confirm", command=self.select)
+            self.close_button.pack(fill=tk.X, expand=True, side=tk.LEFT, padx=(0, self.padX / 4))
+            self.select_button.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+
+            self.error_label.config(text="")
+            self.error_label.pack(fill=tk.X, padx=self.padX, pady=0, expand=False, side=tk.BOTTOM)
+
+            self.lbl1.config(text=self.label, justify=tk.LEFT, anchor=tk.W)
+            self.lbl1.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+            self.entry1.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+            self.entry1.delete(0, tk.END)
+            if self.default != self.s_mem.NullStr:
+                self.entry1.insert(0, self.default)
+
+            self.is_correct.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+
+            self.label_formatter(self.title_label, fg=TUV.ACCENT, size=TUV.FONT_SIZE_TITLE)
+            self.label_formatter(self.lbl1, fg=TUV.GRAY, size=TUV.FONT_SIZE_SMALL)
+            self.label_formatter(self.error_label, fg=TUV.ERROR, size=TUV.FONT_SIZE_SMALL)
+
+            self.update_requests[gsuid('qa_prompts')] = [self.title_frame, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.button_panel, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid('qa_prompts')] = [self.entry1, TUC.FONT, [TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN]]
+
+            self._onClk(False)
+            self.update_ui()
+
+        def _onClk(self, up: bool = True) -> None:
+            TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+            self.update_requests[gsuid('qa_prompts')] = [
+                None,
+                TUC.CUSTOM,
+                [
+                    lambda *args: self.is_correct.config(
+                        activebackground=args[0], activeforeground=args[1],
+                        bg=args[2], bd=(args[3] if args[3] > 0 else 1),
+                        font=(args[4], args[5]), highlightthickness=args[3],
+                        highlightcolor=args[6], selectcolor=args[7], state=tk.NORMAL,
+                        anchor=tk.W, command=self._onClk, fg=args[8]
+                    ),
+                    TUV.ACCENT, TUV.BG, TUV.BG, TUV.BORDER_SIZE, TUV.DEFAULT_FONT_FACE,
+                    TUV.FONT_SIZE_SMALL, TUV.BORDER_COLOR, TUV.ACCENT if self.cVar.get() != 0 else TUV.BG,
+                    TUV.FG
+                ]
+            ]
+
+            if up:
+                self.update_ui()
+
+        def select(self) -> None:
+            self.select_button.config(state=tk.DISABLED)
+            self.close_button.config(state=tk.DISABLED)
+            self.entry1.config(state=tk.DISABLED)
+
+            if "" == self.entry1.get().strip():
+                self.err_acc += 1
+                self.error_label.config(text=f"Please fill out all of the information ({self.err_acc})")
+                self.select_button.config(state=tk.NORMAL)
+                self.close_button.config(state=tk.NORMAL)
+                self.entry1.config(state=tk.NORMAL)
+                return
+
+            self.error_label.config(text="")
+
+            self.s_mem.set(f"{self.cVar.get()}{self.entry1.get().strip()}")
             self.close()
 
         def exit(self) -> None:
