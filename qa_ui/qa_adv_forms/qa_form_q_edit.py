@@ -79,7 +79,7 @@ class SMemInd(Enum):
 
 
 class CustomText(tk.Text):
-    def __init__(self, logger: object, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, logger: Callable, *args: Any, **kwargs: Any) -> None:  # type: ignore
         """A text widget that report on internal widget commands"""
         tk.Text.__init__(self, *args, **kwargs)
 
@@ -114,7 +114,7 @@ class CustomText(tk.Text):
 
     def enable_auto_size(self) -> None:
         self._custom_as_enb = True
-        self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled auto sizing')  # type: ignore
+        self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled auto sizing')
         self.bind('<Key>', self._custom_update_size)
 
     def auto_size(self) -> None:
@@ -143,7 +143,7 @@ class CustomText(tk.Text):
 
         self._custom_stg = True
 
-        self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')  # type: ignore
+        self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')
 
         self.tag_config("<accent>", foreground=theme_map[ThemeUpdateVars.ACCENT].color)
         self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color)
@@ -166,17 +166,12 @@ S_MEM_D_VAL_MAX_SIZE = 1024  # Data Value (Data0 / Data1)
 
 
 class QEditUI(Thread):
-    def __init__(self, logger: object, shared_mem_obj: qa_functions.SMem, edit_mode: bool = False, **kwargs: Any) -> None:
+    def __init__(self, logger: Callable, shared_mem_obj: qa_functions.SMem, edit_mode: bool = False, **kwargs: Any) -> None:  # type: ignore
         super().__init__()
         self.thread = Thread
         self.thread.__init__(self)
 
-        # TODO: Remove the following declarations
-        global DEBUG_DEV_FLAG, DEBUG_NORM
-        DEBUG_DEV_FLAG = kwargs['debug_dev']
-        DEBUG_NORM = kwargs['debug'] or kwargs['debug_all']
-
-        self.log = log
+        self.log = logger
         self.s_mem, self.edit_mode, self.kwargs = shared_mem_obj, edit_mode, kwargs
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
@@ -366,6 +361,88 @@ class QEditUI(Thread):
         self.root.withdraw()
         self.root.title('Quizzing Application | Closed Form')
 
+    def edMode(self) -> None:
+        self.disable_all_inputs()
+
+        q_data = self.get_data(SMemInd.QUESTION).strip()
+        a_data = self.get_data(SMemInd.ANSWER).strip()
+        t_data = self.get_data(SMemInd.DATA1).strip()
+        g_data = self.get_data(SMemInd.DATA0).strip()
+
+        if t_data not in ('mc', 'tf', 'nm'):
+            return
+
+        self.qf_setup()
+        self.qf_inp_box.delete('1.0', 'end')
+        self.qf_inp_box.insert('1.0', q_data)
+
+        self.screen_data[self.OptFrameInd]['qType'] = t_data
+        self.screen_data[self.AnsFrameInd]['qType'] = t_data
+
+        self.next_page()
+        self.of_setup()
+
+        if t_data == 'nm':
+            self.configure_nm_options()
+
+            C: List[Union[bool, int, str]] = []
+            ind_acc = 0
+            UIDs = {gen_short_uid('u128371'): D for D in Data0.entries}
+            d0 = {u: D.index for u, D in UIDs.items()}
+            sD0 = cast(List[Tuple[str, int]], sorted(d0.items(), key=lambda x: x[1]))
+            sD1 = [UIDs[s] for s, _ in sD0]
+            del d0
+
+            fn = {
+                DataType.boolean: lambda x: bool(int(x)),
+                DataType.integer: lambda x: int(x),
+                DataType.string: lambda x: x
+            }
+
+            for d0E in sD1:
+                v = g_data[ind_acc:(ind_acc + d0E.size):]
+                ind_acc += d0E.size
+
+                nV = fn[d0E.type](v)
+                C.append(nV)
+
+            self.screen_data[self.OptFrameInd]['nm::autoMark'] = C[0]
+            self.screen_data[self.OptFrameInd]['nm::fuzzy'] = C[1]
+            self.of_nm_opt_fuz_ent_sv.set(str(qa_functions.clamp(1, int(C[2]), 99)))
+
+        self.configure_tp_btns()
+        self.configure_options()
+
+        self.next_page()
+        self.af_setup()
+
+        if t_data == 'nm':
+            self.af_nm_ent.delete('1.0', 'end')
+            self.af_nm_ent.insert('1.0', a_data)
+            self.screen_data[self.AnsFrameInd]['A::final'] = a_data
+
+        elif t_data == 'tf':
+            if a_data in ('0', 'False', 'false'):
+                self.aF_tf_F_clk()
+            else:
+                self.aF_tf_T_clk()
+
+        elif t_data == 'mc':
+            mD0 = json.loads(a_data)
+            mC = mD0['C']
+            mN = mD0['N']
+
+            for m in range(mN):
+                s = str(m)
+                c = s in mC
+                lbl = mc_label_gen(m + 1)
+                v = mD0[s]
+
+                self._add_ident(m + 1, lbl, v, c)
+
+        self.set_frame(0)
+        self.enable_all_inputs()
+
     def run(self) -> None:
         global APP_TITLE
 
@@ -422,7 +499,11 @@ class QEditUI(Thread):
         self.af_mc_vsb.bind("<MouseWheel>", self._AF_MC_on_mousewheel)
         self.af_mc_xsb.bind("<MouseWheel>", self._AF_MC_on_x_mousewheel)
 
-        self.setup_smem()
+        if self.edit_mode:
+            self.edMode()
+        else:
+            self.setup_smem()
+
         self.update_ui()
 
     def RF_onFrameConfig(self, *_: Any, **_1: Any) -> None:
@@ -1428,12 +1509,12 @@ class QEditUI(Thread):
                 if k[-3::] not in ('[M]', '[C]'):
                     nAf[uidMap[k]] = v[1].strip()
 
-            nC = [uidMap[uid] for uid in nAf['C']]
-            nAf['C'] = nC
+            nC = [str(uidMap[uid]) for uid in nAf['C']]
+            nAf['C'] = ''.join(nC)
             del nC, uidMap
 
             self.screen_data[self.AnsFrameInd]['A::final'] = json.dumps(nAf).strip()
-            log(LoggingLevel.DEBUG, f'nAf (af::MC) -> {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{self.screen_data[self.AnsFrameInd]["A::final"]}{ANSI.RESET}')
+            self.log(LoggingLevel.DEBUG, f'nAf (af::MC) -> {ANSI.BOLD}{ANSI.FG_BRIGHT_CYAN}{self.screen_data[self.AnsFrameInd]["A::final"]}{ANSI.RESET}')
 
         # Vars
         global S_MEM_M_VAL_MAX_SIZE, S_MEM_VAL_OFFSET
@@ -1558,10 +1639,7 @@ class QEditUI(Thread):
                         self.show_message(Message(Levels.ERROR, 'Please enter a threshold percentage to proceed'))
                         return
                 except Exception as E:
-                    log(
-                        LoggingLevel.ERROR,
-                        f'_np:OptF, autoMark + fuzzy :: !{E}'
-                    )
+                    self.log(LoggingLevel.ERROR,f'_np:OptF, autoMark + fuzzy :: !{E}')
                     self.show_message(Message(Levels.ERROR, 'Please enter a threshold percentage to proceed {deCL:1}'))
                     return
 
@@ -1572,10 +1650,7 @@ class QEditUI(Thread):
                     assert self.screen_data[self.AnsFrameInd]['TF'].get('sel') in (True, False), 'strA'
 
                 except Exception as _:
-                    log(
-                        LoggingLevel.ERROR,
-                        f'_np:AnsF, TF :: !selection not apparent'
-                    )
+                    self.log(LoggingLevel.ERROR, f'_np:AnsF, TF :: !selection not apparent')
                     self.show_message(Message(Levels.ERROR, 'Please select either TRUE or FALSE to continue'))
                     return
 
@@ -1585,10 +1660,7 @@ class QEditUI(Thread):
                     assert isinstance(chrCount, int) and (0 < chrCount <= S_MEM_M_VAL_MAX_SIZE)
 
                 except Exception as _:
-                    log(
-                        LoggingLevel.ERROR,
-                        f'_np:AnsF, NM :: !no answer'
-                    )
+                    self.log(LoggingLevel.ERROR, f'_np:AnsF, NM :: !no answer')
                     self.show_message(Message(Levels.ERROR, 'Please enter an answer in the provided text area to continue'))
                     return
 
@@ -1598,17 +1670,17 @@ class QEditUI(Thread):
             elif qType == 'mc':
                 if self.get_mc_data('mc::N') < 2:
                     self.show_message(Message(Levels.ERROR, 'You must enter AT LEAST two options to continue'))
-                    log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf opt')
+                    self.log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf opt')
                     return
 
                 elif not isinstance(self.af_mc_data.get('corr'), list):
                     self.show_message(Message(Levels.ERROR, 'AT LEAST one of the options must be correct to continue'))
-                    log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
+                    self.log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
                     return
 
                 elif len(self.af_mc_data.get('corr')) < 1:
                     self.show_message(Message(Levels.ERROR, 'AT LEAST one of the options must be correct to continue'))
-                    log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
+                    self.log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
                     return
 
             else:
@@ -1684,8 +1756,23 @@ class QEditUI(Thread):
         if isinstance(index, int):
             assert 0 <= index <= 3
             self.s_mem.set(data, index * S_MEM_VAL_OFFSET)
+
         elif isinstance(index, SMemInd):
             self.s_mem.set(data, index.value * S_MEM_VAL_OFFSET)
+
+        else:
+            raise UnexpectedEdgeCase("qEdit::set_data - index <?tp>(!int, !SMemInd)")
+
+    def get_data(self, index: Union[int, SMemInd]) -> str:
+        global S_MEM_VAL_OFFSET
+
+        if isinstance(index, int):
+            assert 0 <= index <= 3
+            return self.s_mem.get(index * S_MEM_VAL_OFFSET)
+
+        elif isinstance(index, SMemInd):
+            return self.s_mem.get(index.value * S_MEM_VAL_OFFSET)
+
         else:
             raise UnexpectedEdgeCase("qEdit::set_data - index (!int, !SMemInd)")
 
@@ -2332,7 +2419,7 @@ def get_svg(svg_file: str, bg: Union[str, int], size: Union[None, Tuple[int, int
     return p_img
 
 
-def log(level: LoggingLevel, data: str) -> None:
+def _dLog(level: LoggingLevel, data: str) -> None:
     global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
     assert isinstance(data, str)
 
@@ -2377,5 +2464,5 @@ def mc_label_gen(index: int) -> str:
 
 
 if __name__ == "__main__":
-    log(qa_functions.LoggingLevel.ERROR, f"Module 'qa_form_q_edit.py' must be used by a QuizzingApp dist script.")
+    _dLog(qa_functions.LoggingLevel.ERROR, f"Module 'qa_form_q_edit.py' must be used by a QuizzingApp dist script.")
     sys.exit(-1)
