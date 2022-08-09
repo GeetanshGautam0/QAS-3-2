@@ -63,9 +63,10 @@ class Data0:
 
 
 class Data1:
-    QuestionType = DataEntry('qType', 0, 2, DataType.boolean)
+    QuestionType = DataEntry('qType', 0, 2, DataType.string)
+    exD1 = DataEntry('e::1', 1, 1, DataType.boolean)
 
-    entries = [QuestionType]
+    entries = [QuestionType, exD1]
 
 
 @dataclass
@@ -288,6 +289,12 @@ class QEditUI(Thread):
         self.of_ans_tf = ttk.Button(self.of_ans_tp_cont)
         self.of_ans_nm = ttk.Button(self.of_ans_tp_cont)
 
+        self.of_mc_cVar = tk.IntVar(value=0)
+        self.of_mc_options = tk.LabelFrame(self.options_frame)
+        self.of_mc_randomize = tk.Checkbutton(self.of_mc_options, text='Randomize option order', var=self.of_mc_cVar)
+        
+        self._on_mc_eRand_clk(False)
+        
         self.of_nm_options = tk.LabelFrame(self.options_frame)
         self.of_nm_opt_fuz_ent_sv = tk.StringVar()
         self.of_nm_opt_fuz_ent_sv.set('50')
@@ -355,6 +362,27 @@ class QEditUI(Thread):
     def __del__(self) -> None:
         self.thread.join(self, 0)
 
+    def _on_mc_eRand_clk(self, up: bool = True) -> None:
+        self.update_requests['of_mc_randomize<tk::CheckButton>'] = [
+            None,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: self.of_mc_randomize.config(
+                    activebackground=args[0], activeforeground=args[1],
+                    bg=args[2], bd=(args[3] if args[3] > 0 else 1),
+                    font=(args[4], args[5]), highlightthickness=args[3],
+                    highlightcolor=args[6], selectcolor=args[7], state=tk.NORMAL,
+                    anchor=tk.W, command=self._on_mc_eRand_clk, fg=args[8]
+                ),
+                ThemeUpdateVars.ACCENT, ThemeUpdateVars.BG, ThemeUpdateVars.BG, ThemeUpdateVars.BORDER_SIZE, ThemeUpdateVars.DEFAULT_FONT_FACE,
+                ThemeUpdateVars.FONT_SIZE_SMALL, ThemeUpdateVars.BORDER_COLOR, ThemeUpdateVars.ACCENT if self.of_mc_cVar.get() != 0 else ThemeUpdateVars.BG,
+                ThemeUpdateVars.FG
+            ]
+        ]
+
+        if up:
+            self.update_ui()
+
     def close(self) -> None:
         self.thread.join(self, 0)
         self.root.after(0, self.root.quit)
@@ -362,12 +390,21 @@ class QEditUI(Thread):
         self.root.title('Quizzing Application | Closed Form')
 
     def edMode(self) -> None:
+        global APP_TITLE
+
         self.disable_all_inputs()
+        self.title_text.config(text='Please Wait')
+        self.label_formatter(self.title_text, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.WARNING, uid='title_label')
+        self.update_ui()
 
         q_data = self.get_data(SMemInd.QUESTION).strip()
         a_data = self.get_data(SMemInd.ANSWER).strip()
         t_data = self.get_data(SMemInd.DATA1).strip()
         g_data = self.get_data(SMemInd.DATA0).strip()
+
+        t_ED1 = 0
+        if len(t_data) == 3:
+            t_data, t_ED1 = t_data[:(Data1.QuestionType.index + Data1.QuestionType.size)], int(t_data[Data1.exD1.index + Data1.QuestionType.size - 1])
 
         if t_data not in ('mc', 'tf', 'nm'):
             return
@@ -410,6 +447,11 @@ class QEditUI(Thread):
             self.screen_data[self.OptFrameInd]['nm::fuzzy'] = C[1]
             self.of_nm_opt_fuz_ent_sv.set(str(qa_functions.clamp(1, int(C[2]), 99)))
 
+        elif t_data == 'mc':
+            self.of_mc_cVar.set(t_ED1)
+            self.configure_mc_options()
+            self._on_mc_eRand_clk(False)
+
         self.configure_tp_btns()
         self.configure_options()
 
@@ -441,6 +483,8 @@ class QEditUI(Thread):
                 self._add_ident(m + 1, lbl, v, c)
 
         self.set_frame(0)
+        self.title_text.config(text='Question Editor')
+        self.label_formatter(self.title_text, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, uid='title_label')
         self.enable_all_inputs()
 
     def run(self) -> None:
@@ -1090,6 +1134,22 @@ class QEditUI(Thread):
             'tf': self.of_ans_tf,
             'nm': self.of_ans_nm
         }[self.screen_data[self.OptFrameInd]['qType']].configure(style='Active.TButton')
+    
+    def configure_mc_options(self) -> None:
+        self.of_mc_options.config(text="More Options")
+        self.of_mc_options.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.of_mc_randomize.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.update_requests[gen_short_uid()] = [
+            self.of_mc_options,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args, **kwargs: self.of_mc_options.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+            ]
+        ]
+
+        self.screen_data[self.OptFrameInd]['conf::mc_options'] = True
 
     def configure_nm_options(self) -> None:
         self.of_nm_options.config(text="More Options")
@@ -1201,12 +1261,17 @@ class QEditUI(Thread):
 
         if self.screen_data[self.OptFrameInd]['qType'] == 'mc':
             self.of_nm_options.pack_forget()
+            self.of_mc_options.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+            if self.screen_data[self.OptFrameInd].get('conf::mc_options') in (None, False):
+                self.configure_mc_options()
 
         elif self.screen_data[self.OptFrameInd]['qType'] == 'tf':
             self.of_nm_options.pack_forget()
+            self.of_mc_options.pack_forget()
 
         elif self.screen_data[self.OptFrameInd]['qType'] == 'nm':
-            self.of_nm_options.pack()
+            self.of_mc_options.pack_forget()
+            self.of_nm_options.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
             if self.screen_data[self.OptFrameInd].get('conf::nm_options') in (None, False):
                 self.configure_nm_options()
 
@@ -1556,6 +1621,8 @@ class QEditUI(Thread):
             data0: List[Union[int, str]] = ['' for _ in Data0.entries]
 
             data1[Data1.QuestionType.index] = self.screen_data[self.OptFrameInd]['qType']
+            data1[Data1.exD1.index] = \
+                self.of_mc_cVar.get() if data1[Data1.QuestionType.index] == 'mc' else 0
 
             if data1[Data1.QuestionType.index] == 'nm':  # Written
                 data0[Data0.AutoMark.index] = int(self.screen_data[self.OptFrameInd]['nm::autoMark'])

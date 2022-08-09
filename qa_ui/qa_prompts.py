@@ -3205,7 +3205,7 @@ class InputPrompts:
         def _onClk(self, up: bool = True) -> None:
             TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
 
-            self.update_requests[gsuid('qa_prompts')] = [
+            self.update_requests['is_correct<tk::CheckButton>'] = [
                 None,
                 TUC.CUSTOM,
                 [
