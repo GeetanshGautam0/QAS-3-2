@@ -67,6 +67,7 @@ class Data1:
     exD1 = DataEntry('e::1', 1, 1, DataType.boolean)
 
     entries = [QuestionType, exD1]
+    exEntries = [exD1]
 
 
 @dataclass
@@ -146,16 +147,16 @@ class CustomText(tk.Text):
 
         self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')
 
-        self.tag_config("<accent>", foreground=theme_map[ThemeUpdateVars.ACCENT].color)
-        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color)
-        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color)
-        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color)
-        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)
+        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)
+        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)
+        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)
         self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color)
-        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color)
+        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)
         self.tag_config('<underline>', underline=1)
         self.tag_config('<indented_first>', lmargin1=tab_len)
         self.tag_config('<indented_body>', lmargin2=tab_len)
@@ -471,7 +472,7 @@ class QEditUI(Thread):
 
         elif t_data == 'mc':
             mD0 = json.loads(a_data)
-            mC = mD0['C']
+            mC = mD0['C'].split('/')
             mN = mD0['N']
 
             for m in range(mN):
@@ -1019,6 +1020,8 @@ class QEditUI(Thread):
                     ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN
                 ]
             ]
+
+            self.af_mc_canv.yview_moveto('1.0')
 
             if inc:
                 self.set_mc_data('mc::N', index)
@@ -1575,7 +1578,7 @@ class QEditUI(Thread):
                     nAf[uidMap[k]] = v[1].strip()
 
             nC = [str(uidMap[uid]) for uid in nAf['C']]
-            nAf['C'] = ''.join(nC)
+            nAf['C'] = '/'.join(nC)
             del nC, uidMap
 
             self.screen_data[self.AnsFrameInd]['A::final'] = json.dumps(nAf).strip()

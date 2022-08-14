@@ -28,6 +28,86 @@ MAX = 50
 _Fs = True
 
 
+class CustomText(tk.Text):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type: ignore
+        """A text widget that report on internal widget commands"""
+        tk.Text.__init__(self, *args, **kwargs)
+
+        # create a proxy for the underlying widget
+        self._orig = self._w + "_orig"  # type: ignore
+        self.tk.call("rename", self._w, self._orig)  # type: ignore
+        self.tk.createcommand(self._w, self._proxy)  # type: ignore
+
+        self._custom_as_enb = False
+        self._custom_stg = False
+
+    def _proxy(self, command: Any, *args: Any) -> Any:
+        # avoid error when copying
+        if command == 'get' and (args[0] == 'sel.first' and args[1] == 'sel.last') and not self.tag_ranges('sel'):
+            return
+
+        # avoid error when deleting
+        if command == 'delete' and (args[0] == 'sel.first' and args[1] == 'sel.last') and not self.tag_ranges('sel'):
+            return
+
+        cmd = (self._orig, command) + args
+        result = self.tk.call(cmd)
+
+        if command in ('insert', 'delete', 'replace'):
+            self.event_generate('<<TextModified>>')
+
+        return result
+
+    def clear_all(self) -> None:
+        self.delete('1.0', tk.END)
+
+    def enable_auto_size(self) -> None:
+        self._custom_as_enb = True
+        log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled auto sizing')
+        self.bind('<Key>', self._custom_update_size)
+
+    def auto_size(self) -> None:
+        if not self._custom_as_enb:
+            self.enable_auto_size()
+
+        self._custom_update_size(None)
+
+    def _custom_update_size(self, _: Any) -> None:
+        if not self._custom_as_enb:
+            return
+
+        widget_width = 0
+        widget_height = float(self.index(tk.END))
+
+        for line in self.get("1.0", tk.END).split("\n"):
+            if len(line) > widget_width:
+                widget_width = len(line) + 1
+
+        self.config(width=widget_width, height=int(widget_height))
+
+    def setup_color_tags(self, theme_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]], tab_len: int = 5) -> None:
+        if self._custom_stg:
+            return
+
+        self._custom_stg = True
+
+        log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')
+
+        self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)
+        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)
+        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)
+        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)
+        self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
+        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)
+        self.tag_config('<underline>', underline=1)
+        self.tag_config('<indented_first>', lmargin1=tab_len)
+        self.tag_config('<indented_body>', lmargin2=tab_len)
+
+
 class Levels(Enum):
     (NORMAL, OKAY, WARNING, ERROR) = range(4)
 
@@ -67,7 +147,7 @@ class _UI(Thread):
         ]
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
-        self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}
+        self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}  # type: ignore
 
         self.padX = 20
         self.padY = 10
@@ -76,10 +156,9 @@ class _UI(Thread):
         self._job: Union[None, str] = None
 
         self.load_theme()
-        tmp = tk.Label(self.root)
-        self.update_requests: Dict[str, List[Any]] = {}
-        self.late_update_requests: Dict[tk.Widget, List[Any]] = {}
-        self.data: Dict[Any, Any] = {}
+        self.update_requests: Dict[str, List[Any]] = {}  # type: ignore
+        self.late_update_requests: Dict[tk.Widget, List[Any]] = {}  # type: ignore
+        self.data: Dict[Any, Any] = {}  # type: ignore
 
         self.img_path = qa_functions.Files.AT_png
         self.img_size = (75, 75)
@@ -114,6 +193,7 @@ class _UI(Thread):
 
         self.page_index = self.SELECT_PAGE
         self.prev_page = self.page_index
+        self.edit_on_config_page = True
 
         self.title_box = tk.Frame(self.root)
         self.title_label = tk.Label(self.title_box)
@@ -169,7 +249,7 @@ class _UI(Thread):
         self.edit_configuration_frame = tk.Frame(self.edit_configuration_canvas)
 
         # Configuration page:: Elements (Edit page)
-        self.edit_configuration_title = tk.Label(self.edit_configuration_frame)
+        self.edit_configuration_title = tk.Label(self.edit_configuration_master_frame)
 
         self.edit_password_container = tk.LabelFrame(self.edit_configuration_frame)
         self.edit_db_psw_container = tk.LabelFrame(self.edit_password_container)
@@ -183,7 +263,7 @@ class _UI(Thread):
         self.edit_qz_psw_button = ttk.Button(self.edit_qz_psw_container, command=self.qz_psw_toggle)
         self.edit_qz_psw_reset_btn = ttk.Button(self.edit_qz_psw_container, command=self.qz_psw_change)
 
-        self.edit_configuration_save = ttk.Button(self.edit_configuration_frame, text="Save Changes", command=self.save_db)
+        self.edit_configuration_save = ttk.Button(self.edit_configuration_master_frame, text="Save Changes", command=self.save_db)
         self.sb_expand_shrink = ttk.Button(self.edit_sidebar, command=self.expand_click)
 
         self.edit_config_main_cont = tk.LabelFrame(self.edit_configuration_frame, text='Quiz Configuration')
@@ -225,6 +305,21 @@ class _UI(Thread):
         self.edit_config_dda_var = tk.StringVar()
         self.edit_config_dda_field = ttk.Entry(self.edit_config_ddc_cont, textvariable=self.edit_config_dda_var)
 
+        # Question Page :: Main Elements (Edit page)
+        self.edit_question_master_frame = tk.Frame(self.db_frame)
+        self.edit_question_canvas = tk.Canvas(self.edit_question_master_frame)
+        self.edit_question_vsb = ttk.Scrollbar(self.edit_question_master_frame, style='MyAdmin.TScrollbar')
+        self.edit_question_xsb = ttk.Scrollbar(self.edit_question_master_frame, orient=tk.HORIZONTAL, style='MyHorizAdmin.TScrollbar')
+        self.edit_question_frame = tk.Frame(self.edit_question_canvas)
+
+        self.edit_question_title = tk.Label(self.edit_question_master_frame)
+        self.question_map: Dict[str, Any] = {}  # type: ignore  # qId : (ParentLblFrame, [update UIDs], {qData})
+
+        self.edit_question_btn_frame = tk.Frame(self.edit_question_master_frame)
+        self.edit_question_add_new_btn = ttk.Button(self.edit_question_btn_frame, text='Add New Question', command=lambda: self._ad_q)
+        self.edit_questions_save_btn = ttk.Button(self.edit_question_btn_frame, text='Save Changes', command=lambda: self.save_db)
+
+        # Final calls
         self.start()
         self.root.mainloop()
 
@@ -296,6 +391,66 @@ class _UI(Thread):
         self.select_new.pack(fill=tk.X, expand=True, padx=self.padX, ipady=self.padY)
         self.select_scores.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.BOTTOM, ipady=self.padY)
 
+    def configure_question_frame(self) -> None:
+        self.edit_question_title.config(text='Question Manager')
+        self.edit_question_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY * 2, side=tk.TOP)
+
+        self.edit_question_btn_frame.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
+
+        self.edit_question_add_new_btn.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+        self.edit_question_add_new_btn.config(command=lambda: None, style='LG.TButton')
+
+        self.edit_questions_save_btn.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+        self.edit_questions_save_btn.config(command=lambda: None, style='LG.TButton')
+
+        self.edit_question_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT, pady=self.padY, padx=(0, self.padX))
+        self.edit_question_xsb.pack(fill=tk.X, expand=False, side=tk.BOTTOM, pady=(0, self.padY), padx=(self.padX, 0))
+        self.edit_question_canvas.pack(fill=tk.BOTH, expand=True, pady=(self.padY, 0), padx=(self.padX, 0))
+
+        # Scrollbar setup
+        self.edit_question_vsb.configure(command=self.edit_question_canvas.yview)
+        self.edit_question_xsb.configure(command=self.edit_question_canvas.xview)
+        self.edit_question_canvas.configure(
+            yscrollcommand=self.edit_question_vsb.set,
+            xscrollcommand=self.edit_question_xsb.set,
+        )
+
+        self.edit_question_canvas.create_window(
+            0, 0,
+            window=self.edit_question_frame,
+            anchor="nw",
+            tags="self.edit_question_frame"
+        )
+
+        self.edit_question_frame.update()
+        self.edit_question_frame.bind("<Configure>", self.onFrameConfig)
+        self.edit_question_canvas.bind("<MouseWheel>", self._on_mousewheel)
+
+        TUC = ThemeUpdateCommands
+        TUV = ThemeUpdateVars
+
+        self.update_requests[gsuid()] = [self.edit_question_master_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.edit_question_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [self.edit_question_btn_frame, TUC.BG, [TUV.BG]]
+        self.update_requests[gsuid()] = [
+            self.edit_question_canvas,
+            TUC.CUSTOM,
+            [
+                lambda *args: self.edit_question_canvas.config(bg=args[0], bd=0, highlightthickness=0),
+                TUV.BG
+            ]
+        ]
+        self.update_requests[gsuid()] = [
+            None,
+            TUC.CUSTOM,
+            [
+                lambda *args: self.edit_question_title.config(
+                    bg=args[1], fg=args[0], font=(args[2], args[3])
+                ),
+                TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_TITLE
+            ]
+        ]
+
     def configure_edit_frame(self) -> None:
         global DEBUG_NORM
 
@@ -315,11 +470,14 @@ class _UI(Thread):
         self.edit_sep.pack(fill=tk.Y, expand=False, side=tk.LEFT, pady=(self.padY, 0))
 
         # Configuration Frame
+        self.edit_configuration_title.config(text="Configuration Manager")
+        self.edit_configuration_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY * 2)
+
+        self.edit_configuration_save.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY)
+        self.edit_configuration_save.config(style='LG.TButton')
+
         self.edit_configuration_vsb.pack(fill=tk.Y, expand=False, padx=(0, self.padX), pady=self.padY, side=tk.RIGHT)
         self.edit_configuration_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=self.padY)
-
-        self.edit_configuration_title.config(text="Configuration Manager")
-        self.edit_configuration_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY * 2, side=tk.TOP)
 
         self.edit_password_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
         self.edit_db_psw_container.pack(fill=tk.X, expand=True, padx=self.padX, pady=(self.padY, 0))
@@ -346,8 +504,6 @@ class _UI(Thread):
         self.edit_qz_psw_button.config(text="")
         self.edit_qz_psw_reset_btn.config(text="Reset Password")
 
-        self.edit_configuration_save.pack(fill=tk.X, expand=False, side=tk.BOTTOM, padx=self.padX, pady=self.padY, ipady=self.padY / 2)
-
         self.edit_configuration_btn.config(compound=tk.LEFT, image=self.svgs['settings_cog_large']['normal'], style='LG.TButton')
         self.edit_questions_btn.config(compound=tk.LEFT, image=self.svgs['question_large']['normal'], style='LG.TButton')
 
@@ -362,8 +518,8 @@ class _UI(Thread):
         )
 
         self.edit_config_acc_btns.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
-        self.edit_config_acc_btn1.pack(fill=tk.X, expand=True, ipady=self.padY/2, side=tk.LEFT)
-        self.edit_config_acc_btn2.pack(fill=tk.X, expand=True, ipady=self.padY/2, side=tk.RIGHT)
+        self.edit_config_acc_btn1.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.LEFT)
+        self.edit_config_acc_btn2.pack(fill=tk.X, expand=True, ipady=self.padY / 2, side=tk.RIGHT)
 
         self.edit_config_qz_dc.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
         self.edit_config_poa_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
@@ -625,7 +781,7 @@ class _UI(Thread):
             None, COM.CUSTOM,
             [
                 lambda *args: self.edit_configuration_title.config(
-                    bg=args[0], fg=args[1], font=(args[2], args[3])
+                    bg=args[1], fg=args[0], font=(args[2], args[3])
                 ),
                 VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_TITLE
             ]
@@ -710,6 +866,357 @@ class _UI(Thread):
         del d
         return
 
+    def _rm_q(self, qid: str) -> None:
+        if self.dsb:
+            return
+
+        try:
+            PLF, IDs, QData = self.question_map[qid]
+            QN = qid.split('::')[0]
+            if self.data[self.EDIT_PAGE]['db']['QUESTIONS'].get(QN) == QData:
+                self.data[self.EDIT_PAGE]['db']['QUESTIONS'].pop(QN)
+
+                for ID in IDs:
+                    self.question_map.pop(ID)
+
+            else:
+                log(LoggingLevel.ERROR, f'_rm_q failed: invalid data')
+                assert False, f"_rm-q invalid data {QN} :: {QData}, {self.data[self.EDIT_PAGE]['db']['QUESTIONS'].get(QN)}"
+
+        except Exception:
+            log(LoggingLevel.DEBUG, f'_rm_q failed: {qid=} {traceback.format_exc()}')
+            self.show_info(Message(Levels.ERROR, 'Failed to remove question; please try again'))
+
+        else:
+            log(LoggingLevel.INFO, f'_rm_q: removed {qid}')
+            self.show_info(Message(Levels.OKAY, 'Successfully removed question'))
+
+        self.update_questions()
+
+    def _ed_q(self, qid: str) -> None:
+        if self.dsb:
+            return
+
+        self.disable_all_inputs()
+
+        try:
+            QN = qid.split('::')[0]
+            _, _0, QData = self.question_map[qid]
+            assert QData == self.data[self.EDIT_PAGE]['db']['QUESTIONS'].get(QN), 'invalid data'
+            eSMem = qa_functions.SMem(8192)
+
+            T, Q, A, Data0 = QData['0'], QData['1'], QData['2'], QData['d']
+            if T[:2] == 'mc':
+                assert T[2] == Data0[sum([a.size for a in qa_forms.question_editor_form.Data0.entries])]
+                A = json.dumps(A)
+
+            else:
+                T += '0'
+
+            for v in (T, Q, A, Data0): assert isinstance(v, str)
+
+            d0Size = sum([a.size for a in qa_forms.question_editor_form.Data0.entries])
+            exEntSize = sum([e.size for e in qa_forms.question_editor_form.Data1.exEntries])
+            Data0 = Data0[:d0Size]  # Trim data1 ex values from data0
+
+            index = qa_forms.question_editor_form.SMemInd
+            sp = qa_forms.question_editor_form.S_MEM_VAL_OFFSET
+
+            eSMem.set(Q, index.QUESTION.value * sp)
+            eSMem.set(A, index.ANSWER.value * sp)
+            eSMem.set(Data0, index.DATA0.value * sp)
+            eSMem.set(T, index.DATA1.value * sp)
+
+            qa_forms.question_editor_form.QEditUI(log, eSMem, True, **self.kwargs)
+
+            nQ = eSMem.get(index.QUESTION.value * sp).strip()
+            nA = eSMem.get(index.ANSWER.value * sp).strip()
+            nD = eSMem.get(index.DATA0.value * sp).strip()
+            nT = eSMem.get(index.DATA1.value * sp).strip()
+
+            c = False
+            for vO, vE in ((Q, nQ), (A, nA), (Data0, nD), (T, nT)):
+                assert isinstance(vE, str)
+                assert vE.strip() != eSMem.NullStr.strip(), 'nullStr'
+                c |= (vO != vE)
+
+            del Q, A, Data0, T, index, sp, eSMem
+
+            if not c:
+                log(LoggingLevel.WARNING, '_ed_q: no changes made; returning')
+                self.enable_all_inputs()
+                self.show_info(Message(Levels.ERROR, 'No changes made to question'))
+                return
+
+            nT = nT if nT[:2] == 'mc' else nT[:2]
+            assert nT in ('mc0', 'mc1', 'nm', 'tf'), nT
+
+            if len(nD) == d0Size:
+                if len(nT) == 3:
+                    nD += nT[-1]
+                else:
+                    nD += '0'
+
+            assert len(nD) == d0Size + exEntSize, len(nD)
+
+            if nT[:2] == 'mc':
+                nA = json.loads(nA)
+
+            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][QN] = {'0': nT.strip(), '1': nQ.strip(), '2': nA.strip(), 'd': nD.strip()}
+
+        except Exception as E:
+            log(LoggingLevel.ERROR, f'_ed_q: failed: {E}')
+            log(LoggingLevel.DEBUG, f'_ed_q: failed: {traceback.format_exc()}')
+            self.show_info(Message(Levels.ERROR, 'Failed to edit question; please try again'))
+
+        else:
+            log(LoggingLevel.SUCCESS, 'Edited question')
+            self.show_info(Message(Levels.OKAY, 'Successfully edited question'))
+            self.update_questions()
+
+        self.enable_all_inputs()
+
+    def _ad_q(self) -> None:
+        if self.dsb:
+            return
+
+        self.disable_all_inputs()
+
+        try:
+            eSMem = qa_functions.SMem(8192)
+            qa_forms.question_editor_form.QEditUI(log, eSMem, False, **self.kwargs)
+
+            d0Size = sum([a.size for a in qa_forms.question_editor_form.Data0.entries])
+            exEntSize = sum([e.size for e in qa_forms.question_editor_form.Data1.exEntries])
+            index = qa_forms.question_editor_form.SMemInd
+            sp = qa_forms.question_editor_form.S_MEM_VAL_OFFSET
+
+            nQ = eSMem.get(index.QUESTION.value * sp).strip()
+            nA = eSMem.get(index.ANSWER.value * sp).strip()
+            nD = eSMem.get(index.DATA0.value * sp).strip()
+            nT = eSMem.get(index.DATA1.value * sp).strip()
+
+            c = False
+            for vN in (nQ, nA, nD, nT):
+                assert isinstance(vN, str), type(vN)
+                assert vN != eSMem.NullStr, 'nullStr'
+
+            del index, sp, eSMem
+
+            if not c:
+                log(LoggingLevel.WARNING, '_ad_q: no changes made; returning')
+                self.enable_all_inputs()
+                self.show_info(Message(Levels.ERROR, 'No changes made to question'))
+                return
+
+            nT = nT if nT[:2] == 'mc' else nT[:2]
+            assert nT in ('mc0', 'mc1', 'nm', 'tf'), nT
+
+            if len(nD) == d0Size:
+                if len(nT) == 3:
+                    nD += nT[-1]
+                else:
+                    nD += '0'
+
+            assert len(nD) == d0Size + exEntSize, len(nD)
+
+            if nT[:2] == 'mc':
+                nA = json.loads(nA)
+
+            QN = str(len(self.data[self.EDIT_PAGE]['db']['QUESTIONS']))
+            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][QN] = {'0': nT.strip(), '1': nQ.strip(), '2': nA.strip(), 'd': nD.strip()}
+
+        except Exception as E:
+            log(LoggingLevel.ERROR, f'_ad_q: failed: {E}')
+            log(LoggingLevel.DEBUG, f'_ad_q: failed: {traceback.format_exc()}')
+            self.show_info(Message(Levels.ERROR, 'Failed to edit question; please try again'))
+
+        else:
+            log(LoggingLevel.SUCCESS, 'Edited question')
+            self.show_info(Message(Levels.OKAY, 'Successfully edited question'))
+            self.update_questions()
+
+        self.enable_all_inputs()
+
+    def _aq(self, uid: str, data: dict) -> None:  # type: ignore
+        try:
+            QN = uid
+            QData = data
+
+            TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+            QId = gsuid(QN)
+            PLF = tk.LabelFrame(self.edit_question_frame, text=f"Question #{int(QN) + 1}")
+            C = CustomText(PLF)
+
+            RBId = f"E{gsuid('qUpdate<tmpEl>')}"
+            RB = ttk.Button(PLF, command=lambda: self._rm_q(QId), style='Err.TButton', text='Remove')
+
+            EBId = f"E{gsuid('qUpdate<tmpEl>')}"
+            EB = ttk.Button(PLF, command=lambda: self._ed_q(QId), text='Edit')
+
+            CId = f"E{gsuid('qUpdate<tmpEl>')}"
+            C.auto_size()
+            C.setup_color_tags(self.theme_update_map)
+
+            C.delete('1.0', 'end')
+            C.insert('end', 'Question Type: ')
+            C.insert(
+                'end',
+                {
+                    'nm': 'Written Response',
+                    'mc0': "Multiple Choice",
+                    'mc1': "Multiple Choice",
+                    'tf': 'True/False'
+                }[QData['0']],
+                '<accent>'
+            )
+            C.insert('end', '\nQuestion: "')
+            C.insert('end', QData['1'], '<accent>')
+            if QData['0'] == 'nm':
+                C.insert('end', f'"\n\nAnswer: "')
+                C.insert('end', QData['2'], '<accent>')
+                C.insert('end', '"')
+
+                d0 = qa_forms.question_editor_form.Data0
+                d0_opts = {}
+                d0_acc = 0
+
+                for d0_opt in d0.entries:
+                    d0_opts[d0_opt.name] = QData['d'][d0_acc:d0_acc + d0_opt.size]
+                    d0_acc += d0_opt.size
+
+                opt_autoMark = int(d0_opts['auto_mark'])
+                opt_fuzzy = int(d0_opts['fuzzy'])
+                opt_fuzzyT = int(d0_opts['fuzzy:threshold'])
+
+                C.insert('end', '\n\nFlags:')
+                C.insert('end', '\t\u2022 AutoMark: ')
+                C.insert('end', 'ENABLED' if opt_autoMark else 'DISABLED', '<accent>')
+
+                if opt_autoMark:
+                    C.insert('end', '\n\t\u2022 Marking Mode: ')
+                    C.insert('end', 'Approximate Match' if opt_fuzzy else 'Exact Match', '<accent>')
+
+                    if opt_fuzzy:
+                        C.insert('end', '\n\t\u2022 % Match Required: ')
+                        C.insert('end', f'{opt_fuzzyT}%', '<accent>')
+
+            elif QData['0'] == 'tf':
+                C.insert('end', f'"\n\nAnswer: ')
+                C.insert('end', 'TRUE' if int(QData['2']) else 'FALSE', '<accent>')
+
+            elif QData['0'][:2] == 'mc':
+                C.insert('end', '\n\nOptions:\n')
+
+                assert isinstance(QData['2'], dict)
+                corr, N = QData['2']['C'].split('/'), QData['2']['N']
+                NQData = copy.deepcopy(QData)
+                NQData['2'].pop('C')
+                NQData['2'].pop('N')
+                assert len(NQData['2']) >= 2
+                assert len(corr) > 0
+                fn = qa_forms.question_editor_form.mc_label_gen
+
+                opt_rnd = int(NQData['0'][2])
+
+                for nIdentifier, v in NQData['2'].items():
+                    identifier = fn(int(nIdentifier) + 1)
+                    C.insert('end', '\t\u2022 Option ')
+                    C.insert('end', identifier, '<error>' if nIdentifier not in corr else '<okay>')
+                    C.insert('end', f') {v.strip()}\n')
+
+                C.insert('end', '\nCorrect answer(s): ')
+                C.insert('end', ', '.join([fn(int(cA) + 1) for cA in corr]), '<okay>')
+
+                C.insert('end', '\n\nFlags:\n\t\u2022 ')
+                C.insert('end', f'{"" if opt_rnd else "DO NOT "}Randomize Options', '<accent>')
+
+            else:
+                raise qa_functions.UnexpectedEdgeCase('_aq::!mc, !tf, !nm')
+
+            C.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+            C.config(bd=0, highlightthickness=0, wrap=tk.WORD, state=tk.DISABLED)
+
+            RB.pack(fill=tk.X, expand=True, padx=self.padX, pady=(0, self.padY), side=tk.LEFT)
+            EB.pack(fill=tk.X, expand=True, padx=self.padX, pady=(0, self.padY), side=tk.RIGHT)
+
+            self.question_map[CId] = C
+            self.question_map[RBId] = RB
+            self.question_map[EBId] = EB
+            self.question_map[QId] = (PLF, [CId, RBId, EBId], QData)
+
+            PLF.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+
+            self.late_update_requests[PLF] = [
+                [
+                    TUC.CUSTOM,
+                    [
+                        lambda *args: cast(tk.LabelFrame, args[0][0]).config(
+                            bg=args[1], fg=args[2], font=(args[3], args[4])
+                        ),
+                        ('<LOOKUP>', 'QMap', QId),
+                        TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_SMALL
+                    ]
+                ],
+                [
+                    TUC.CUSTOM,
+                    [
+                        lambda *args: cast(CustomText, args[0]).auto_size(),
+                        ('<LOOKUP>', 'QMap', CId)
+                    ]
+                ],
+                [
+                    TUC.CUSTOM,
+                    [
+                        lambda *args, **kwargs: cast(CustomText, args[5]).config(
+                            bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                            relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0]
+                        ),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                        ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN,
+                        ('<LOOKUP>', 'QMap', CId)
+                    ]
+                ]
+            ]
+
+        except Exception as E:
+            log(LoggingLevel.ERROR, f'_aq failed: {E}')
+            log(LoggingLevel.DEBUG, f'_aq failed: {uid=} {traceback.format_exc()}')
+
+    def update_questions(self) -> None:
+        self.disable_all_inputs()
+
+        for QId, D in self.question_map.items():
+            if QId[0] == 'E':  # extra data key
+                continue
+
+            cast(tk.LabelFrame, D[0]).pack_forget()
+            try:
+                self.late_update_requests.pop(cast(tk.LabelFrame, D[0]))
+                assert D[0] not in self.late_update_requests
+            except KeyError as K:
+                log(LoggingLevel.DEBUG, f'_uq: KeyError ({K})')
+            except AssertionError as A:
+                log(LoggingLevel.DEBUG, f'_uq: AE ({A})')
+
+        # Fix index errors
+        Qs = list(self.data[self.EDIT_PAGE]['db']['QUESTIONS'].values())
+        self.data[self.EDIT_PAGE]['db']['QUESTIONS'] = {}
+        for ind, v in enumerate(Qs):
+            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][str(ind)] = v
+
+        self.question_map = {}
+        self.edit_question_canvas.pack_forget()
+
+        for QN, QData in self.data[self.EDIT_PAGE]['db']['QUESTIONS'].items():
+            self._aq(QN, QData)
+
+        self.edit_question_canvas.yview_moveto('1.0')
+        self.edit_question_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(self.padY, 0))
+
+        self.enable_all_inputs()
+
     # -----------------
     # LL Event Handlers
     # -----------------
@@ -723,10 +1230,18 @@ class _UI(Thread):
         if self.page_index != self.EDIT_PAGE:
             return
 
-        self.edit_configuration_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        if self.edit_on_config_page:
+            self.edit_configuration_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        else:
+            self.edit_question_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def onFrameConfig(self, _: Any) -> None:
-        self.edit_configuration_canvas.configure(scrollregion=self.edit_configuration_canvas.bbox("all"))
+        if self.edit_on_config_page:
+            self.edit_configuration_canvas.configure(scrollregion=self.edit_configuration_canvas.bbox("all"))
+
+        else:
+            self.edit_question_canvas.configure(scrollregion=self.edit_question_canvas.bbox("all"))
 
     # ------------
     # GEO Handlers
@@ -743,6 +1258,8 @@ class _UI(Thread):
     # -----
 
     def close(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
+        self.save_db()
+
         sys.stdout.write("at - _UI.close")
         self.ic.shell = self.ds
         self.ic.shell_ready = False
@@ -804,6 +1321,7 @@ class _UI(Thread):
         self.configure_sel_frame()
         self.configure_create_frame()
         self.configure_edit_frame()
+        self.configure_question_frame()
 
         self.ask_db_frame()
         self.update_ui()
@@ -1012,7 +1530,7 @@ class _UI(Thread):
 
         if not kwargs.get('nrst'):
             if not cond:
-                if cast(Tuple[Any, ...], self.db_psw_change())[1]:
+                if not cast(Tuple[Any, ...], self.db_psw_change())[2]:
                     self.show_info(Message(Levels.ERROR, "Couldn't set password."))
                     return
 
@@ -1021,14 +1539,14 @@ class _UI(Thread):
 
         if cond:
             try:
-                self.edit_db_psw_button.image = self.svgs['checkmark']['accent']    # type: ignore
+                self.edit_db_psw_button.image = self.svgs['checkmark']['accent']  # type: ignore
                 self.edit_db_psw_button.config(compound=tk.LEFT, image=self.svgs['checkmark']['accent'], style='Active.TButton')
             except Exception as E:
                 self.edit_db_psw_button.config(style='Active.TButton')
                 log(LoggingLevel.ERROR, f"Failed to add image to <edit_db_psw_button> : {E.__class__.__name__}({E})")
         else:
             self.data[self.EDIT_PAGE]['db']['DB']['psw'][1] = ''
-            self.edit_db_psw_button.image = ''                                      # type: ignore
+            self.edit_db_psw_button.image = ''  # type: ignore
             self.edit_db_psw_button.config(style='TButton', image='')
 
         self.edit_db_psw_button.config(text=f"{'Not ' if not cond else ''}Protected")
@@ -1047,6 +1565,7 @@ class _UI(Thread):
         res = s_mem.get()
         f = True
         f1 = True
+        rst = False
 
         if isinstance(res, str):
             res = res.strip()
@@ -1066,6 +1585,7 @@ class _UI(Thread):
                             hashed = hashlib.sha3_512(a.encode()).hexdigest()
                             self.data[self.EDIT_PAGE]['db']['DB']['psw'] = [True, hashed]
                             self.show_info(Message(Levels.OKAY, 'Successfully reset administrator password'))
+                            rst = True
 
                     else:
                         qa_prompts.MessagePrompts.show_error(
@@ -1081,7 +1601,7 @@ class _UI(Thread):
         self.busy = False
 
         del s_mem
-        return f, f1
+        return f, f1, rst
 
     def qz_psw_toggle(self, *_0: Optional[Any], **kwargs: Optional[Any]) -> None:
         if self.EDIT_PAGE not in self.data:
@@ -1091,7 +1611,7 @@ class _UI(Thread):
 
         if not kwargs.get('nrst'):
             if not cond:
-                if cast(Tuple[Any, ...], self.qz_psw_change())[1]:
+                if not cast(Tuple[Any, ...], self.qz_psw_change())[2]:
                     self.show_info(Message(Levels.ERROR, "Couldn't set password."))
                     return
 
@@ -1119,6 +1639,7 @@ class _UI(Thread):
         res = s_mem.get()
         f = True
         f1 = True
+        rst = False
 
         if isinstance(res, str):
             res = res.strip()
@@ -1139,6 +1660,7 @@ class _UI(Thread):
                             hashed = hashlib.sha3_512(a.encode()).hexdigest()
                             self.data[self.EDIT_PAGE]['db']['DB']['q_psw'] = [True, hashed]
                             self.show_info(Message(Levels.OKAY, 'Successfully reset quiz password'))
+                            rst = True
 
                     else:
                         qa_prompts.MessagePrompts.show_error(
@@ -1154,7 +1676,7 @@ class _UI(Thread):
         self.busy = False
 
         del s_mem
-        return f, f1
+        return f, f1, rst
 
     def inp2_edit(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         global MAX
@@ -1414,6 +1936,7 @@ class _UI(Thread):
     # -----------
 
     def edit_configuration(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
+        self.edit_on_config_page = True
         log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
         self.edit_configuration_btn.config(style='ActiveLG.TButton', image=self.svgs['settings_cog_large']['accent'])
         self.edit_questions_btn.config(style='LG.TButton', image=self.svgs['question_large']['normal'])
@@ -1421,17 +1944,21 @@ class _UI(Thread):
         self.db_psw_toggle(nrst=True)
         self.qz_psw_toggle(nrst=True)
 
+        self.edit_question_master_frame.pack_forget()
         self.edit_configuration_master_frame.pack(fill=tk.BOTH, expand=True)
 
         self.update_ui()
 
     def edit_questions(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
+        self.edit_on_config_page = False
         log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
         self.edit_questions_btn.config(style='ActiveLG.TButton', image=self.svgs['question_large']['accent'])
         self.edit_configuration_btn.config(style='LG.TButton', image=self.svgs['settings_cog_large']['normal'])
 
         self.edit_configuration_master_frame.pack_forget()
+        self.edit_question_master_frame.pack(fill=tk.BOTH, expand=True)
 
+        self.update_questions()
         self.update_ui()
 
     # --------------
@@ -1508,6 +2035,9 @@ class _UI(Thread):
             return c, f
 
         changes = rec(self.data[self.EDIT_PAGE]['db_saved'], self.data[self.EDIT_PAGE]['db'])
+        if len(changes[0]) == 0:
+            changes = ([('<QA::int_code:comp_ch::LL>', None, None)], changes[1])
+
         return True, changes
 
     @staticmethod
@@ -1532,16 +2062,22 @@ class _UI(Thread):
             'ssd': ['POA; Subsample divisor', True, True],
             'dpi': ['Deduct Points When Incorrect', True, True],
             'a2d': ['Num. points to deduct', True, True],
+
+            '<QA::int_code:comp_ch::LL>': ['Low-Level (Technical) Items (may include questions)', False, False],
         }
 
         c = []
-        print(changes)
         for n, og, new in changes:
             if isinstance(n, tuple):
                 n, ind = n
-                name, show, v_trans = n_map[n][ind]
+                nf, nd = qa_functions.data_at_dict_path(f'{n}\\{ind}', n_map)
             else:
-                name, show, v_trans = n_map[n]
+                nf, nd = qa_functions.data_at_dict_path(str(n), n_map)
+
+            if nf:
+                name, show, v_trans = nd
+            else:
+                name, show, v_trans = 'Un-indexed items (may involve questions)', False, False
 
             if v_trans:
                 o = False
@@ -1566,20 +2102,22 @@ class _UI(Thread):
             else:
                 c.append(f"Changed {name.lower()}")
 
-        return "\n   *" + "\n   *".join(c)
+        c = list(set(c))
+        return "\n   \u2022 " + "\n   \u2022 ".join(c)
 
     def save_db(self, _do_not_prompt: bool = False) -> None:
-        s_mem = qa_functions.SMem()
-        s_mem.set('n')
         changed, [changes, failures] = self.compile_changes()
 
         if not changed:
-            self.show_info(Message(Levels.ERROR, 'No changes found.'))
+            self.show_info(Message(Levels.ERROR, 'No changes found'))
             return
 
+        s_mem = qa_functions.SMem()
+        s_mem.set('n')
+
         if len(failures) > 0:
-            Str = "Failed to compile changes made due to the following error(s):\n\t* " + \
-                  "\n\t* ".join(f for f in failures)
+            Str = "Failed to compile changes made due to the following error(s):\n\t\u2022 " + \
+                  "\n\t\u2022 ".join(f for f in failures)
             log(LoggingLevel.ERROR, f"<SAVE_DB>: {str}")
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(Str))
             return
@@ -1676,10 +2214,8 @@ class _UI(Thread):
                 'psw': [self.data[self.CREATE_PAGE]['psw_enb'], hashlib.sha3_512(psw_ld.encode()).hexdigest() if len(psw_ld) > 0 else ''],
                 'q_psw': [False, '']
             },
-            'CONFIGURATION': {
-
-            },
-            'QUESTIONS': []
+            'CONFIGURATION': None,
+            'QUESTIONS': None
         }
         db_starter = json.dumps(db_starter_dict, indent=4)
 
@@ -1698,7 +2234,7 @@ Technical Information: {traceback.format_exc()}"""))
             self.proc_exit(self.CREATE_PAGE)
             return
 
-        self.open(file.file_path, db_starter_dict, True)
+        self.open(file.file_path, db_starter_dict, True, True)
 
     @staticmethod
     def _clean_db(db: Dict[str, Any]) -> Dict[str, Any]:
@@ -1830,10 +2366,80 @@ Technical Information: {traceback.format_exc()}"""))
             raise qa_functions.UnexpectedEdgeCase('_clean_db::?ConfigurationData (cd) :: !dict, !NoneType')
 
         qr = 'QUESTIONS'
+        qd = db.get(qr)
+        cQAcc = 0
+        cQN = []
+
+        if qd is None:
+            log(LoggingLevel.ERROR, "_clean_db::QuestionCleaner - Question data not found; resetting.")
+            db[qr] = {}
+
+        elif isinstance(qd, dict):
+            if not qd:
+                log(LoggingLevel.WARNING, '_clean_db::QuestionCleaner - No questions in database')
+
+            for k, v in qd.items():
+                try:
+                    assert isinstance(k, str), f'Question key must be of type STRING; got {type(k)} (qTe::tpT1)'
+                    try:
+                        int(k)
+                    except Exception as e1:
+                        raise AssertionError('Question key MUST be able to be translated to an integer (qTe::tpT2)')
+
+                    assert isinstance(v, dict), 'Invalid answer data (aTe::tpT1)'
+                    assert len(v.values()) == 4, 'Invalid answer data (aTe::vv2)'
+                    assert min([vk in v for vk in ('0', '1', '2', 'd')]), f'Data key(s) not found in answer data (aTe::vk3)'
+
+                    t, q, a, d = v['0'], v['1'], v['2'], v['d']
+                    assert t in ('nm', 'tf', 'mc0', 'mc1'), f'Answer type data is invalid (aTe::aTp4)'
+                    assert isinstance(q, str), 'Question type is invalid (qTe::TpF)'
+                    assert isinstance(d, str), '"Data0" type is invalid (dTe::Tp1)'
+                    assert isinstance(a, str if t[:2] != 'mc' else dict), 'Answer type is invalid (aTe::TpF)'
+
+                    dSize = sum([d0.size for d0 in qa_forms.question_editor_form.Data0.entries]) + \
+                        sum([d1.size for d1 in qa_forms.question_editor_form.Data1.exEntries])
+
+                    assert len(d) == dSize, f'"Data0" size is invalid (expected {dSize}, got {len(d)}) (dTe::Ln2)'
+                    if t[:2] == 'mc':
+                        assert t[2] == d[sum([d0.size for d0 in qa_forms.question_editor_form.Data0.entries])], \
+                            '"Data0" + MCR bit do not match (dTe+tTe::m1)'
+                        assert len(cast(Dict[str, Union[int, str]], a)) >= 4, \
+                            'MC question does not contain enough options (Min. = 2 options) (aTe::mc1)'
+
+                except Exception as E:
+                    cQAcc += 1
+                    log(LoggingLevel.DEBUG, traceback.format_exc())
+                    log(LoggingLevel.ERROR, f'cQAcc+ :: {E}')
+
+                    cQN.append(k)
+
+                    qa_prompts.MessagePrompts.show_error(
+                        qa_prompts.InfoPacket(
+                            f'A question in the database had a fatal error and must be removed from the database.\n\n    \u2022 Error: {E}\n    \u2022 E. Code: {hashlib.md5(str(E).encode()).hexdigest()}\n\n\nYOU WILL BE PROMPTED FOR PERMISSION TO REMOVE QUESTION AFTER ALL QUESTIONS HAVE BEEN CHECKED.'
+                        )
+                    )
+
+            for k in cQN:
+                db[qr].pop(k)
+                log(LoggingLevel.WARNING, f'Marked question "{k}" for removal')
+
+            # Fix any erroneous labels
+            nLs = list(db[qr].values())
+            db[qr] = {}
+            for ind, v in enumerate(nLs):
+                db[qr][str(ind)] = v
+
+        else:
+            raise qa_functions.UnexpectedEdgeCase('_clean_db::?QuestionData (qd) :: !dict, !NoneType')
+
+        if cQAcc:
+            log(LoggingLevel.ERROR, f'_clean_db::QuestionCleaner - {cQAcc} questions corrupted')
+        else:
+            log(LoggingLevel.SUCCESS, f'_clean_db::QuestionCleaner - Successfully loaded questions (no errors found)')
 
         return db
 
-    def open(self, path: str, data: Dict[Any, Any], _bypass_psw: bool = False) -> None:
+    def open(self, path: str, data: Dict[Any, Any], _bypass_psw: bool = False, _no_prompt: bool = False) -> None:
         assert os.path.isfile(path)
         assert type(data) is dict
 
@@ -1849,22 +2455,29 @@ Technical Information: {traceback.format_exc()}"""))
 
             changed, (changes, failures) = self.compile_changes()
 
-            if changed:
-                s_mem = qa_functions.SMem()
-                s_mem.set('')
-                qa_prompts.InputPrompts.ButtonPrompt(
-                    s_mem,
-                    'Corrupted data found.',
-                    ('Fix now', 'fn'), ('Exit', 'ex'),
-                    default='ex',
-                    message='Corrupted data was found in the requested database; the application has compiled the changes needed to fix the database.\n\nDo you want to save the following changes:\n' +
-                            self.compile_changes_str(changes)
-                )
+            for failure in failures:
+                log(LoggingLevel.ERROR, f'open::comp_c::Failure - {failure}')
 
-                if s_mem.get() != 'fn':
-                    self.proc_exit(self.SELECT_PAGE)
-                    self.show_info(Message(Levels.ERROR, 'Aborted process.'))
-                    return
+            if changed:
+                if not _no_prompt:
+                    s_mem = qa_functions.SMem()
+                    s_mem.set('')
+                    qa_prompts.InputPrompts.ButtonPrompt(
+                        s_mem,
+                        'Corrupted data found.',
+                        ('Fix now', 'fn'), ('Exit', 'ex'),
+                        default='ex',
+                        message='Corrupted data was found in the requested database; the application has compiled the changes needed to fix the database.\n\nDo you want to save the following changes:\n' +
+                                self.compile_changes_str(changes)
+                    )
+
+                    if s_mem.get() != 'fn':
+                        self.proc_exit(self.SELECT_PAGE)
+                        self.show_info(Message(Levels.ERROR, 'Aborted process.'))
+                        return
+
+                    else:
+                        self.save_db(True)
 
                 else:
                     self.save_db(True)
@@ -2221,6 +2834,8 @@ Technical Information: {traceback.format_exc()}"""
                                     'padY': self.padY,
                                     'root_width': self.root.winfo_width(),
                                     'root_height': self.root.winfo_height(),
+                                    'QMap': self.question_map.get(arg[2]) if len(arg) >= 3 else None,
+                                    'El': element
                                 }.get(cast(str, arg[1])))
 
                                 if rs_b is not None:
@@ -2325,7 +2940,8 @@ Technical Information: {traceback.format_exc()}"""
                 del lCommand, cleaned_args
 
     def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
-                         padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG, uid: Union[str, None] = None) -> None:
+                         padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG,
+                         uid: Union[str, None] = None) -> None:
         if padding is None:
             padding = self.padX
 
@@ -2419,7 +3035,7 @@ Technical Information: {traceback.format_exc()}"""
         i = Image.open(self.img_path)
         i = i.resize(self.img_size, Image.ANTIALIAS)
         self.svgs['admt'] = ImageTk.PhotoImage(i)
-        
+
         ls: Tuple[
             Tuple[str, str, HexColor, HexColor, Union[int, float], Tuple[str, str]],
             ...] = (
@@ -2445,7 +3061,7 @@ Technical Information: {traceback.format_exc()}"""
             (self.question_src, 'question_accent', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')),
             (self.question_src, 'question_accent_accent', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')),
         )
-        
+
         for src, name, background, foreground, _s, (a, b) in ls:
             size = cast(int, _s)
             try:
@@ -2466,7 +3082,8 @@ Technical Information: {traceback.format_exc()}"""
         for btn in (self.select_open, self.select_new, self.select_scores,
                     self.edit_questions_btn, self.edit_configuration_btn,
                     self.edit_db_psw_reset_btn, self.edit_db_psw_button,
-                    self.edit_qz_psw_reset_btn, self.edit_qz_psw_button):
+                    self.edit_qz_psw_reset_btn, self.edit_qz_psw_button,
+                    self.edit_question_add_new_btn, self.edit_questions_save_btn):
             if btn not in exclude:
                 btn.config(state=tk.DISABLED)
 
@@ -2476,7 +3093,8 @@ Technical Information: {traceback.format_exc()}"""
         for btn in (self.select_open, self.select_new, self.select_scores,
                     self.edit_questions_btn, self.edit_configuration_btn,
                     self.edit_db_psw_reset_btn, self.edit_db_psw_button,
-                    self.edit_qz_psw_reset_btn, self.edit_qz_psw_button):
+                    self.edit_qz_psw_reset_btn, self.edit_qz_psw_button,
+                    self.edit_question_add_new_btn, self.edit_questions_save_btn):
             if btn not in exclude:
                 btn.config(state=tk.NORMAL)
 
@@ -2569,7 +3187,7 @@ def transfer_log_info(script: Any) -> None:
     global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, DEBUG_NORM, DEBUG_DEV_FLAG
 
     script.LOGGER_AVAIL = LOGGER_AVAIL  # type: ignore
-    script.LOGGER_FUNC = LOGGER_FUNC   # type: ignore
-    script.LOGGING_FILE_NAME = LOGGING_FILE_NAME    # type: ignore
+    script.LOGGER_FUNC = LOGGER_FUNC  # type: ignore
+    script.LOGGING_FILE_NAME = LOGGING_FILE_NAME  # type: ignore
     script.DEBUG_NORM = DEBUG_NORM  # type: ignore
     script.DEBUG_DEV_FLAG = DEBUG_DEV_FLAG  # type: ignore
