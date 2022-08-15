@@ -316,9 +316,8 @@ class _UI(Thread):
         self.question_map: Dict[str, Any] = {}  # type: ignore  # qId : (ParentLblFrame, [update UIDs], {qData})
 
         self.edit_question_btn_frame = tk.Frame(self.edit_question_master_frame)
-        self.edit_question_add_new_btn = ttk.Button(self.edit_question_btn_frame, text='Add New Question', command=lambda: self._ad_q)
-        self.edit_questions_save_btn = ttk.Button(self.edit_question_btn_frame, text='Save Changes', command=lambda: self.save_db)
-
+        self.edit_question_add_new_btn = ttk.Button(self.edit_question_btn_frame, text='Add New Question', command=self._ad_q)
+        self.edit_questions_save_btn = ttk.Button(self.edit_question_btn_frame, text='Save Changes', command=self.save_db)
         # Final calls
         self.start()
         self.root.mainloop()
@@ -398,10 +397,10 @@ class _UI(Thread):
         self.edit_question_btn_frame.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
 
         self.edit_question_add_new_btn.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
-        self.edit_question_add_new_btn.config(command=lambda: None, style='LG.TButton')
+        self.edit_question_add_new_btn.config(style='LG.TButton')
 
         self.edit_questions_save_btn.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
-        self.edit_questions_save_btn.config(command=lambda: None, style='LG.TButton')
+        self.edit_questions_save_btn.config(style='LG.TButton')
 
         self.edit_question_vsb.pack(fill=tk.Y, expand=False, side=tk.RIGHT, pady=self.padY, padx=(0, self.padX))
         self.edit_question_xsb.pack(fill=tk.X, expand=False, side=tk.BOTTOM, pady=(0, self.padY), padx=(self.padX, 0))
@@ -960,9 +959,9 @@ class _UI(Thread):
             assert len(nD) == d0Size + exEntSize, len(nD)
 
             if nT[:2] == 'mc':
-                nA = json.loads(nA)
+                nA = json.loads(nA.strip())
 
-            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][QN] = {'0': nT.strip(), '1': nQ.strip(), '2': nA.strip(), 'd': nD.strip()}
+            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][QN] = {'0': nT.strip(), '1': nQ.strip(), '2': nA.strip() if isinstance(nA, str) else nA, 'd': nD.strip()}
 
         except Exception as E:
             log(LoggingLevel.ERROR, f'_ed_q: failed: {E}')
@@ -996,18 +995,11 @@ class _UI(Thread):
             nD = eSMem.get(index.DATA0.value * sp).strip()
             nT = eSMem.get(index.DATA1.value * sp).strip()
 
-            c = False
             for vN in (nQ, nA, nD, nT):
                 assert isinstance(vN, str), type(vN)
                 assert vN != eSMem.NullStr, 'nullStr'
 
             del index, sp, eSMem
-
-            if not c:
-                log(LoggingLevel.WARNING, '_ad_q: no changes made; returning')
-                self.enable_all_inputs()
-                self.show_info(Message(Levels.ERROR, 'No changes made to question'))
-                return
 
             nT = nT if nT[:2] == 'mc' else nT[:2]
             assert nT in ('mc0', 'mc1', 'nm', 'tf'), nT
@@ -1021,19 +1013,19 @@ class _UI(Thread):
             assert len(nD) == d0Size + exEntSize, len(nD)
 
             if nT[:2] == 'mc':
-                nA = json.loads(nA)
+                nA = json.loads(nA.strip())
 
             QN = str(len(self.data[self.EDIT_PAGE]['db']['QUESTIONS']))
-            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][QN] = {'0': nT.strip(), '1': nQ.strip(), '2': nA.strip(), 'd': nD.strip()}
+            self.data[self.EDIT_PAGE]['db']['QUESTIONS'][QN] = {'0': nT.strip(), '1': nQ.strip(), '2': nA.strip() if isinstance(nA, str) else nA, 'd': nD.strip()}
 
         except Exception as E:
             log(LoggingLevel.ERROR, f'_ad_q: failed: {E}')
             log(LoggingLevel.DEBUG, f'_ad_q: failed: {traceback.format_exc()}')
-            self.show_info(Message(Levels.ERROR, 'Failed to edit question; please try again'))
+            self.show_info(Message(Levels.ERROR, 'Failed to add question; please try again'))
 
         else:
-            log(LoggingLevel.SUCCESS, 'Edited question')
-            self.show_info(Message(Levels.OKAY, 'Successfully edited question'))
+            log(LoggingLevel.SUCCESS, 'Added question')
+            self.show_info(Message(Levels.OKAY, 'Successfully added question'))
             self.update_questions()
 
         self.enable_all_inputs()
@@ -1146,17 +1138,19 @@ class _UI(Thread):
             self.question_map[EBId] = EB
             self.question_map[QId] = (PLF, [CId, RBId, EBId], QData)
 
-            PLF.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+            PLF.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
 
             self.late_update_requests[PLF] = [
                 [
                     TUC.CUSTOM,
                     [
                         lambda *args: cast(tk.LabelFrame, args[0][0]).config(
-                            bg=args[1], fg=args[2], font=(args[3], args[4])
+                            bg=args[1], fg=args[2], font=(args[3], args[4]),
+                            width=args[5] - args[6]*3
                         ),
                         ('<LOOKUP>', 'QMap', QId),
-                        TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_SMALL
+                        TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_SMALL,
+                        ('<LOOKUP>', 'root_width'), self.padX
                     ]
                 ],
                 [
@@ -1211,9 +1205,28 @@ class _UI(Thread):
 
         for QN, QData in self.data[self.EDIT_PAGE]['db']['QUESTIONS'].items():
             self._aq(QN, QData)
+            self.edit_question_canvas.yview_moveto('1.0')
 
-        self.edit_question_canvas.yview_moveto('1.0')
         self.edit_question_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(self.padY, 0))
+
+        self.late_update_requests[self.edit_question_canvas] = [
+            [
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: self.edit_question_canvas.config(width=args[0] - 4 * args[2]),
+                    ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                    self.padX
+                ]
+            ],
+            [
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: self.edit_question_frame.config(width=args[0] - 4 * args[2]),
+                    ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'root_height'),
+                    self.padX
+                ]
+            ]
+        ]
 
         self.enable_all_inputs()
 
