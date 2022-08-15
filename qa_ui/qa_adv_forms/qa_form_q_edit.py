@@ -41,7 +41,7 @@ class Codes:
     }
 
     @staticmethod
-    def substitute(value):
+    def substitute(value: Any) -> Any:
         return Codes.valMap[value] if value in Codes.valMap else value
 
 
@@ -147,19 +147,19 @@ class CustomText(tk.Text):
 
         self.log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')
 
-        self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)
-        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)
-        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)
-        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)
-        self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)
-        self.tag_config('<underline>', underline=1)
-        self.tag_config('<indented_first>', lmargin1=tab_len)
-        self.tag_config('<indented_body>', lmargin2=tab_len)
+        self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)  # type: ignore
+        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)  # type: ignore
+        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)  # type: ignore
+        self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)  # type: ignore
+        self.tag_config('<underline>', underline=1)  # type: ignore
+        self.tag_config('<indented_first>', lmargin1=tab_len)  # type: ignore
+        self.tag_config('<indented_body>', lmargin2=tab_len)  # type: ignore
 
 
 S_MEM_VAL_OFFSET = 512
@@ -292,7 +292,7 @@ class QEditUI(Thread):
 
         self.of_mc_cVar = tk.IntVar(value=0)
         self.of_mc_options = tk.LabelFrame(self.options_frame)
-        self.of_mc_randomize = tk.Checkbutton(self.of_mc_options, text='Randomize option order', var=self.of_mc_cVar)
+        self.of_mc_randomize = tk.Checkbutton(self.of_mc_options, text='Randomize option order', var=self.of_mc_cVar)  # type: ignore
         
         self._on_mc_eRand_clk(False)
         
@@ -338,7 +338,7 @@ class QEditUI(Thread):
 
         self.af_mc_cl_warn_lbl = tk.Label(self.af_mc_frame, text='WARNING: Changing the question-type and returning to this step WILL clear all options')
 
-        self.af_mc_data = {}
+        self.af_mc_data: Dict[str, Any] = {}
 
         # Review Frame
         self.rf_ttl_lbl = tk.Label(self.review_frame)
@@ -427,7 +427,7 @@ class QEditUI(Thread):
             ind_acc = 0
             UIDs = {gen_short_uid('u128371'): D for D in Data0.entries}
             d0 = {u: D.index for u, D in UIDs.items()}
-            sD0 = cast(List[Tuple[str, int]], sorted(d0.items(), key=lambda x: x[1]))
+            sD0 = cast(List[Tuple[str, int]], sorted(d0.items(), key=lambda x: x[1]))  # type: ignore
             sD1 = [UIDs[s] for s, _ in sD0]
             del d0
 
@@ -856,8 +856,8 @@ class QEditUI(Thread):
                 return
 
             else:
-                cor = bool(int(SMem.get()[0]))
-                val = SMem.get()[1::].strip()
+                cor = bool(int(cast(str, SMem.get())[0]))
+                val = cast(str, SMem.get())[1::].strip()
                 del SMem
 
                 if self._add_ident(index, ident, val, cor):
@@ -880,8 +880,8 @@ class QEditUI(Thread):
             return
 
         else:
-            cor = bool(int(SMem.get()[0]))
-            nVal = SMem.get()[1::].strip()
+            cor = bool(int(cast(str, SMem.get())[0]))
+            nVal = cast(str, SMem.get())[1::].strip()
             del SMem
 
             m = cast(CustomText, self.af_mc_data['el'][f'{uid}[M]'])
@@ -1569,13 +1569,13 @@ class QEditUI(Thread):
                 'N': self.get_mc_data('mc::N')
             }
 
-            uidMap = {}
+            uidMap: Dict[Any, Any] = {}
             for opt in self.af_mc_data['opt']:
                 uidMap[opt] = len(uidMap)
 
             for k, v in self.af_mc_data['el'].items():
                 if k[-3::] not in ('[M]', '[C]'):
-                    nAf[uidMap[k]] = v[1].strip()
+                    nAf[uidMap[k]] = v[1].strip()  # type: ignore
 
             nC = [str(uidMap[uid]) for uid in nAf['C']]
             nAf['C'] = '/'.join(nC)
@@ -1748,7 +1748,7 @@ class QEditUI(Thread):
                     self.log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
                     return
 
-                elif len(self.af_mc_data.get('corr')) < 1:
+                elif len(cast(Sized, self.af_mc_data.get('corr'))) < 1:
                     self.show_message(Message(Levels.ERROR, 'AT LEAST one of the options must be correct to continue'))
                     self.log(LoggingLevel.ERROR, f'_np:AnsF, MC :: !insuf corr opt')
                     return
@@ -1838,10 +1838,10 @@ class QEditUI(Thread):
 
         if isinstance(index, int):
             assert 0 <= index <= 3
-            return self.s_mem.get(index * S_MEM_VAL_OFFSET)
+            return cast(str, self.s_mem.get(index * S_MEM_VAL_OFFSET))
 
         elif isinstance(index, SMemInd):
-            return self.s_mem.get(index.value * S_MEM_VAL_OFFSET)
+            return cast(str, self.s_mem.get(index.value * S_MEM_VAL_OFFSET))
 
         else:
             raise UnexpectedEdgeCase("qEdit::set_data - index (!int, !SMemInd)")

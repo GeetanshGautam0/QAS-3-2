@@ -93,19 +93,19 @@ class CustomText(tk.Text):
 
         log(LoggingLevel.INFO, f'(CustomWidget) {self.winfo_name()}: Enabled custom tags')
 
-        self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)
-        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)
-        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)
-        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)
-        self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)
-        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)
-        self.tag_config('<underline>', underline=1)
-        self.tag_config('<indented_first>', lmargin1=tab_len)
-        self.tag_config('<indented_body>', lmargin2=tab_len)
+        self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)  # type: ignore
+        self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+        self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)  # type: ignore
+        self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)  # type: ignore
+        self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
+        self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)  # type: ignore
+        self.tag_config('<underline>', underline=1)  # type: ignore
+        self.tag_config('<indented_first>', lmargin1=tab_len)  # type: ignore
+        self.tag_config('<indented_body>', lmargin2=tab_len)  # type: ignore
 
 
 class Levels(Enum):
@@ -928,10 +928,10 @@ class _UI(Thread):
 
             qa_forms.question_editor_form.QEditUI(log, eSMem, True, **self.kwargs)
 
-            nQ = eSMem.get(index.QUESTION.value * sp).strip()
-            nA = eSMem.get(index.ANSWER.value * sp).strip()
-            nD = eSMem.get(index.DATA0.value * sp).strip()
-            nT = eSMem.get(index.DATA1.value * sp).strip()
+            nQ = eSMem.get(index.QUESTION.value * sp).strip()  # type: ignore
+            nA = eSMem.get(index.ANSWER.value * sp).strip()  # type: ignore
+            nD = eSMem.get(index.DATA0.value * sp).strip()  # type: ignore
+            nT = eSMem.get(index.DATA1.value * sp).strip()  # type: ignore
 
             c = False
             for vO, vE in ((Q, nQ), (A, nA), (Data0, nD), (T, nT)):
@@ -990,10 +990,10 @@ class _UI(Thread):
             index = qa_forms.question_editor_form.SMemInd
             sp = qa_forms.question_editor_form.S_MEM_VAL_OFFSET
 
-            nQ = eSMem.get(index.QUESTION.value * sp).strip()
-            nA = eSMem.get(index.ANSWER.value * sp).strip()
-            nD = eSMem.get(index.DATA0.value * sp).strip()
-            nT = eSMem.get(index.DATA1.value * sp).strip()
+            nQ = eSMem.get(index.QUESTION.value * sp).strip()  # type: ignore
+            nA = eSMem.get(index.ANSWER.value * sp).strip()  # type: ignore
+            nD = eSMem.get(index.DATA0.value * sp).strip()  # type: ignore
+            nT = eSMem.get(index.DATA1.value * sp).strip()  # type: ignore
 
             for vN in (nQ, nA, nD, nT):
                 assert isinstance(vN, str), type(vN)

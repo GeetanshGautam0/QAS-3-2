@@ -2899,7 +2899,7 @@ class InputPrompts:
             self.thread.join(self, 0)
 
     class MCInp(threading.Thread):
-        def __init__(self, s_mem: qa_functions.SMem, label_text: str, default: str = None, is_correct: bool = False) -> None:
+        def __init__(self, s_mem: qa_functions.SMem, label_text: str, default: Union[None, str] = None, is_correct: bool = False) -> None:
             global TTK_THEME
 
             super().__init__()
@@ -2912,7 +2912,7 @@ class InputPrompts:
             self.root = tk.Toplevel()
             self.s_mem = s_mem
             self.label = label_text
-            self.default = cast(str, (default if isinstance(default, str) else self.s_mem.NullStr))
+            self.default: str = default if isinstance(default, str) else self.s_mem.NullStr
 
             self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
             ratio = 2 / 3
@@ -2951,7 +2951,7 @@ class InputPrompts:
 
             self.cVar = tk.IntVar()
             self.cVar.set(int(is_correct))
-            self.is_correct = tk.Checkbutton(self.root, text='This is a correct answer', var=self.cVar)
+            self.is_correct = tk.Checkbutton(self.root, text='This is a correct answer', var=self.cVar)  # type: ignore
 
             self.entry1 = ttk.Entry(self.root, style='My.TEntry')
 
