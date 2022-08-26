@@ -15,6 +15,8 @@ from enum import Enum
 from ctypes import windll
 from typing import *
 from . import qa_adv_forms as qa_forms
+from fpdf import FPDF
+from datetime import datetime
 
 script_name = "APP_AT"
 APP_TITLE = "Quizzing Application | Admin Tools"
@@ -95,11 +97,14 @@ class CustomText(tk.Text):
 
         self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)  # type: ignore
         self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
-        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color,
+                        selectforeground=theme_map[ThemeUpdateVars.ERROR].color)  # type: ignore
         self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
-        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)  # type: ignore
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color,
+                        selectforeground=theme_map[ThemeUpdateVars.OKAY].color)  # type: ignore
         self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
-        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)  # type: ignore
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color,
+                        selectforeground=theme_map[ThemeUpdateVars.WARNING].color)  # type: ignore
         self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
         self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
         self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)  # type: ignore
@@ -116,6 +121,33 @@ class Levels(Enum):
 class Message:
     LVL: Levels
     MSG: str
+
+
+class PDF(FPDF):
+    def __init__(self, accent_color: HexColor, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
+        self.cVar_accent_color = accent_color
+
+    def header(self) -> None:
+        self.image('./.src/.icons/.app_ico/.png/admin_tools.png', 10, 10, w=10, h=10)
+        self.set_font("Courier", "B", 15)
+
+        self.cell(10)
+
+        if qa_functions.check_hex_contrast(HexColor('#ffffff'), self.cVar_accent_color, 3)[0]:
+            self.set_text_color(*qa_functions.qa_colors.Convert.HexToRGB(self.cVar_accent_color.color))
+        else:
+            self.set_text_color(0, 0, 0)
+
+        self.text(25, 16.5, "QA Administrator Tools | Database Dump")
+        self.ln(20)
+
+        self.set_text_color(0, 0, 0)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Courier", "I", 8)
+        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
 
 
 class _UI(Thread):
@@ -168,11 +200,14 @@ class _UI(Thread):
             'settings_cog': {'accent': '', 'normal': ''},
             'question': {'accent': '', 'normal': ''},
             'checkmark': {'accent': '', 'normal': ''},
+            'export': {'accent': '', 'normal': ''},
             'arrow_left_large': {'accent': '', 'normal': ''},
             'arrow_right_large': {'accent': '', 'normal': ''},
             'settings_cog_large': {'accent': '', 'normal': ''},
             'question_large': {'accent': '', 'normal': ''},
             'checkmark_large': {'accent': '', 'normal': ''},
+            'export_large': {'accent': '', 'normal': ''},
+
             'admt': ''
         }
         self.checkmark_src = "./.src/.icons/.progress/checkmark.svg"
@@ -180,6 +215,7 @@ class _UI(Thread):
         self.arrow_left_src = './.src/.icons/.misc/left_arrow.svg'
         self.question_src = './.src/.icons/.misc/question.svg'
         self.arrow_right_src = './.src/.icons/.misc/right_arrow.svg'
+        self.export_src = './.src/.icons/.misc/export.svg'
         self.svg_tmp = f"{qa_functions.App.appdata_dir}\\.tmp\\.icon_setup".replace('/', '\\')
         self.load_png()
 
@@ -241,6 +277,7 @@ class _UI(Thread):
         # Menu Buttons (Edit page)
         self.edit_configuration_btn = ttk.Button(self.edit_btn_panel, text='Configuration', command=self.edit_configuration)
         self.edit_questions_btn = ttk.Button(self.edit_btn_panel, text='Questions', command=self.edit_questions)
+        self.edit_export_btn = ttk.Button(self.edit_btn_panel, text='Export', command=self.edit_export)
 
         # Configuration page:: Main Elements (Edit page)
         self.edit_configuration_master_frame = tk.Frame(self.db_frame)
@@ -318,6 +355,15 @@ class _UI(Thread):
         self.edit_question_btn_frame = tk.Frame(self.edit_question_master_frame)
         self.edit_question_add_new_btn = ttk.Button(self.edit_question_btn_frame, text='Add New Question', command=self._ad_q)
         self.edit_questions_save_btn = ttk.Button(self.edit_question_btn_frame, text='Save Changes', command=self.save_db)
+
+        # Export
+        self.edit_export_master_frame = tk.Frame(self.db_frame)
+        self.edit_export_ttl = tk.Label(self.edit_export_master_frame)
+        self.edit_export_pdf = ttk.Button(self.edit_export_master_frame, text='Export as PDF', command=self.export_pdf)
+        self.edit_export_pdf_txt = tk.Label(self.edit_export_master_frame)
+        self.edit_export_qz = ttk.Button(self.edit_export_master_frame, text='Export as QuizzingForm Database', command=self.export_qz)
+        self.edit_export_qz_txt = tk.Label(self.edit_export_master_frame)
+
         # Final calls
         self.start()
         self.root.mainloop()
@@ -464,6 +510,7 @@ class _UI(Thread):
 
         self.edit_configuration_btn.pack(fill=tk.X, expand=True, ipady=self.padY / 2)
         self.edit_questions_btn.pack(fill=tk.X, expand=True, ipady=self.padY / 2)
+        self.edit_export_btn.pack(fill=tk.X, expand=True, ipady=self.padY / 2)
 
         self.edit_sidebar.pack(fill=tk.Y, expand=False, side=tk.LEFT)
         self.edit_sep.pack(fill=tk.Y, expand=False, side=tk.LEFT, pady=(self.padY, 0))
@@ -505,6 +552,7 @@ class _UI(Thread):
 
         self.edit_configuration_btn.config(compound=tk.LEFT, image=self.svgs['settings_cog_large']['normal'], style='LG.TButton')
         self.edit_questions_btn.config(compound=tk.LEFT, image=self.svgs['question_large']['normal'], style='LG.TButton')
+        self.edit_export_btn.config(compound=tk.LEFT, image=self.svgs['export_large']['normal'], style='LG.TButton')
 
         self.edit_config_main_cont.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
         self.edit_config_acc_cont.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
@@ -865,6 +913,66 @@ class _UI(Thread):
         del d
         return
 
+    def configure_export_frame(self) -> None:
+        TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+        self.edit_export_ttl.config(text='Export Manager')
+        self.edit_export_ttl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY * 2, side=tk.TOP)
+
+        self.edit_export_pdf.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_export_pdf_txt.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_export_qz.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.edit_export_qz_txt.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+
+        self.edit_export_pdf_txt.config(
+            text="""Click the 'Export as PDF' button to export ALL question data as a PDF file.
+
+NOTE: This files is only for admin-use ONLY; this file CANNOT be read by any QuizzingApp application.""")
+        self.edit_export_qz_txt.config(
+            text="""Click the 'Export as QuizzingForm Database' button to export the data required by the QuizzingApp QuizzingForm application. This file can then be distributed for usage by quiz-takers.
+
+NOTE: This file is REQUIRED to use the QuizzingApp QuizzingForm application; the raw database file (this database) cannot be accessed by QuizzingForm.
+NOTE: This file is NOT human-readable
+NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingForm"""
+        )
+
+        self.update_requests[gsuid()] = [
+            None,
+            TUC.CUSTOM,
+            [
+                lambda *args: self.edit_export_ttl.config(
+                    bg=args[1], fg=args[0], font=(args[2], args[3])
+                ),
+                TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_TITLE
+            ]
+        ]
+        self.update_requests[gsuid()] = [self.edit_export_master_frame, TUC.BG, [TUV.BG]]
+        self.late_update_requests[self.edit_export_pdf_txt] = [
+            [
+                TUC.CUSTOM,
+                [
+                    lambda *args: self.edit_export_pdf_txt.config(bg=args[3], fg=args[4], justify=tk.LEFT, anchor=tk.W, wraplength=qa_functions.clamp(1, args[0] - args[1], args[2])),
+                    ('<EXECUTE>', lambda *args: self.edit_export_master_frame.winfo_width()),
+                    self.padX * 2,
+                    ('<LOOKUP>', 'root_width'),
+                    TUV.BG, TUV.GRAY
+                ]
+            ]
+        ]
+
+        self.late_update_requests[self.edit_export_qz_txt] = [
+            [
+                TUC.CUSTOM,
+                [
+                    lambda *args: self.edit_export_qz_txt.config(bg=args[3], fg=args[4], justify=tk.LEFT, anchor=tk.W, wraplength=qa_functions.clamp(1, args[0] - args[1], args[2])),
+                    ('<EXECUTE>', lambda *args: self.edit_export_master_frame.winfo_width()),
+                    self.padX * 2,
+                    ('<LOOKUP>', 'root_width'),
+                    TUV.BG, TUV.GRAY
+                ]
+            ]
+        ]
+
     def _rm_q(self, qid: str) -> None:
         if self.dsb:
             return
@@ -1146,7 +1254,7 @@ class _UI(Thread):
                     [
                         lambda *args: cast(tk.LabelFrame, args[0][0]).config(
                             bg=args[1], fg=args[2], font=(args[3], args[4]),
-                            width=args[5] - args[6]*3
+                            width=args[5] - args[6] * 3
                         ),
                         ('<LOOKUP>', 'QMap', QId),
                         TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_SMALL,
@@ -1335,6 +1443,7 @@ class _UI(Thread):
         self.configure_create_frame()
         self.configure_edit_frame()
         self.configure_question_frame()
+        self.configure_export_frame()
 
         self.ask_db_frame()
         self.update_ui()
@@ -1345,6 +1454,197 @@ class _UI(Thread):
     # ---------------------
     # Custom Event Handlers
     # ---------------------
+
+    def export_pdf(self) -> None:
+        if self.dsb:
+            return
+
+        self.disable_all_inputs()
+
+        try:
+            pdf = PDF(self.theme_update_map[ThemeUpdateVars.ACCENT])
+            pdf.add_page()
+
+            fSize = 12
+            fSizeHdn = 15
+
+            pdf.set_font("Courier", size=fSize)
+            pdf.write(5, 'The following is the information stored in the ')
+            pdf.set_font("Courier", 'B', size=fSize)
+            pdf.write(5, f'"{self.data[self.EDIT_PAGE]["db_saved"]["DB"]["name"]}"')
+            pdf.set_font("Courier", size=fSize)
+            pdf.write(5, f' database.')
+            pdf.ln()
+
+            pdf.write(5, 'NOTE: Unsaved changes are NOT shown in this document.')
+
+            for _ in range(18):
+                pdf.ln()
+
+            pdf.set_font('Courier', 'BI', size=24)
+            pdf.write(10, 'WARNING: The information in this document is UNENCRYPTED; make sure to keep this file secure.')
+
+            pdf.add_page()
+
+            def add_point(txt: str, dt: str, bullet: str = '*', indent: int = 0) -> None:
+                pdf.set_font("Courier", size=fSize)
+                pdf.write(5, f'%s{bullet} {txt}: ' % ("\t" * indent))
+                pdf.set_font("Courier", 'B', size=fSize)
+                pdf.write(5, dt)
+                pdf.ln()
+
+            def add_heading(hdn: str, a2: bool = True) -> None:
+                if a2:
+                    pdf.ln()
+                    pdf.ln()
+
+                pdf.set_font("Courier", 'B', size=fSizeHdn)
+                pdf.write(8, hdn)
+                pdf.ln()
+
+            add_point('Time when file was created', datetime.now().strftime('%a, %d %b %Y - %H:%M:%S'))
+
+            add_heading('[i] Security Configuration')
+
+            psw = self.data[self.EDIT_PAGE]['db_saved']['DB']['psw'][0]
+            add_point('Database (admin) password', f'{"EN" if psw else "DIS"}ABLED')
+
+            qpsw = self.data[self.EDIT_PAGE]['db_saved']['DB']['q_psw'][0]
+            add_point('Quiz (access) password', f'{"EN" if qpsw else "DIS"}ABLED')
+
+            add_heading('[ii] Quiz Configuration')
+
+            acc = self.data[self.EDIT_PAGE]['db_saved']['CONFIGURATION']['acc']
+            add_point('Allow custom quiz configuration', f'{"EN" if acc else "DIS"}ABLED')
+
+            poa = self.data[self.EDIT_PAGE]['db_saved']['CONFIGURATION']['poa']
+            add_point('Ask a subset of all questions, or with all questions', 'SUBSET' if poa == 'p' else 'ALL')
+
+            ssd = self.data[self.EDIT_PAGE]['db_saved']['CONFIGURATION']['ssd']
+            add_point('Percentage of questions to include', '1/1 (100%)' if poa != 'p' else f'1/{ssd} (~{1 / float(ssd)}%)')
+
+            rqo = self.data[self.EDIT_PAGE]['db_saved']['CONFIGURATION']['rqo']
+            add_point('Randomize Question Order', 'TRUE (RANDOMIZE)' if rqo else 'FALSE (DON\'T RANDOMIZE)')
+
+            dpi = self.data[self.EDIT_PAGE]['db_saved']['CONFIGURATION']['dpi']
+            a2d = self.data[self.EDIT_PAGE]['db_saved']['CONFIGURATION']['a2d']
+            add_point('Points to be deducted per incorrect response', str(a2d) if dpi else '0')
+
+            add_heading('WARNING: The next page(s) contains ALL questions and answers in PLAIN TEXT. Make sure to keep this document secure.')
+
+            pdf.add_page()
+
+            qs = self.data[self.EDIT_PAGE]['db_saved']['QUESTIONS']
+
+            for ind, question in enumerate(qs.values()):
+                t, q, a, d = question['0'], question['1'], question['2'], question['d']
+                ts = {
+                    'nm': 'Written Response',
+                    'tf': 'True/False',
+                    'mc0': 'Multiple Choice',
+                    'mc1': 'Multiple Choice'
+                }[t]
+
+                add_heading(f'Question {ind + 1}', bool(ind))
+                add_point('Question type', ts)
+                add_point('Question', f'"{q}"')
+
+                if t == 'nm':
+                    add_point('Answer', f'"{a}"')
+
+                    add_point('Flags', '')
+                    d = d[:sum(e.size for e in qa_forms.question_editor_form.Data0.entries)]
+                    dm = {}
+                    da = 0
+
+                    for e in qa_forms.question_editor_form.Data0.entries:
+                        dd = d[da:da + e.size]
+                        dm[e.name] = {
+                            qa_forms.question_editor_form.DataType.integer: lambda x: int(x),
+                            qa_forms.question_editor_form.DataType.string: lambda x: x,
+                            qa_forms.question_editor_form.DataType.boolean: lambda x: bool(int(x))
+                        }[e.type](dd)
+
+                        da += e.size
+
+                    add_point('AutoMark', f'{"EN" if dm["auto_mark"] else "DIS"}ABLED', bullet='-', indent=4)
+                    if dm["auto_mark"]:
+                        add_point('%% match required (100%% = exact match)', '100%' if not dm['fuzzy'] else f'{dm["fuzzy:threshold"]}%', bullet='-', indent=8)
+
+                    del dm, da
+
+                elif t == 'tf':
+                    add_point('Answer', 'TRUE' if int(a) else 'FALSE')
+
+                else:
+                    assert isinstance(a, dict)
+                    c = copy.deepcopy(a)
+
+                    C = c['C'].split('/')
+                    c.pop('C')
+                    c.pop('N')
+
+                    add_point('Options', '')
+
+                    for index, v in c.items():
+                        ident = qa_forms.qa_form_q_edit.mc_label_gen(int(index) + 1)
+                        add_point(f'{ident})', v, bullet='', indent=4)
+
+                        if index in C:
+                            add_point(f'This option ("{ident}") is', 'CORRECT', indent=8)
+
+                    del c, C
+
+            del psw, qpsw, acc, poa, rqo, ssd, qs
+
+            pdf.output("exclude_new-tuto2.pdf")
+
+        except PermissionError as PE:
+            log(LoggingLevel.ERROR, f'[OS::PE] Failed to export PDF: {PE}')
+            log(LoggingLevel.DEBUG, f'[OS::PE] Failed to export PDF: {traceback.format_exc()}')
+            qa_prompts.MessagePrompts.show_warning(
+                qa_prompts.InfoPacket(
+                    'A "PermissionError" occurred when exporting the database. To make sure that this does not happen again, ensure the following:\n\n\u2022 Make sure that the destination folder is not write-protected.\n\u2022 If overwriting an existing file, make sure that that file is not open in/by any program\n\nIf this error persists, please reach out to the developer at https://geetanshgautam.wixsite.com/home.'
+                )
+            )
+            self.show_info(Message(Levels.ERROR, 'Failed to export database dump as PDF'))
+
+        except Exception as E:
+            log(LoggingLevel.ERROR, f'Failed to export PDF: {E}')
+            log(LoggingLevel.DEBUG, f'Failed to export PDF: {traceback.format_exc()}')
+            self.show_info(Message(Levels.ERROR, 'Failed to export database dump as PDF'))
+
+        else:
+            self.show_info(Message(Levels.OKAY, 'Successfully exported database dump as PDF'))
+
+        finally:
+            self.enable_all_inputs()
+
+            os.system("exclude_new-tuto2.pdf")
+            os.remove('.\\exclude_new-tuto2.pdf')
+
+    def export_qz(self) -> None:
+        self.save_db()
+        nDB = copy.deepcopy(self.data[self.EDIT_PAGE]['db_saved'])
+        nDB['DB']['FLAGS'] = ['QZDB']
+
+        self.show_info(Message(Levels.NORMAL, 'Please select where to save the file'))
+
+        fl = filedialog.asksaveasfilename(filetypes=(('QaQuiz', f'.{qa_files.qa_quiz_extn}'), ))
+        if len(fl.strip()) != 0:
+            qa_functions.SaveFile.secure(
+                qa_functions.File(f'{fl}.{qa_files.qa_quiz_extn}'.replace('/', '\\')),
+                json.dumps(nDB),
+                qa_functions.SaveFunctionArgs(
+                    False,
+                    True,
+                    qa_files.qa_quiz_enck,
+                    True,
+                    True,
+                    save_data_type=bytes
+                )
+            )
+            self.show_info(Message(Levels.OKAY, 'Successfully saved quiz file'))
 
     def _acc_enable(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.data[self.EDIT_PAGE]['db']['CONFIGURATION']['acc'] = True
@@ -1524,6 +1824,7 @@ class _UI(Thread):
         if curr:
             self.edit_configuration_btn.config(text='', compound=tk.CENTER)
             self.edit_questions_btn.config(text='', compound=tk.CENTER)
+            self.edit_export_btn.config(text='', compound=tk.CENTER)
             self.sb_expand_shrink.config(text='', image=self.svgs['arrow_right_large']['normal'], compound=tk.CENTER)
             self.edit_db_name.config(text='')
             self.edit_pic.config(text='')
@@ -1531,6 +1832,7 @@ class _UI(Thread):
         else:
             self.edit_configuration_btn.config(text='Configuration', compound=tk.LEFT)
             self.edit_questions_btn.config(text='Questions', compound=tk.LEFT)
+            self.edit_export_btn.config(text='Export', compound=tk.LEFT)
             self.sb_expand_shrink.config(text='Shrink', image=self.svgs['arrow_left_large']['normal'], compound=tk.LEFT)
             self.edit_db_name.config(text=f"Current Database: \"{self.data[self.EDIT_PAGE]['db']['DB']['name']}\"")
             self.edit_pic.config(text="Admin Tools")
@@ -1920,7 +2222,7 @@ class _UI(Thread):
         try:
             file_name = filedialog.askopenfilename(filetypes=[('QA File', f'.{qa_files.qa_file_extn}')])
             if os.path.isfile(file_name):
-                if file_name.split('.')[-1] != 'aspx':
+                if file_name.split('.')[-1] == qa_files.qa_file_extn:
                     file = qa_functions.File(file_name)
                     raw = qa_functions.OpenFile.load_file(file, qa_functions.OpenFunctionArgs())
                     read, _ = cast(Tuple[bytes, str], qa_files.load_file(FileType.QA_FILE, raw))
@@ -1953,11 +2255,13 @@ class _UI(Thread):
         log(LoggingLevel.DEBUG, 'Entered EDIT::CONFIGURATION page')
         self.edit_configuration_btn.config(style='ActiveLG.TButton', image=self.svgs['settings_cog_large']['accent'])
         self.edit_questions_btn.config(style='LG.TButton', image=self.svgs['question_large']['normal'])
+        self.edit_export_btn.config(style='LG.TButton', image=self.svgs['export_large']['normal'])
 
         self.db_psw_toggle(nrst=True)
         self.qz_psw_toggle(nrst=True)
 
         self.edit_question_master_frame.pack_forget()
+        self.edit_export_master_frame.pack_forget()
         self.edit_configuration_master_frame.pack(fill=tk.BOTH, expand=True)
 
         self.update_ui()
@@ -1967,11 +2271,26 @@ class _UI(Thread):
         log(LoggingLevel.DEBUG, 'Entered EDIT::QUESTIONS page')
         self.edit_questions_btn.config(style='ActiveLG.TButton', image=self.svgs['question_large']['accent'])
         self.edit_configuration_btn.config(style='LG.TButton', image=self.svgs['settings_cog_large']['normal'])
+        self.edit_export_btn.config(style='LG.TButton', image=self.svgs['export_large']['normal'])
 
         self.edit_configuration_master_frame.pack_forget()
+        self.edit_export_master_frame.pack_forget()
         self.edit_question_master_frame.pack(fill=tk.BOTH, expand=True)
 
         self.update_questions()
+        self.update_ui()
+
+    def edit_export(self, *_: Any, **_1: Any) -> None:
+        self.edit_on_config_page = False
+        log(LoggingLevel.DEBUG, 'Entered EDIT::EXPORT page')
+        self.edit_questions_btn.config(style='LG.TButton', image=self.svgs['question_large']['normal'])
+        self.edit_configuration_btn.config(style='LG.TButton', image=self.svgs['settings_cog_large']['normal'])
+        self.edit_export_btn.config(style='ActiveLG.TButton', image=self.svgs['export_large']['accent'])
+
+        self.edit_question_master_frame.pack_forget()
+        self.edit_configuration_master_frame.pack_forget()
+        self.edit_export_master_frame.pack(fill=tk.BOTH, expand=True)
+
         self.update_ui()
 
     # --------------
@@ -2410,7 +2729,7 @@ Technical Information: {traceback.format_exc()}"""))
                     assert isinstance(a, str if t[:2] != 'mc' else dict), 'Answer type is invalid (aTe::TpF)'
 
                     dSize = sum([d0.size for d0 in qa_forms.question_editor_form.Data0.entries]) + \
-                        sum([d1.size for d1 in qa_forms.question_editor_form.Data1.exEntries])
+                            sum([d1.size for d1 in qa_forms.question_editor_form.Data1.exEntries])
 
                     assert len(d) == dSize, f'"Data0" size is invalid (expected {dSize}, got {len(d)}) (dTe::Ln2)'
                     if t[:2] == 'mc':
@@ -2459,6 +2778,9 @@ Technical Information: {traceback.format_exc()}"""))
         self.enable_all_inputs()
 
         try:
+            if isinstance(data['DB'].get('FLAGS'), (tuple, list, set)):
+                assert 'QZDB' not in data['DB']['FLAGS']
+            
             O_data = copy.deepcopy(data)
             n_data = self._clean_db(data)
 
@@ -3062,6 +3384,8 @@ Technical Information: {traceback.format_exc()}"""
             (self.arrow_left_src, 'arrow_left_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('arrow_left', 'accent')),
             (self.question_src, 'question', self.theme.background, self.theme.accent, self.theme.font_main_size, ('question', 'normal')),
             (self.question_src, 'question_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('question', 'accent')),
+            (self.export_src, 'export_accent', self.theme.accent, self.theme.background, self.theme.font_main_size, ('export', 'accent')),
+            (self.export_src, 'export', self.theme.background, self.theme.accent, self.theme.font_main_size, ('export', 'normal')),
 
             (self.checkmark_src, 'c_mark_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('checkmark_large', 'normal')),
             (self.checkmark_src, 'c_mark_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('checkmark_large', 'accent')),
@@ -3071,8 +3395,10 @@ Technical Information: {traceback.format_exc()}"""
             (self.arrow_right_src, 'arrow_right_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_right_large', 'accent')),
             (self.arrow_left_src, 'arrow_left_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('arrow_left_large', 'normal')),
             (self.arrow_left_src, 'arrow_left_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('arrow_left_large', 'accent')),
-            (self.question_src, 'question_accent', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')),
-            (self.question_src, 'question_accent_accent', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')),
+            (self.question_src, 'question_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('question_large', 'normal')),
+            (self.question_src, 'question_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('question_large', 'accent')),
+            (self.export_src, 'export_large', self.theme.background, self.theme.accent, self.theme.font_title_size, ('export_large', 'normal')),
+            (self.export_src, 'export_accent_large', self.theme.accent, self.theme.background, self.theme.font_title_size, ('export_large', 'accent')),
         )
 
         for src, name, background, foreground, _s, (a, b) in ls:
@@ -3096,7 +3422,8 @@ Technical Information: {traceback.format_exc()}"""
                     self.edit_questions_btn, self.edit_configuration_btn,
                     self.edit_db_psw_reset_btn, self.edit_db_psw_button,
                     self.edit_qz_psw_reset_btn, self.edit_qz_psw_button,
-                    self.edit_question_add_new_btn, self.edit_questions_save_btn):
+                    self.edit_question_add_new_btn, self.edit_questions_save_btn,
+                    self.edit_export_btn, self.edit_export_qz, self.edit_export_pdf):
             if btn not in exclude:
                 btn.config(state=tk.DISABLED)
 
@@ -3107,7 +3434,8 @@ Technical Information: {traceback.format_exc()}"""
                     self.edit_questions_btn, self.edit_configuration_btn,
                     self.edit_db_psw_reset_btn, self.edit_db_psw_button,
                     self.edit_qz_psw_reset_btn, self.edit_qz_psw_button,
-                    self.edit_question_add_new_btn, self.edit_questions_save_btn):
+                    self.edit_question_add_new_btn, self.edit_questions_save_btn,
+                    self.edit_export_btn, self.edit_export_qz, self.edit_export_pdf):
             if btn not in exclude:
                 btn.config(state=tk.NORMAL)
 

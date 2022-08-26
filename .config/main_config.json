@@ -3,7 +3,7 @@
         "name": "Quizzing Application",
         "version": 3.0,
         "build_number": 2208227.1547516645,
-        "dev_mode": false,
+        "dev_mode": true,
         "build_id_str": "x_x_2208227.1547516645",
         "build_title": "alpha_2208227.1547516645",
         "appdata_app_name": "Quizzing Application",

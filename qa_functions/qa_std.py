@@ -56,7 +56,7 @@ def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple
     assert fg.check(), err_str_2('fg')
 
     def map_rgb(color_rgb: Tuple[int]) -> Tuple[float]:
-        assert len(color_rgb) == 3, 'Invalid '
+        assert len(color_rgb) == 3, 'Invalid rgb data'
         o_tuple: Tuple[float] = cast(Tuple[float], (*[float_map(col, 0.00, 255.00, 0.00, 1.00) for col in color_rgb],))
 
         return o_tuple

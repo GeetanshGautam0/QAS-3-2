@@ -120,8 +120,8 @@
         "sha": "24b77b6c14aa05a50dd7ea9dee5586beda383d817fc2767f03e25e0729d837dbcf743b4f0f4194c3682347e2a65ce19d2ed69f7a43baa74011a9f63b698a6160"
     },
     ".\\.config\\main_config.json": {
-        "md5": "69c233ba148614832b65f3c022c75184",
-        "sha": "222715f783b3402b558f35c91d462c2bb8f80b028d353be97e44ba49e33abf6674563516e2254f7e9335462b2d1606f75c52668cc2e35ac69a69aca129a3eb83"
+        "md5": "4a24f767aae0090672601b35f809fb5a",
+        "sha": "9d6d4470cd4a632ddb943ff8f24f98acd824630cac6cab6ff58bb90a640e3eb4376c904d2d3fab929b39db88dde59a94ee6a483052ad37ca3ae5d4a1d49f85d5"
     },
     ".\\qa_installer_functions\\qa_update_app.py": {
         "md5": "07db7b41aa54c258988ccb5843ec0173",
