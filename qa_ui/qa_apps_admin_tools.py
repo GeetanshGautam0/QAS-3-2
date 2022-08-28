@@ -15,7 +15,7 @@ from enum import Enum
 from ctypes import windll
 from typing import *
 from . import qa_adv_forms as qa_forms
-from fpdf import FPDF
+from fpdf import FPDF  # type: ignore
 from datetime import datetime
 
 script_name = "APP_AT"
@@ -97,14 +97,11 @@ class CustomText(tk.Text):
 
         self.tag_config("<accent>", selectbackground=theme_map[ThemeUpdateVars.FG].color, foreground=theme_map[ThemeUpdateVars.ACCENT].color)  # type: ignore
         self.tag_config("<error>", foreground=theme_map[ThemeUpdateVars.ERROR].color, selectbackground=theme_map[ThemeUpdateVars.ERROR].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
-        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color,
-                        selectforeground=theme_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+        self.tag_config("<error_bg>", background=theme_map[ThemeUpdateVars.ERROR].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.ERROR].color)  # type: ignore
         self.tag_config("<okay>", foreground=theme_map[ThemeUpdateVars.OKAY].color, selectbackground=theme_map[ThemeUpdateVars.OKAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
-        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color,
-                        selectforeground=theme_map[ThemeUpdateVars.OKAY].color)  # type: ignore
+        self.tag_config("<okay_bg>", background=theme_map[ThemeUpdateVars.OKAY].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.OKAY].color)  # type: ignore
         self.tag_config("<warning>", foreground=theme_map[ThemeUpdateVars.WARNING].color, selectbackground=theme_map[ThemeUpdateVars.WARNING].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
-        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color,
-                        selectforeground=theme_map[ThemeUpdateVars.WARNING].color)  # type: ignore
+        self.tag_config("<warning_bg>", background=theme_map[ThemeUpdateVars.WARNING].color, foreground=theme_map[ThemeUpdateVars.BG].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.WARNING].color)  # type: ignore
         self.tag_config("<accent_bg>", background=theme_map[ThemeUpdateVars.ACCENT].color, foreground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
         self.tag_config('<gray_fg>', foreground=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.GRAY].color, selectforeground=theme_map[ThemeUpdateVars.BG].color)  # type: ignore
         self.tag_config('<gray_bg>', background=theme_map[ThemeUpdateVars.GRAY].color, selectbackground=theme_map[ThemeUpdateVars.FG].color, selectforeground=theme_map[ThemeUpdateVars.GRAY].color)  # type: ignore
@@ -144,7 +141,7 @@ class PDF(FPDF):
 
         self.set_text_color(0, 0, 0)
 
-    def footer(self):
+    def footer(self) -> None:
         self.set_y(-15)
         self.set_font("Courier", "I", 8)
         self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
@@ -1462,7 +1459,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         self.disable_all_inputs()
 
         try:
-            pdf = PDF(self.theme_update_map[ThemeUpdateVars.ACCENT])
+            pdf = PDF(self.theme_update_map[ThemeUpdateVars.ACCENT])  # type: ignore
             pdf.add_page()
 
             fSize = 12

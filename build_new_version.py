@@ -120,7 +120,7 @@ else:
     if '--reset-all-svh' in sys.argv:
         setup_esvh()
         setup_svh()
-        sys.stdout.write('Reset SVH and ESVH\n')
+        sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_BLUE}[BUILD_MANAGER]{ANSI.RESET} {ANSI.BOLD}{ANSI.FG_BRIGHT_GREEN}Reset SVH and ESVH{ANSI.RESET}\n")
         if '--checks-only' not in sys.argv:
             sys.exit(0)
 

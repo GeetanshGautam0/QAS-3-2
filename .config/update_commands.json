@@ -57,7 +57,8 @@
     ".src/.icons/.misc/left_arrow.svg": ".src/.icons/.misc/left_arrow.svg",
     ".src/.icons/.misc/question.svg":  ".src/.icons/.misc/question.svg",
     ".src/.icons/.misc/right_arrow.svg": ".src/.icons/.misc/right_arrow.svg",
-    ".src/.icons/.misc/settings.svg": ".src/.icons/.misc/settings.svg"
+    ".src/.icons/.misc/settings.svg": ".src/.icons/.misc/settings.svg",
+    ".src/.icons/.misc/export.svg": ".src/.icons/.misc/export.svg"
   },
   "MODULES_QA_INSTALLER": {
     "qa_installer_functions/__init__.py": "qa_installer_functions/__init__.py",

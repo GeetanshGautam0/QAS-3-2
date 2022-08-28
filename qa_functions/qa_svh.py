@@ -79,7 +79,7 @@ def compile_svh() -> Dict[str, Dict[str, str]]:
 def compile_svh_with_fn() -> Tuple[Dict[str, Dict[str, str]], Dict[str, str]]:
     output: Dict[str, Dict[str, str]] = {}
     fn_output: Dict[str, str] = {}
-    excl = ('svh.json', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer', '.qa_update')
+    excl = ('venv', 'svh.json', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer', '.qa_update')
 
     def rc(root: str) -> None:
         files = {*[i for i in os.listdir(root) if (i not in excl and "exclude_" not in i and os.path.isfile(f"{root}\\{i}"))]}

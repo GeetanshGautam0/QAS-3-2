@@ -384,7 +384,7 @@ def test_float_map() -> None:
 
 
 def test_src_files() -> None:
-    excl = ('unins000.dat', 'unins000.exe', '.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
+    excl = ('venv', 'unins000.dat', 'unins000.exe', '.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
     addons = ('ADDONS_THEME', )
     lsa = []
 
@@ -419,7 +419,8 @@ def test_src_files() -> None:
     rc('.')
     for a in lsd:
         sys.stdout.write(f"{ANSI.BOLD}{ANSI.FG_BRIGHT_YELLOW}[SRC] WARNING: File \"{a}\" included in UPDATE_COMMANDS but doesn't actually exist.{ANSI.RESET}\n")
-    assert len(lsa) == 0, f"The following files are not included in UPDATE_COMMANDS:\n\t* %s" % "\n\t* ".join(lsd)
+
+    assert len(lsa) == 0, f"The following files are not included in UPDATE_COMMANDS:\n\t* %s" % "\n\t* ".join(lsa)
 
 
 def test_installer_iss() -> None:
@@ -427,7 +428,7 @@ def test_installer_iss() -> None:
         return
 
     rt = "<test::uninstaller>"
-    excl = ('unins000.dat', 'unins000.exe', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
+    excl = ('venv', 'unins000.dat', 'unins000.exe', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
     
     req = {*[i for i in os.listdir() if (i not in excl and "exclude_" not in i)]}
     extn_req = {*[i.split('.')[-1] for i in req if os.path.isfile(i)]}
