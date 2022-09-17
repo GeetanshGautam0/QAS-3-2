@@ -1021,7 +1021,7 @@ class QEditUI(Thread):
                 ]
             ]
 
-            self.af_mc_canv.yview_moveto('1.0')
+            self.af_mc_canv.yview_moveto(1.0)
 
             if inc:
                 self.set_mc_data('mc::N', index)

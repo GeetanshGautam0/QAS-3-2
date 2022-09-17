@@ -1310,7 +1310,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
         for QN, QData in self.data[self.EDIT_PAGE]['db']['QUESTIONS'].items():
             self._aq(QN, QData)
-            self.edit_question_canvas.yview_moveto('1.0')
+            self.edit_question_canvas.yview_moveto(1.0)
 
         self.edit_question_canvas.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(self.padY, 0))
 
@@ -2524,19 +2524,19 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
         log(LoggingLevel.INFO, "DB_CREATION: <sa> proc [prompt*_tk:filedialog]")
 
-        file = filedialog.asksaveasfilename(filetypes=[('QA File', qa_files.qa_file_extn)])
-        if file is None:
+        file_name = filedialog.asksaveasfilename(filetypes=[('QA File', qa_files.qa_file_extn)])
+        if file_name is None:
             self.proc_exit(self.CREATE_PAGE)
             self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
             return
-        if not os.path.isdir('\\'.join(file.replace('/', '\\').split('\\')[:-2:])):
+        if not os.path.isdir('\\'.join(file_name.replace('/', '\\').split('\\')[:-2:])):
             self.proc_exit(self.CREATE_PAGE)
             self.show_info(Message(Levels.NORMAL, 'Aborted process.'))
             return
 
         psw_ld = self.create_inp2_var.get().strip() if self.data[self.CREATE_PAGE]['psw_enb'] else ''
 
-        file = qa_functions.File(f'{file}.{qa_files.qa_file_extn}' if file.split('.')[-1] != qa_files.qa_file_extn else file)
+        file = qa_functions.File(f'{file_name}.{qa_files.qa_file_extn}' if file_name.split('.')[-1] != qa_files.qa_file_extn else file_name)
         db_starter_dict = {
             'DB': {
                 'name': self.create_inp1_var.get(),
