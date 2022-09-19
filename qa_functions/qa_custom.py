@@ -1,11 +1,19 @@
 from typing import *
 from dataclasses import dataclass
 from .qa_enum import *
-import re
+from .qa_info import App
+import re, os, sys
 
 
 # Globals
 _DEFAULT_DATA_TYPE = bytes
+
+
+class ANSI:
+    FG_BRIGHT_MAGENTA = '\x1b[35;1m'
+    FG_BRIGHT_YELLOW = '\x1b[33;1m'
+    BOLD = '\x1b[1m'
+    RESET = '\x1b[0m'
 
 
 class HexColor:
@@ -56,6 +64,58 @@ class Theme:
     # Border Information
     border_size:                Union[float, int]
     border_color:               HexColor
+
+    def check(self) -> bool:
+        f = True
+        c = True
+        n = True
+        o = False
+
+        for val in (
+                self.font_face, self.font_alt_face, self.theme_code,
+                self.theme_file_name, self.theme_file_path, self.theme_display_name,
+                self.theme_file_display_name
+        ):
+            f &= isinstance(val, str)
+            if not f:
+                break
+
+        if f:
+            o = os.path.exists(self.theme_file_path.replace('APP_DATA_DIR', App.appdata_dir))
+
+        for color in (
+            self.background, self.foreground, self.accent,
+            self.error, self.warning, self.okay,
+            self.gray, self.border_color
+        ):
+            if not c:
+                break
+
+            c &= isinstance(color, HexColor)
+
+        for num, MIN, MAX in (
+            (self.font_title_size, 10, 40),
+            (self.font_large_size, 10, 30),
+            (self.font_xl_title_size, 15, 45),
+            (self.font_main_size, 5, 25),
+            (self.font_small_size, 5, 20),
+            (self.border_size, 0, 10),
+        ):
+            if not n:
+                break
+
+            n &= isinstance(num, (float, int))
+            if n:
+                n &= MIN <= num <= MAX
+
+        for ind, value in enumerate([f, o, c, n]):
+            if not value:
+                sys.stderr.write(f'{ANSI.BOLD}[{ANSI.FG_BRIGHT_MAGENTA}THEME INT DIAG FAILURE{ANSI.RESET}{ANSI.BOLD}]{ANSI.RESET} TID : log : F : 0xF{ind}\n')
+
+        if not o:
+            sys.stdout.write(f'\t{ANSI.BOLD}{ANSI.FG_BRIGHT_YELLOW}* 0xA1 (O) : FAILURE : DEBLog : {self.theme_file_path.replace("APP_DATA_DIR", App.appdata_dir)}{ANSI.RESET}\n')
+
+        return f & c & n & o
 
 
 @dataclass

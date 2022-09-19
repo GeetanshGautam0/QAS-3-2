@@ -4,11 +4,11 @@
         "display_name": "Official Addons",
         "avail_themes": {
             "num_themes": 1,
-            "ugen_exp": "Themes.Custom.QuizzingAppV2(light)"
+            "ugen_exp": "Themes.Custom.QuizzingAppV2L"
         }
     },
-    "Themes.Custom.QuizzingAppV2(light)": {
-        "display_name": "Quizzing App V2 (light)",
+    "Themes.Custom.QuizzingAppV2L": {
+        "display_name": "Quizzing App V2 (Light)",
         "background": "#FFFFFF",
         "foreground": "#000000",
         "accent": "#008888",
@@ -17,7 +17,7 @@
         "ok": "#138811",
         "gray": "#5C5C5C",
         "font": {
-            "font_face": "Montserrat",
+            "font_face": "Century Gothic",
             "alt_font_face": "Century Gothic",
             "size_small": 10,
             "size_main": 13,
