@@ -1,6 +1,6 @@
 import urllib3, json, os, hashlib, traceback, sys
 from .qa_info import ConfigurationFile, App, Files
-from .qa_std import HTTP_HEADERS_NO_CACHE
+from .qa_std import HTTP_HEADERS_NO_CACHE, ANSI
 from .qa_theme_loader import Test as TestTheme
 from .qa_updater_call import RunUpdater
 from .qa_info import file_hash
@@ -12,6 +12,13 @@ HTTP = urllib3.PoolManager(
     timeout=urllib3.Timeout(connect=1.0, read=1.5),
     retries=False
 )
+
+
+def consoleEntry(*data: Any, hdr: bool = True) -> None:
+    if hdr:
+        sys.stdout.write(f'{ANSI.BOLD}[{ANSI.FG_BRIGHT_CYAN}DIAGNOSTICS DEBUG LOG{ANSI.RESET}{ANSI.BOLD}]{ANSI.RESET} %s\n' % ' '.join(str(d) for d in data))
+    else:
+        sys.stdout.write('%s\n' % ' '.join(str(d) for d in data))
 
 
 class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
@@ -26,23 +33,34 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             headers=HTTP_HEADERS_NO_CACHE
         )
         if not success:
+            consoleEntry('Diagnostics::appVersion : !sc : failed to contact server')
             return True, (None,), ("Latest version unknown: failed to contact server.", ), RunTest
         elif res.status != 200:
+            consoleEntry(f'Diagnostics::appVersion : !sc : {res.data=}')
             return True, (None,), (f"Latest version unknown: {res.data}.", ), RunTest
 
         success, res = tr(json.loads, res.data.decode())
         if not success:
+            consoleEntry(f'Diagnostics::appVersion : !sc : UNKNOWN (0x01)')
             return True, (None,), ("Latest version unknown",), RunTest
 
         lVer = res['application']['version']
         lBuild = res['application']['build_number']
+
+        consoleEntry(f'Diagnostics::appVersion : version : {lVer}')
+        consoleEntry(f'Diagnostics::appVersion : build   : {lBuild}')
+
         if lVer < App.version and not App.DEV_MODE:
+            consoleEntry('DAV 0x01')
             return False, ("Unsupported application version", ), (True, ), Fix.UpdateApp
         elif lVer > App.version:
+            consoleEntry('DAV 0x02')
             return False, ("New version available", ), (True, ), Fix.UpdateApp
         elif lBuild > App.build_number:
+            consoleEntry('DAV 0x03')
             return False, ("New application build available",), (True,), Fix.UpdateApp
         else:
+            consoleEntry('DAV T')
             return True, ("Up to date", ), (True, ), RunTest
 
     @staticmethod
@@ -69,14 +87,24 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
 
         success, res = tr(json.loads, raw)
 
+        consoleEntry(f'Diagnostics::default_theme : !sc : HS DUMP')
+
         if not success:
+            consoleEntry('\t : F 0x01', hdr=False)
             return False, (str(res[0]), ), (None, ), cast(Any, Fix.Reset.reset_defaults)
 
         success, res2 = tr(json.loads, hash_raw)
         if not success:
+            consoleEntry('\t : F 0x02', hdr=False)
             return False, (str(res2[0]),), (None, ), cast(Any, Fix.Reset.reset_defaults)
 
         success, failures, warnings = cast(Tuple[bool, List[str], List[str]],  TestTheme.check_file(res, True))
+
+        if len(failures):
+            consoleEntry('\n\t * [FAILURE] '.join(('', *failures)), hdr=False)
+
+        if len(warnings):
+            consoleEntry('\n\t * [WARNING] '.join(('', *warnings)), hdr=False)
 
         if not success:
             return False, (*failures, ), (*warnings, ), cast(Any, Fix.Reset.reset_defaults)
@@ -84,7 +112,11 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
         f_name = res['file_info']['name']
         f_hash = hashlib.sha3_512(raw.encode()).hexdigest()
         success &= res2[f_name] == f_hash
+
+        consoleEntry(f'\n\t * <HASH VALUE> {res2[f_name]=}', f'\n\t * <HASH VALUE> {f_hash=}', hdr=False)
+
         if not success:
+            consoleEntry('Diagnostics::default_theme : !sc : HS DUMP : F 0x03')
             return False, ("Hash mismatch", ), (None, ), cast(Any, Fix.Reset.reset_defaults)
 
         del hash_raw, raw, f_name, f_hash, success, failures, res, res2
@@ -100,6 +132,10 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
         for f, h in svh.items():
             if file_hash.get(f) != h:
                 failures.append(f'Incorrect hash stored for file "{f}"')
+                consoleEntry(f'Diagnostics::script_hash : 0x00 : {f}\n\t : {h} \n\t : {file_hash.get(f)}')
+
+        if not failures:
+            consoleEntry('DSH T')
 
         return len(failures) == 0, (*failures,), ('.JSON files not tested', '.SVG files not tested', '.PNG files not tested'), cast(Any, Fix.UpdateApp)
 
