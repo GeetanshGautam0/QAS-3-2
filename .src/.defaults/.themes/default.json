@@ -25,7 +25,7 @@
 
     "font": {
       "font_face":        "Segoe UI Variable Small Semibold",
-      "alt_font_face":    "Century Gothic",
+      "alt_font_face":    "Courier New",
 
       "size_small":       10,
       "size_main":        13,
