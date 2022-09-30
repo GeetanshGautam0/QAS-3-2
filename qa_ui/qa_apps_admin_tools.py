@@ -1457,8 +1457,15 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
             return
 
         self.disable_all_inputs()
+        self.show_info(Message(Levels.NORMAL, 'Please select where to save the file'))
+
+        output_file = filedialog.asksaveasfilename(filetypes=(('.pdf', '.pdf'),), defaultextension='.pdf')
 
         try:
+            assert isinstance(output_file, str), 'Output filename not provided (0xC1)'
+            output_file = output_file.strip()
+            assert output_file not in ['None', ''], 'Output filename not provided (0xC2)'
+
             pdf = PDF(self.theme_update_map[ThemeUpdateVars.ACCENT])  # type: ignore
             pdf.add_page()
 
@@ -1594,7 +1601,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
             del psw, qpsw, acc, poa, rqo, ssd, qs
 
-            pdf.output("exclude_new-tuto2.pdf")
+            pdf.output(output_file)
 
         except PermissionError as PE:
             log(LoggingLevel.ERROR, f'[OS::PE] Failed to export PDF: {PE}')
@@ -1613,12 +1620,10 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
         else:
             self.show_info(Message(Levels.OKAY, 'Successfully exported database dump as PDF'))
+            os.system(output_file)
 
         finally:
             self.enable_all_inputs()
-
-            os.system("exclude_new-tuto2.pdf")
-            os.remove('.\\exclude_new-tuto2.pdf')
 
     def export_qz(self) -> None:
         self.save_db()
