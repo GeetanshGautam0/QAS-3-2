@@ -10,6 +10,11 @@
     "MODULES_QA_FUNCTIONS",
     "MODULES_QA_FILES",
     "DEV_ESSENTIALS_PKG",
-    "APP_SCRIPTS"
+    "APP_SCRIPTS",
+    "FONTS"
+  ],
+  "addons": [
+    "ADDONS_THEME",
+    "ADDONS_FONT"
   ]
 }

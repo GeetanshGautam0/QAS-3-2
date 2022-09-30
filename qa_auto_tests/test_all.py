@@ -1,4 +1,4 @@
-import pytest, os, sys, json, hashlib, subprocess
+import pytest, os, sys, json, hashlib, subprocess, copy
 from qa_functions.qa_std import data_type_converter, brute_force_decoding, data_at_dict_path, float_map, \
     flatten_list, ANSI
 from qa_functions.qa_file_handler import _Crypt
@@ -8,6 +8,9 @@ from qa_functions.qa_info import file_hash
 from qa_functions.qa_svh import compile_svh_with_fn
 from typing import Tuple, cast
 from ctypes import windll
+
+
+ROOT_RUN = "<PYTHON ? RUN_COMMAND>"
 
 
 def test_cryptography() -> None:
@@ -384,6 +387,8 @@ def test_float_map() -> None:
 
 
 def test_src_files() -> None:
+    global ROOT_RUN
+
     excl = ('venv', 'unins000.dat', 'unins000.exe', '.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
     addons = ('ADDONS_THEME', )
     lsa = []
@@ -399,6 +404,10 @@ def test_src_files() -> None:
             lambda *args: ".\\{}".format(args[0].replace('/', '\\')),
         )}]
         file.close()
+
+    for ls in copy.deepcopy(lsd):
+        if ROOT_RUN in ls:
+            lsd.pop(lsd.index(ls))
 
     def rc(root: str) -> None:
         ls = os.listdir(root)

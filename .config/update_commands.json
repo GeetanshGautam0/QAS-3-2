@@ -118,12 +118,20 @@
     "qa_ui/qa_adv_forms/qa_form_q_edit.py": "qa_ui/qa_adv_forms/qa_form_q_edit.py"
   },
 
+  "FONTS": {
+    ".fonts/Montserrat.ttf": ".fonts/Montserrat.ttf"
+  },
+
   "ADDONS_THEME": {
     "additional_themes/high_contrast.qaTheme":  ".themes",
     "additional_themes/retro_theme.qaTheme":  ".themes",
     "additional_themes/theme_addons.qaTheme": ".themes",
     "additional_themes/qas_2_original.qaTheme": ".themes",
     "additional_themes/qas_2_original_dark.qaTheme": ".themes"
+  },
+
+  "ADDONS_FONT": {
+    "font": "<PYTHON ? RUN_COMMAND> INSTALL FONT ./.fonts/Montserrat.ttf"
   }
 
 }

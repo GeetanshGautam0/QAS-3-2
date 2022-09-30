@@ -1,7 +1,24 @@
-import sys, traceback, click, ctypes, threading, urllib3, tkinter as tk, os, json, appdirs
+import sys, shutil, traceback, click, ctypes, threading, urllib3, tkinter as tk, os, json, appdirs
 from tkinter import messagebox, ttk
 from typing import *
+from ctypes import wintypes
+try:  # type: ignore
+    import winreg  # type: ignore
+except ImportError:  # type: ignore
+    import _winreg as winreg  # type: ignore
 
+user32 = ctypes.WinDLL('user32', use_last_error=True)
+gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
+
+FONTS_REG_PATH = r'Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+
+HWND_BROADCAST = 0xFFFF
+SMTO_ABORTIFHUNG = 0x0002
+WM_FONTCHANGE = 0x001D
+GFRI_DESCRIPTION = 1
+GFRI_ISTRUETYPE = 3
+
+RUN_ROOT = "<PYTHON ? RUN_COMMAND>"
 
 with open('.\\.config\\main_config.json', 'r') as mc_file:
     d = mc_file.read()
@@ -802,7 +819,7 @@ class Addons(threading.Thread):
             self.close_button.config(text="CLOSE", command=self.close)
 
     def start_downloads(self) -> None:
-        global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE, APPDATA
+        global _THEME, _COMMANDS, _NV_ROOT, HTTP, URL_BASE, APPDATA, RUN_ROOT
 
         self.clear_lb()
         self.insert_item('Checking connection.')
@@ -851,30 +868,58 @@ class Addons(threading.Thread):
                 files = _COMMANDS[command]
                 for c_url, dst_file in files:
                     try:
-                        success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
-                        if not success:
-                            self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
-                            continue
+                        if len(dst_file) > len(RUN_ROOT):
+                            if dst_file[:len(RUN_ROOT)] == RUN_ROOT:
+                                args = dst_file.replace(RUN_ROOT, '').strip()
+                                if len(args.split()) >= 3:
+                                    command, sub_command, args = args.split()
+                                    failure = True
 
-                        success &= result.status == 200
-                        if not success:
-                            self.insert_item(f'Failed to download file source file: {result.data.decode()}', fg=_THEME['error'], sfg=_THEME['error'])
-                            continue
+                                    if command == 'INSTALL':
+                                        if sub_command == 'FONT':
+                                            failure = False
+                                            args_prime = args if isinstance(args, str) else " ".join(args).strip()
+                                            self.insert_item(f'Installing font "{args_prime}"')
+                                            installed, status = install_font(args_prime)
+                                            if installed:
+                                                self.insert_item('Installed font successfully', fg=_THEME['ok'], sfg=_THEME['ok'])
+                                            else:
+                                                self.insert_item(f'Failed to install font: {status}', fg=_THEME['error'], sfg=_THEME['error'])
 
-                        dst_dir = f"{APPDATA}\\{dst_file}"
-                        dst_file_name = c_url.split('/')[-1].strip()
-                        dst_dir = dst_dir.strip('\\')
+                                    if failure:
+                                        self.insert_item(f"Unknown command \"{command}\"", fg=_THEME['error'], sfg=_THEME['error'])
 
-                        if dst_dir.strip() in ('.', '', '<root>', '.\\', './', '\\.', '/.'):
-                            file = APPDATA
+                                else:
+                                    self.insert_item(f"Unknown command \"{command}\"", fg=_THEME['error'], sfg=_THEME['error'])
+
+                            else:
+                                self.insert_item(f"Unknown command \"{command}\"", fg=_THEME['error'], sfg=_THEME['error'])
+
                         else:
-                            if not os.path.isdir(dst_dir):
-                                os.makedirs(dst_dir)
-                            file = f"{dst_dir}\\{dst_file_name}".replace('/', '\\')
+                            success, result = tr(HTTP.request, 'GET', f'{URL_BASE}/{c_url}', headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'})
+                            if not success:
+                                self.insert_item(f'Failed to download file source file: {result}', fg=_THEME['error'], sfg=_THEME['error'])
+                                continue
 
-                        with open(file, 'wb') as dst_f:
-                            dst_f.write(result.data)
-                            dst_f.close()
+                            success &= result.status == 200
+                            if not success:
+                                self.insert_item(f'Failed to download file source file: {result.data.decode()}', fg=_THEME['error'], sfg=_THEME['error'])
+                                continue
+
+                            dst_dir = f"{APPDATA}\\{dst_file}"
+                            dst_file_name = c_url.split('/')[-1].strip()
+                            dst_dir = dst_dir.strip('\\')
+
+                            if dst_dir.strip() in ('.', '', '<root>', '.\\', './', '\\.', '/.'):
+                                file = APPDATA
+                            else:
+                                if not os.path.isdir(dst_dir):
+                                    os.makedirs(dst_dir)
+                                file = f"{dst_dir}\\{dst_file_name}".replace('/', '\\')
+
+                            with open(file, 'wb') as dst_f:
+                                dst_f.write(result.data)
+                                dst_f.close()
 
                     except Exception as excep:
                         sys.stderr.write(f"{traceback.format_exc()}\n")
@@ -1046,6 +1091,41 @@ def load_manifest() -> Dict[str, Any]:
         manifest_file.close()
 
     return o
+
+
+def install_font(src_path: str) -> Tuple[bool, str]:  # type: ignore
+    try:  # type: ignore
+        # copy the font to the Windows Fonts folder
+        dst_path = os.path.join(os.environ['SystemRoot'], 'Fonts', os.path.basename(src_path))  # type: ignore
+        shutil.copy(src_path, dst_path)  # type: ignore
+        # load the font in the current session
+        if not gdi32.AddFontResourceW(dst_path):  # type: ignore
+            os.remove(dst_path)  # type: ignore
+            raise WindowsError('AddFontResource failed to load "%s"' % src_path)  # type: ignore
+        # notify running programs
+        user32.SendMessageTimeoutW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0, SMTO_ABORTIFHUNG, 1000, None)  # type: ignore
+        # store the fontname/filename in the registry
+        filename = os.path.basename(dst_path)  # type: ignore
+        fontname = os.path.splitext(filename)[0]  # type: ignore
+        # try to get the font's real name
+        cb = wintypes.DWORD()  # type: ignore
+        if gdi32.GetFontResourceInfoW(filename, ctypes.byref(cb), None, GFRI_DESCRIPTION):  # type: ignore
+            buf = (ctypes.c_wchar * cb.value)()  # type: ignore
+            if gdi32.GetFontResourceInfoW(filename, ctypes.byref(cb), buf, GFRI_DESCRIPTION):  # type: ignore
+                fontname = buf.value  # type: ignore
+        is_truetype = wintypes.BOOL()  # type: ignore
+        cb.value = ctypes.sizeof(is_truetype)  # type: ignore
+        gdi32.GetFontResourceInfoW(filename, ctypes.byref(cb), ctypes.byref(is_truetype), GFRI_ISTRUETYPE)  # type: ignore
+
+        if is_truetype:  # type: ignore
+            fontname += ' (TrueType)'  # type: ignore
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, FONTS_REG_PATH, 0, winreg.KEY_SET_VALUE) as key:  # type: ignore
+            winreg.SetValueEx(key, fontname, 0, winreg.REG_SZ, filename)  # type: ignore
+
+        return True, 'no errors detected'  # type: ignore
+
+    except Exception as E:  # type: ignore
+        return False, str(E)  # type: ignore
 
 
 if __name__ == "__main__":
