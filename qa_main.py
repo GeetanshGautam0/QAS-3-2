@@ -218,7 +218,7 @@ def _CLIHandler() -> None:
 @click.argument('app_name', type=click.Choice(CLI_AllowedApplications))
 @click.option('--open_file', help="open qa_files that is supplied in args", is_flag=True)
 @click.option('--file_path', help="path of qa_files to open", default=None)
-@click.option('--ttk_theme', help="TTK theme to use (default = clam)", default='clam')
+@click.option('--ttk_theme', help="TTK theme to use (default = 'alt')", default='alt')
 @click.option('--debug', help='save console output', is_flag=True)
 @click.option('--debug_all', help='enable (+save) debugging (ALL LEVELS)', is_flag=True)
 @click.option('--debug_dev', help='enable (+save) [DEVELOPER] debug messages (also needs to be enabled in config file.)', is_flag=True)

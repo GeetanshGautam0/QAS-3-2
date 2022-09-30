@@ -5,6 +5,7 @@ from .qa_theme_loader import Test as TestTheme
 from .qa_updater_call import RunUpdater
 from .qa_info import file_hash
 from .qa_svh import compile_svh
+from .qa_file_handler import File, Open, OpenFunctionArgs, ConverterFunctionArgs, data_type_converter
 from typing import *
 
 
@@ -77,15 +78,14 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
         if not os.path.isfile(Files.default_theme_file) or not os.path.isfile(Files.default_theme_hashes):
             return False, ("File doesn't exist", ), (None, ), Fix.Reset.reset_defaults
 
-        with open(Files.default_theme_file, 'r') as file:
-            raw = file.read()
-            file.close()
+        ofa, cfa = OpenFunctionArgs(), ConverterFunctionArgs()
+        raw = Open.read_file(File(Files.default_theme_file), ofa, b'', cfa)
 
         with open(Files.default_theme_hashes, 'r') as file:
             hash_raw = file.read()
             file.close()
 
-        success, res = tr(json.loads, raw)
+        success, res = tr(json.loads, data_type_converter(raw, str, cfa))
 
         consoleEntry(f'Diagnostics::default_theme : !sc : HS DUMP')
 
@@ -110,7 +110,7 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             return False, (*failures, ), (*warnings, ), cast(Any, Fix.Reset.reset_defaults)
 
         f_name = res['file_info']['name']
-        f_hash = hashlib.sha3_512(raw.encode()).hexdigest()
+        f_hash = hashlib.sha3_512(data_type_converter(raw, bytes, cfa)).hexdigest()
         success &= res2[f_name] == f_hash
 
         consoleEntry(f'\n\t * <HASH VALUE> {res2[f_name]=}', f'\n\t * <HASH VALUE> {f_hash=}', hdr=False)
