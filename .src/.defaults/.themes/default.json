@@ -24,7 +24,7 @@
     "gray":           "#5C5C5C",
 
     "font": {
-      "font_face":        "Segoe UI Semibold",
+      "font_face":        "Monserrat Regular",
       "alt_font_face":    "Courier New",
 
       "size_small":       10,
@@ -54,7 +54,7 @@
     "gray":           "#929292",
 
     "font": {
-      "font_face":        "Segoe UI Semibold",
+      "font_face":        "Monserrat Regular",
       "alt_font_face":    "Century Gothic",
 
       "size_small":       10,
