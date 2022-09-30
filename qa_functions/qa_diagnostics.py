@@ -78,14 +78,15 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
         if not os.path.isfile(Files.default_theme_file) or not os.path.isfile(Files.default_theme_hashes):
             return False, ("File doesn't exist", ), (None, ), Fix.Reset.reset_defaults
 
-        ofa, cfa = OpenFunctionArgs(), ConverterFunctionArgs()
-        raw = Open.read_file(File(Files.default_theme_file), ofa, b'', cfa)
+        with open(Files.default_theme_file, 'r') as theme_file:
+            raw = theme_file.read().strip().replace(' ', '').replace('\t', '').replace('\n', '')
+            theme_file.close()
 
         with open(Files.default_theme_hashes, 'r') as file:
             hash_raw = file.read()
             file.close()
 
-        success, res = tr(json.loads, data_type_converter(raw, str, cfa))
+        success, res = tr(json.loads, raw)
 
         consoleEntry(f'Diagnostics::default_theme : !sc : HS DUMP')
 
@@ -110,7 +111,7 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             return False, (*failures, ), (*warnings, ), cast(Any, Fix.Reset.reset_defaults)
 
         f_name = res['file_info']['name']
-        f_hash = hashlib.sha3_512(data_type_converter(raw, bytes, cfa)).hexdigest()
+        f_hash = hashlib.sha3_512(raw.encode()).hexdigest()
         success &= res2[f_name] == f_hash
 
         consoleEntry(f'\n\t * <HASH VALUE> {res2[f_name]=}', f'\n\t * <HASH VALUE> {f_hash=}', hdr=False)

@@ -269,13 +269,15 @@ class Load:
         hash_raw = cast(bytes, qa_file_handler.Open.read_file(default_theme_hash, ofa, qa_info.Encryption.default_key, cfa))
 
         def load(path_to_file: str) -> Dict[str, Dict[str, qa_custom.Theme]]:
-            raw = qa_file_handler.Open.read_file(qa_custom.File(str(path_to_file)), ofa, qa_info.Encryption.default_key, cfa)
+            with open(path_to_file, 'r') as theme_file:
+                raw = theme_file.read().strip().replace(' ', '').replace('\t', '').replace('\n', '')
+                theme_file.close()
 
-            json_data = json.loads(qa_file_handler.dtc(raw, str, cfa))
+            json_data = json.loads(raw)
             hash_json = json.loads(qa_file_handler.dtc(hash_raw, str, cfa))
             assert json_data['file_info']['name'] in hash_json, "Invalid/corrupted default theme qa_files (name not found)"
 
-            file_hash = hashlib.sha3_512(qa_file_handler.dtc(raw, bytes, cfa)).hexdigest()
+            file_hash = hashlib.sha3_512(raw.encode()).hexdigest()
             expected_hash = hash_json[json_data['file_info']['name']]
             del hash_json
 
