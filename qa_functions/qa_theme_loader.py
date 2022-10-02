@@ -270,7 +270,7 @@ class Load:
 
         def load(path_to_file: str) -> Dict[str, Dict[str, qa_custom.Theme]]:
             with open(path_to_file, 'r') as theme_file:
-                raw = theme_file.read().strip().replace(' ', '').replace('\t', '').replace('\n', '')
+                raw = theme_file.read().strip()
                 theme_file.close()
 
             json_data = json.loads(raw)

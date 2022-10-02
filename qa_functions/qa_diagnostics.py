@@ -79,7 +79,7 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             return False, ("File doesn't exist", ), (None, ), Fix.Reset.reset_defaults
 
         with open(Files.default_theme_file, 'r') as theme_file:
-            raw = theme_file.read().strip().replace(' ', '').replace('\t', '').replace('\n', '')
+            raw = theme_file.read().strip()
             theme_file.close()
 
         with open(Files.default_theme_hashes, 'r') as file:
