@@ -389,7 +389,7 @@ def test_float_map() -> None:
 def test_src_files() -> None:
     global ROOT_RUN
 
-    excl = ('venv', 'unins000.dat', 'unins000.exe', '.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
+    excl = ('.vs', 'QAS_VENV', 'venv', 'unins000.dat', 'unins000.exe', '.qa_update', 'TODO', 'additional_themes', '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '', 'dist', 'build', 'installer')
     addons = ('ADDONS_THEME', )
     lsa = []
 
@@ -437,7 +437,7 @@ def test_installer_iss() -> None:
         return
 
     rt = "<test::uninstaller>"
-    excl = ('venv', 'unins000.dat', 'unins000.exe', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
+    excl = ('.vs', 'QAS_VENV', 'venv', 'unins000.dat', 'unins000.exe', 'TODO', '.git', '.idea', '__pycache__', '.mypy_cache', '.pytest_cache', 'additional_themes', 'build', 'dist', 'installer')
     
     req = {*[i for i in os.listdir() if (i not in excl and "exclude_" not in i)]}
     extn_req = {*[i.split('.')[-1] for i in req if os.path.isfile(i)]}

@@ -45,6 +45,26 @@ Technical Information: {traceback.format_exc()}"""
         return None
 
 
+def load_file_sections(file_type: FileType, raw_data: bytes) -> Union[List[bytes], Tuple[bytes, bytes]]:
+    global _ft_map
+    
+    if not isinstance(raw_data, bytes): 
+        return b'', b''
+
+    if file_type not in _ft_map:
+        return b'', raw_data
+
+    raw_data = raw_data.strip()
+    assert len(raw_data) >= 256, len(raw_data)
+
+    h_hash, f_hash = raw_data[:128], raw_data[-128::]
+    assert h_hash == f_hash
+    enc_d = raw_data.replace(h_hash, b'', 1)
+    enc_d = enc_d[::-1].replace(f_hash[::-1], b'', 1)[::-1]
+
+    return h_hash, enc_d
+
+
 def load_file(file_type: FileType, raw_data: bytes) -> Union[None, Tuple[bytes, str]]:
     global _ft_map
 

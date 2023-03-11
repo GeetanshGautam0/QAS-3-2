@@ -1,4 +1,4 @@
-import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random
+import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, traceback
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
@@ -14,6 +14,7 @@ from ctypes import windll
 from typing import *
 
 
+AUTO = 3
 script_name = "APP_QF"
 APP_TITLE = "Quizzing Application | Quizzing Form"
 LOGGER_AVAIL = False
@@ -49,6 +50,7 @@ class _UI(Thread):
 
         self.gi_cl = True
         self._job: Union[None, str] = None
+
         self.inputs: List[Union[tk.Button, ttk.Button, ttk.Entry, tk.Entry, tk.Text]] = []
 
         self.load_theme()
@@ -87,9 +89,38 @@ class _UI(Thread):
         self.ttk_style = ttk.Style()
         self.ttk_style.theme_use(self.ttk_theme)
         self.ttk_style = configure_scrollbar_style(self.ttk_style, self.theme, self.theme.accent.color, 'QF')
+        self.ttk_style = qa_functions.TTKTheme.configure_button_style(self.ttk_style, self.theme, self.theme.accent.color)
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_main_size, 'My')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_large_size, 'MyLarge')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
+           
+        self.title = tk.Label(self.root)
+
+        self.screen_data: Dict[int, Dict[Any, Any]] = {}
+        [self.LOGIN_PAGE, self.CONFIGURATION_PAGE, self.SUMMARY_PAGE] = range(3)
+        for i in range(3): self.screen_data[i] = {}
+        self.current_page = self.LOGIN_PAGE
+
+        self.login_frame = tk.Frame(self.root)
+        self.config_frame = tk.Frame(self.root)
+        self.summary_frame = tk.Frame(self.root)
+
+        self.LF_file_frame = tk.Frame(self.login_frame)
+        self.LF_file_ttl = tk.Label(self.LF_file_frame)
+        self.LF_file_select = ttk.Button(self.LF_file_frame, style='Active.TButton')
+        self.LF_file_info = tk.Label(self.LF_file_frame)
+        
+        self.LF_fields = tk.Frame(self.login_frame)
+
+        self.LF_first_name = ttk.Entry(self.LF_fields, style='MyLarge.TEntry')
+        self.LF_last_name = ttk.Entry(self.LF_fields, style='MyLarge.TEntry')
+        self.LF_ID = ttk.Entry(self.LF_fields, style='MyLarge.TEntry')
+
+        self.LF_FN_lbl = tk.Label(self.login_frame, text='First Name')
+        self.LF_LN_lbl = tk.Label(self.login_frame, text='Last Name')
+        self.LF_ID_lbl = tk.Label(self.login_frame, text='Student ID')
+
+        self.inputs.extend([self.LF_first_name, self.LF_last_name, self.LF_ID])
 
         self.start()
         self.root.deiconify()
@@ -103,6 +134,83 @@ class _UI(Thread):
 
         self.root.after(0, self.root.quit)
 
+    def pageSetup(self, page_index: int, CRfFunc: Union[bool, int] = AUTO) -> bool:
+        TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+        def LoginRf() -> None:
+            self.update_requests[gsuid()] = [self.LF_file_frame, TUC.BG, [TUV.ACCENT]]
+            self.update_requests[gsuid()] = [self.LF_fields, TUC.BG, [TUV.BG]]
+            self.update_requests[gsuid()] = [self.login_frame, TUC.BG, [TUV.BG]]   
+            self.update_requests[gsuid()] = [self.LF_file_ttl, TUC.CUSTOM, [
+                lambda *args: self.LF_file_ttl.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                TUV.ACCENT, TUV.BG, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_LARGE
+            ]]
+            self.update_requests['logText'] = [
+                None,
+                TUC.CUSTOM,
+                [
+                    lambda *args: log(LoggingLevel.DEBUG, f'{str(args[0])} {args[2]}'),
+                    ('<EXECUTE>', lambda *_: self.LF_file_frame.winfo_width()), 'test', ('<LOOKUP>', 'padX')
+            ]]
+            self.update_requests[gsuid()] = [self.LF_file_info, TUC.CUSTOM, [
+                lambda *args: self.LF_file_ttl.config(
+                    bg=args[0], fg=args[1], font=(args[2], args[3]), anchor=tk.W, justify=tk.LEFT, wraplength=args[4]-2*args[5]
+                ),
+                TUV.ACCENT, TUV.BG, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN, 
+                ('<EXECUTE>', lambda *_: self.LF_file_frame.winfo_width()), ('<LOOKUP>', 'padX')
+            ]]
+
+            self.LF_fields.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+            self.LF_file_frame.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY, side=tk.LEFT, ipadx=self.padX*2.5)
+
+            self.LF_file_ttl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+            self.LF_file_ttl.config(text='Select a File')
+            
+            self.LF_file_select.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY*2)
+            self.LF_file_select.config(text='Browse...', command=self.LFC_browse)
+
+            self.LF_file_info.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+            self.LF_file_info.config(text='')
+
+            self.screen_data[self.LOGIN_PAGE]['FilePath'] = ''
+            self.screen_data[self.LOGIN_PAGE]['RfDone'] = True
+           
+        def ConfigurationRf() -> None:
+            pass
+
+        def SummaryRf() -> None:
+            pass
+           
+        mapper = {
+            self.LOGIN_PAGE: (self.login_frame, LoginRf),
+            self.CONFIGURATION_PAGE: (self.config_frame, ConfigurationRf),
+            self.SUMMARY_PAGE: (self.summary_frame, SummaryRf)
+        }
+
+        assert page_index in mapper,                    'QF::_pageSetup: inv. page_index (0x00)'
+        assert CRfFunc in (True, False, 0, 1, AUTO),    'QF::_pageSetup: inv. CRfFunc arg (0x01)'
+
+        frame, RfFunc = mapper[page_index]
+
+        if CRfFunc == AUTO:
+            CRfFunc = not bool(self.screen_data[page_index].get('RfDone'))
+        
+        if CRfFunc:
+            try:
+                RfFunc()
+            except Exception as E:
+                log(LoggingLevel.ERROR, f'Failed to run RFFunc for index {page_index}.\nError: {E}\n{traceback.format_exc()}')
+                return False
+
+        for (oFrame, _) in mapper.values():
+            oFrame.pack_forget()
+
+        frame.pack(fill=tk.BOTH, expand=True)
+        return True
+
+    def LFC_browse(self) -> None:
+        pass
+
     def run(self) -> None:
         global APP_TITLE
 
@@ -112,9 +220,15 @@ class _UI(Thread):
         self.root.geometry('%s+%s' % ('x'.join(str(d) for d in self.window_size), '+'.join(str(d) for d in self.screen_pos)))
 
         self.update_requests['QFRoot'] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['QFTitleBG'] = [self.title, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['QFTitleFG'] = [self.title, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
+        self.update_requests['QFTitleFont'] = [self.title, ThemeUpdateCommands.FONT, [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_XL_TITLE]]
 
+        self.title.config(text='Quizzing Form', anchor=tk.W, justify=tk.LEFT)
+        self.title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
+
+        self.pageSetup(self.LOGIN_PAGE)
         self.update_ui()
-
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 
@@ -140,30 +254,50 @@ class _UI(Thread):
 
             lCommand = [False, '', -1]
             cleaned_args = []
+
+            if 'logText' in elID:
+                print('UPDATE_UI', 'LOG_TEXT', args)
+
             for index, arg in enumerate(args):
-                cleaned_arg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                cleaned_arg = arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg]
 
                 if isinstance(arg, tuple):
                     if len(arg) >= 2:
                         if arg[0] == '<EXECUTE>':
+                            if 'logText' in elID:
+                                print('UPDATE_UI LOG_TEXT exec :: ', end='')
+
                             ps, res = (tr(arg[1]) if len(args) == 2 else tr(arg[1], arg[2::]))
                             if ps:
                                 cleaned_arg = res
+                                if 'logText' in elID:
+                                    print('SUCCESS', f'"{cleaned_arg}"')
                             else:
+                                if 'logText' in elID:
+                                    print('ERROR')
                                 log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
 
-                        if arg[0] == '<LOOKUP>':
+                        elif arg[0] == '<LOOKUP>':
+                            if 'logText' in elID:
+                                print('UPDATE_UI LOG_TEXT look :: ', end='')
+
                             rs_b: int = cast(int, {
                                 'padX': self.padX,
                                 'padY': self.padY,
                                 'root_width': self.root.winfo_width(),
                                 'root_height': self.root.winfo_height(),
-                                'uid': elID
+                                'uid': elID,
+                                'UI': self,
+                                'SELF': element
                             }.get(cast(str, arg[1])))
 
                             if rs_b is not None:
                                 cleaned_arg = rs_b
+                                if 'logText' in elID:
+                                    print('SUCCESS', f'"{cleaned_arg}"')
                             else:
+                                if 'logText' in elID:
+                                    print('ERROR')
                                 log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
 
                 cleaned_args.append(cleaned_arg)
