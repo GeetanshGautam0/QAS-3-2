@@ -142,7 +142,7 @@ class _UI(Thread):
 
         self.setup_page(self.LOGIN_PAGE)
         self.update_ui()
-        
+
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 
