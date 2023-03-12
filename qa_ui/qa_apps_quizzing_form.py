@@ -101,26 +101,13 @@ class _UI(Thread):
         for i in range(3): self.screen_data[i] = {}
         self.current_page = self.LOGIN_PAGE
 
-        self.login_frame = tk.Frame(self.root)
-        self.config_frame = tk.Frame(self.root)
-        self.summary_frame = tk.Frame(self.root)
+        self.main_frame = tk.Frame(self.root)
+        self.login_frame = tk.Frame(self.main_frame)
+        self.config_frame = tk.Frame(self.main_frame)
+        self.summary_frame = tk.Frame(self.main_frame)
 
-        self.LF_file_frame = tk.Frame(self.login_frame)
-        self.LF_file_ttl = tk.Label(self.LF_file_frame)
-        self.LF_file_select = ttk.Button(self.LF_file_frame, style='Active.TButton')
-        self.LF_file_info = tk.Label(self.LF_file_frame)
-        
-        self.LF_fields = tk.Frame(self.login_frame)
-
-        self.LF_first_name = ttk.Entry(self.LF_fields, style='MyLarge.TEntry')
-        self.LF_last_name = ttk.Entry(self.LF_fields, style='MyLarge.TEntry')
-        self.LF_ID = ttk.Entry(self.LF_fields, style='MyLarge.TEntry')
-
-        self.LF_FN_lbl = tk.Label(self.login_frame, text='First Name')
-        self.LF_LN_lbl = tk.Label(self.login_frame, text='Last Name')
-        self.LF_ID_lbl = tk.Label(self.login_frame, text='Student ID')
-
-        self.inputs.extend([self.LF_first_name, self.LF_last_name, self.LF_ID])
+        self.next_frame = ttk.Button(self.root, text='Next Step \u2b9e', style='QuizzingApp.QuizzingForm.root.NextFrameBtn')
+        self.prev_frame = ttk.Button(self.root, text='Previous Step \u2b9c', style='QuizzingApp.QuizzingForm.root.PrevFrameBtn')
 
         self.start()
         self.root.deiconify()
@@ -134,82 +121,8 @@ class _UI(Thread):
 
         self.root.after(0, self.root.quit)
 
-    def pageSetup(self, page_index: int, CRfFunc: Union[bool, int] = AUTO) -> bool:
-        TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
-
-        def LoginRf() -> None:
-            self.update_requests[gsuid()] = [self.LF_file_frame, TUC.BG, [TUV.ACCENT]]
-            self.update_requests[gsuid()] = [self.LF_fields, TUC.BG, [TUV.BG]]
-            self.update_requests[gsuid()] = [self.login_frame, TUC.BG, [TUV.BG]]   
-            self.update_requests[gsuid()] = [self.LF_file_ttl, TUC.CUSTOM, [
-                lambda *args: self.LF_file_ttl.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
-                TUV.ACCENT, TUV.BG, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_LARGE
-            ]]
-            self.update_requests['logText'] = [
-                None,
-                TUC.CUSTOM,
-                [
-                    lambda *args: log(LoggingLevel.DEBUG, f'{str(args[0])} {args[2]}'),
-                    ('<EXECUTE>', lambda *_: self.LF_file_frame.winfo_width()), 'test', ('<LOOKUP>', 'padX')
-            ]]
-            self.update_requests[gsuid()] = [self.LF_file_info, TUC.CUSTOM, [
-                lambda *args: self.LF_file_ttl.config(
-                    bg=args[0], fg=args[1], font=(args[2], args[3]), anchor=tk.W, justify=tk.LEFT, wraplength=args[4]-2*args[5]
-                ),
-                TUV.ACCENT, TUV.BG, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_MAIN, 
-                ('<EXECUTE>', lambda *_: self.LF_file_frame.winfo_width()), ('<LOOKUP>', 'padX')
-            ]]
-
-            self.LF_fields.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
-            self.LF_file_frame.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY, side=tk.LEFT, ipadx=self.padX*2.5)
-
-            self.LF_file_ttl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
-            self.LF_file_ttl.config(text='Select a File')
-            
-            self.LF_file_select.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY*2)
-            self.LF_file_select.config(text='Browse...', command=self.LFC_browse)
-
-            self.LF_file_info.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
-            self.LF_file_info.config(text='')
-
-            self.screen_data[self.LOGIN_PAGE]['FilePath'] = ''
-            self.screen_data[self.LOGIN_PAGE]['RfDone'] = True
-           
-        def ConfigurationRf() -> None:
-            pass
-
-        def SummaryRf() -> None:
-            pass
-           
-        mapper = {
-            self.LOGIN_PAGE: (self.login_frame, LoginRf),
-            self.CONFIGURATION_PAGE: (self.config_frame, ConfigurationRf),
-            self.SUMMARY_PAGE: (self.summary_frame, SummaryRf)
-        }
-
-        assert page_index in mapper,                    'QF::_pageSetup: inv. page_index (0x00)'
-        assert CRfFunc in (True, False, 0, 1, AUTO),    'QF::_pageSetup: inv. CRfFunc arg (0x01)'
-
-        frame, RfFunc = mapper[page_index]
-
-        if CRfFunc == AUTO:
-            CRfFunc = not bool(self.screen_data[page_index].get('RfDone'))
-        
-        if CRfFunc:
-            try:
-                RfFunc()
-            except Exception as E:
-                log(LoggingLevel.ERROR, f'Failed to run RFFunc for index {page_index}.\nError: {E}\n{traceback.format_exc()}')
-                return False
-
-        for (oFrame, _) in mapper.values():
-            oFrame.pack_forget()
-
-        frame.pack(fill=tk.BOTH, expand=True)
-        return True
-
-    def LFC_browse(self) -> None:
-        pass
+    def setup_page(self, page_index: int) -> bool:
+        return False
 
     def run(self) -> None:
         global APP_TITLE
@@ -227,8 +140,9 @@ class _UI(Thread):
         self.title.config(text='Quizzing Form', anchor=tk.W, justify=tk.LEFT)
         self.title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
 
-        self.pageSetup(self.LOGIN_PAGE)
+        self.setup_page(self.LOGIN_PAGE)
         self.update_ui()
+        
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 

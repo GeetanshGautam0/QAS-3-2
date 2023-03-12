@@ -19,7 +19,7 @@ class ConfigurationFile:
 
     if not os.path.exists(name):
         qa_err.raise_error(FileNotFoundError, ["Main configuration file not found"], qa_enum.ErrorLevels.FATAL)
-        sys.exit(qa_enum.ExitCodes.GENERAL_ERROR)
+        sys.exit(int(qa_enum.ExitCodes.GENERAL_ERROR.value))
 
     try:
         with open(name, 'r') as file:
@@ -29,7 +29,7 @@ class ConfigurationFile:
 
     except Exception as E:
         qa_err.raise_error(E.__class__, [str(E)], qa_enum.ErrorLevels.FATAL, traceback.format_exc())
-        sys.exit(qa_enum.ExitCodes.GENERAL_ERROR)
+        sys.exit(int(qa_enum.ExitCodes.GENERAL_ERROR.value))
 
     completed = True
 

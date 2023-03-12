@@ -602,7 +602,7 @@ class _UI(Thread):
 
         self.enable_all_inputs()
 
-    def insert_into_lb(self, string: str, bg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG, fg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sbg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.ACCENT, sfg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG) -> None:
+    def insert_into_lb(self, string: str, bg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG, fg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sbg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.FG, sfg: Union[str, ThemeUpdateVars] = ThemeUpdateVars.BG) -> None:
         string = string.replace('\t', '     ')
         self.activity_box.insert(tk.END, string)
 
