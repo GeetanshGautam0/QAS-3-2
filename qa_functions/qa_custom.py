@@ -23,7 +23,7 @@ class HexColor:
 
     def check(self) -> Union[str, None]:
         res = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', self.color)
-        return cast(str, res) if res is not None else None
+        return str(res) if res is not None else None
 
 
 # Data Classes

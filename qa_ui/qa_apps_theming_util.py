@@ -904,7 +904,7 @@ class _UI(Thread):
                         ins.append(dn)
 
                     elif comp_theme_dict in e2:
-                        it.append((f"{fn}: {theme_data.theme_code}", e3[e2.index(cast(Dict[str, object], comp_theme_dict))][0]))
+                        it.append((f"{fn}: {theme_data.theme_code}", e3[e2.index(cast(Dict[str, Union[str, Any]], comp_theme_dict))][0]))
 
                     else:
                         if fn not in to_install:

@@ -31,7 +31,7 @@ jobs:
           }
       - name: MyPy Tests
         run: |
-          mypy .
+          mypy . --pretty
       - name: MyPy Advanced
         run: |
           mypy --disallow-untyped-defs --disallow-incomplete-defs --check-untyped-defs --no-implicit-optional --warn-redundant-casts --warn-return-any --disallow-untyped-globals --allow-redefinition --show-error-context --show-column-numbers --show-error-codes --pretty --disallow-any-generics .
