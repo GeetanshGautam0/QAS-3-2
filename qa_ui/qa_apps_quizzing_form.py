@@ -170,24 +170,26 @@ class _UI(Thread):
             log(LoggingLevel.ERROR, f'QuizzingForm.SetupPage: page_index out of range ({page_index})')
             return False
 
+        self.next_frame.config(state=tk.NORMAL if not (self.current_page == self.SUMMARY_PAGE) else tk.DISABLED)
+        self.prev_frame.config(state=tk.NORMAL if not (self.current_page == self.LOGIN_PAGE) else tk.DISABLED)
+
         def setup_login_frame() -> None:
-            pass
+            return
 
         def check_login_frame() -> Tuple[bool, int, List[str]]:
-            0/0
-            return False, 1, ['Hello, world! This is an error string. This should be seen when pressing the "next" button. Im just tryna increase the size of this str.']
+            return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
 
         def setup_config_frame() -> None:
-            pass
+            return
 
         def check_config_frame() -> Tuple[bool, int, List[str]]:
-            pass
+            return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
 
         def setup_summary_frame() -> None:
-            pass
+            return
 
         def check_summary_frame() -> Tuple[bool, int, List[str]]:
-            pass
+            return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
 
         page_map = {
             self.LOGIN_PAGE: {
@@ -212,17 +214,16 @@ class _UI(Thread):
 
         log(LoggingLevel.INFO, f'Current frame: {page_index} - {page_map[page_index]["IKey"]}. Running checks')
 
-        Fn0, Fn1 = page_map[page_index]['Fn0'], page_map[page_index]['Fn1']
+        Fn0, Fn1 = page_map[self.current_page]['Fn0'], page_map[page_index]['Fn1']
 
-        passed, n_errors, errors = cast(Tuple[bool, int, List[str]], Fn0())  # type: ignore
+        passed, n_errors, errors = Fn0()  # type: ignore
 
         if not passed:
-            log(LoggingLevel.ERROR, 'Failed to fulfill page change request; N Errors: {n_errors}')
+            log(LoggingLevel.ERROR, f'Failed to fulfill page change request; N Errors: {n_errors}; {errors}')
             self.set_error_text(errors[0], 5)
+            return False
 
         log(LoggingLevel.INFO, f'Request made to change page to {page_index} (ID): {page_map[page_index]["IKey"]} (GSUID)')
-
-        self.set_error_text('QuizzingForm.SetupPage: Fn node not defined', 3)
 
         self.current_page = page_index
         return True
