@@ -115,7 +115,9 @@
     "qa_ui/qa_prompts.py": "qa_ui/qa_prompts.py",
     "qa_ui/qa_splash.py": "qa_ui/qa_splash.py",
     "qa_ui/qa_adv_forms/__init__.py": "qa_ui/qa_adv_forms/__init__.py",
-    "qa_ui/qa_adv_forms/qa_form_q_edit.py": "qa_ui/qa_adv_forms/qa_form_q_edit.py"
+    "qa_ui/qa_adv_forms/qa_form_q_edit.py": "qa_ui/qa_adv_forms/qa_form_q_edit.py",
+    "qa_gem/qa_global_error_manager.py": "qa_gem/qa_global_error_manager.py",
+    "qa_gem/__init__.py": "qa_gem/__init__.py"
   },
 
   "FONTS": {

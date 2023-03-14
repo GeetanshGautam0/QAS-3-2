@@ -1,4 +1,5 @@
-import sys, traceback, click, datetime, qa_functions, subprocess, os
+import traceback, click, datetime, qa_functions, subprocess, os
+from qa_gem import qa_global_error_manager as master_error_manager
 from qa_functions.qa_std import *
 from qa_functions.qa_custom import InvalidCLIArgument
 from tkinter import messagebox
@@ -7,6 +8,7 @@ from threading import Thread
 from qa_installer_functions.addons_installer import RunAddonsInstaller
 
 
+LOGGING_FILE_NAME = datetime.datetime.now().strftime('%b %d, %Y %H-%M-%S')
 _bg_window: Union[None, tk.Tk] = None
 SPLASH: Union[None, qa_splash.Splash] = None
 
@@ -62,7 +64,15 @@ class _Run(Thread):
             pass
 
         if self.tokens['weakhandling']:
-            messagebox.showerror('Error', f"(WeakHandling) The application's UI has encountered an unhandled error. More info:\n\n{val}\n\n{traceback.format_exc()}")
+            tb = traceback.format_exc()
+
+            master_error_manager.InvokeException(
+                master_error_manager.ExceptionObject(master_error_manager.ExceptionCodes.INTERNAL_ERROR),
+                'ApplicationCrashError(Tk/Tcl)', f'Uncaught exception event (Tk/Tcl) => Error (AIM report) !? WeakHandling Enabled.\n\n', tb, offset=10
+            )
+
+            messagebox.showerror('Error', f"(WeakHandling) The application's UI has encountered an unhandled error. More info:\n\n{val}\n\n{tb}")
+
             try:
                 if isinstance(SPLASH, qa_splash.Splash):
                     qa_splash.show(SPLASH)
@@ -70,7 +80,16 @@ class _Run(Thread):
                 pass
 
         else:
-            messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{traceback.format_exc()}")
+            tb = traceback.format_exc()
+
+            stderr(f'\n{"*"*10}\n\nApplication Instance Manager (AIM) Log:\n==>\tWARN @ Application crashed\n\n{"*"*10}\n')
+
+            master_error_manager.InvokeException(
+                master_error_manager.ExceptionObject(master_error_manager.ExceptionCodes.INTERNAL_ERROR),
+                'ApplicationCrashError(Tk/Tcl)', f'Uncaught exception event (Tk/Tcl) => Crash (AIM report).\n\n', tb, offset=10
+            )
+
+            messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{tb}")
             sys.exit('AIM_TK_CRASH')
 
     def call(self) -> Union[None, tk.Tk, tk.Toplevel]:
@@ -107,7 +126,7 @@ class _ApplicationInstanceManager:
         self.shell = _bg_window
 
     def run(self) -> None:
-        global _application_map, _bg_window, SPLASH, BOOT_STEPS, _title_map
+        global _application_map, _bg_window, SPLASH, BOOT_STEPS, _title_map, LOGGING_FILE_NAME
 
         try:
             if self.name not in _application_map:
@@ -125,7 +144,7 @@ class _ApplicationInstanceManager:
                     Script.DEBUG_NORM = self.tokens['debug_all'] or self.tokens['debug_dev']            # type: ignore
                     Script.LOGGER_AVAIL = True                                                          # type: ignore
                     Script.LOGGER_FUNC = qa_functions.NormalLogger                                      # type: ignore
-                    Script.LOGGING_FILE_NAME = datetime.datetime.now().strftime('%b %d, %Y %H-%M-%S')   # type: ignore
+                    Script.LOGGING_FILE_NAME = LOGGING_FILE_NAME                                        # type: ignore
 
             if isinstance(SPLASH, qa_splash.Splash):
                 qa_splash.update_step(SPLASH, 5, BOOT_STEPS)
@@ -297,6 +316,9 @@ def check_for_updates() -> None:
 
 
 if __name__ == "__main__":
+    master_error_manager.LOGGING_FILE_NAME = LOGGING_FILE_NAME
+    master_error_manager.RedirectExceptionHandler()
+
     _bg_window = tk.Tk()
     _bg_window.withdraw()
 

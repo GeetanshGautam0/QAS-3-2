@@ -1,4 +1,4 @@
-import wcag_contrast_ratio, tkinter as tk, time, random, hashlib, re
+import wcag_contrast_ratio, tkinter as tk, time, random, hashlib, re, sys
 from tkinter import messagebox
 from shared_memory_dict import SharedMemoryDict
 from .qa_custom import HexColor, File, ConverterFunctionArgs, UnexpectedEdgeCase
@@ -6,6 +6,7 @@ from .qa_enum import ErrorLevels
 from .qa_err import raise_error
 from .qa_info import App
 from typing import *
+from enum import Enum
 
 
 HTTP_HEADERS_NO_CACHE = {'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'}
@@ -706,3 +707,44 @@ def flatten_list(ls: Union[List[Any], Tuple[Any, ...], Set[Any]], *additional_fu
             new_fls.append(i)
 
         return new_fls
+
+
+def stdout(*data: Any, delim: str = ' ', end: str = '\n') -> None:
+    """
+    Convenient way of calling sys.stdout
+
+    :param data: Data to log (any)
+    :param delim: Character(s) that split the data (string)
+    :param end: End character
+    :return: None
+    """
+
+    sys.stdout.write(delim.join(str(d) for d in data) + '\n')
+
+
+def stderr(*data: Any, delim: str = ' ', end: str = '\n') -> None:
+    """
+    Convenient way of calling sys.stderr
+
+    :param data: Data to log (any)
+    :param delim: Character(s) that split the data (string)
+    :param end: End character
+    :return: None
+    """
+
+    sys.stderr.write(delim.join(str(d) for d in data) + '\n')
+
+
+class ExceptionCodes(Enum):
+    (
+        BASE_EXCEPTION,
+        ARGUMENT_TYPE_ERROR,
+        CONFIG_ERROR,
+        FILE_NOT_FOUND_ERROR,
+        FILE_RELATED_ERROR,
+        ATTRIBUTE_ERROR,
+        VALUE_ERROR,
+        INTERNAL_ERROR,
+        ARITHMETIC_ERROR, ZERO_DIVISION_ERROR
+    ) = range(10)
+

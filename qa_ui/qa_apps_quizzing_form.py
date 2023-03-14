@@ -4,13 +4,15 @@ from .qa_prompts import gsuid, configure_scrollbar_style
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
 from qa_functions.qa_std import ANSI, AppLogColors
 from qa_functions.qa_custom import HexColor
-from threading import Thread
+from qa_functions.qa_colors import Functions as ColorFunctions
+from threading import Thread, Timer
 from tkinter import ttk
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
 from ctypes import windll
+from time import sleep
 from typing import *
 
 
@@ -44,6 +46,7 @@ class _UI(Thread):
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
         self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}  # type: ignore
+        self.active_jobs = {}  # type: ignore
 
         self.padX = 20
         self.padY = 10
@@ -56,7 +59,7 @@ class _UI(Thread):
         self.load_theme()
         self.update_requests: Dict[str, List[Any]] = {}  # type: ignore
         self.late_update_requests: Dict[tk.Widget, List[Any]] = {}  # type: ignore
-        self.data: Dict[Any, Any] = {}  # type: ignore
+        self.data: Dict[Any, Any] = {'GLOBAL': {}}  # type: ignore
 
         self.img_path = qa_functions.Files.QF_png
         self.img_size = (75, 75)
@@ -106,8 +109,26 @@ class _UI(Thread):
         self.config_frame = tk.Frame(self.main_frame)
         self.summary_frame = tk.Frame(self.main_frame)
 
-        self.next_frame = ttk.Button(self.root, text='Next Step \u2b9e', style='QuizzingApp.QuizzingForm.root.NextFrameBtn')
-        self.prev_frame = ttk.Button(self.root, text='Previous Step \u2b9c', style='QuizzingApp.QuizzingForm.root.PrevFrameBtn')
+        self.login_frame_gsuid = gsuid('QuizzingForm.PageMap<GSUID>')
+        self.config_frame_gsuid = gsuid('QuizzingForm.PageMap<GSUID>')
+        self.summary_frame_gsuid = gsuid('QuizzingForm.PageMap<GSUID>')
+
+        self.nav_btn_frame = tk.Frame(self.root)
+        self.next_frame = ttk.Button(self.nav_btn_frame, text='Next Step \u2b9e', style='MyQuizzingApp.QFormRoot.TButton', command=self.proceed)
+        self.prev_frame = ttk.Button(self.nav_btn_frame, text='\u2b9c Previous Step', style='MyQuizzingApp.QFormRoot.TButton', command=self.go_back)
+
+        self.error_label = tk.Label(self.main_frame)
+
+        # Login
+        self.first_name, self.last_name, self.ID, self.psw = \
+            tk.StringVar(self.root), tk.StringVar(self.root), tk.StringVar(self.root), tk.StringVar(self.root)
+
+        self.first_name_field = ttk.Entry(self.login_frame, textvariable=self.first_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.last_name_field = ttk.Entry(self.login_frame, textvariable=self.last_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.ID_field = ttk.Entry(self.login_frame, textvariable=self.ID, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.password_field = ttk.Entry(self.login_frame, textvariable=self.psw, style='MyQuizzingApp.QFormLogin.TEntry')
+
+        self.login_title = tk.Label(self.login_frame)
 
         self.start()
         self.root.deiconify()
@@ -115,14 +136,96 @@ class _UI(Thread):
         self.root.mainloop()
 
     def close(self) -> None:
+        if self.data.get('GLOBAL', {}).get('Attr_', {}).get('Animating.PauseClose.Set', False):
+            log(LoggingLevel.WARNING, 'QuizzingForm.CLOSE: Flag Animating.PauseClose.Set is active; re-executing close fn after 0.1s')
+            Timer(0.1, self.close).start()
+            return
+
+        for _, timer in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
+            cast(Timer, timer).cancel()
+
         sys.stdout.write("qf - _UI.close")
         self.ic.shell = self.ds
         self.ic.shell_ready = False
 
         self.root.after(0, self.root.quit)
 
+    def proceed(self) -> None:
+        if self.current_page == self.SUMMARY_PAGE:
+            return
+
+        self.setup_page(self.current_page + 1)
+
+    def go_back(self) -> None:
+        if self.current_page == self.LOGIN_PAGE:
+            return
+
+        self.setup_page(self.current_page - 1)
+
     def setup_page(self, page_index: int) -> bool:
-        return False
+        if not isinstance(page_index, int):
+            log(LoggingLevel.ERROR, f'QuizzingForm.SetupPage: page_index is not an integer ({type(page_index)}')
+
+        if not (self.LOGIN_PAGE <= page_index <= self.SUMMARY_PAGE):
+            log(LoggingLevel.ERROR, f'QuizzingForm.SetupPage: page_index out of range ({page_index})')
+            return False
+
+        def setup_login_frame() -> None:
+            pass
+
+        def check_login_frame() -> Tuple[bool, int, List[str]]:
+            0/0
+            return False, 1, ['Hello, world! This is an error string. This should be seen when pressing the "next" button. Im just tryna increase the size of this str.']
+
+        def setup_config_frame() -> None:
+            pass
+
+        def check_config_frame() -> Tuple[bool, int, List[str]]:
+            pass
+
+        def setup_summary_frame() -> None:
+            pass
+
+        def check_summary_frame() -> Tuple[bool, int, List[str]]:
+            pass
+
+        page_map = {
+            self.LOGIN_PAGE: {
+                'IKey': self.login_frame_gsuid,
+                'ParentFrame': self.login_frame,
+                'Fn1': setup_login_frame,
+                'Fn0': check_login_frame,
+            },
+            self.CONFIGURATION_PAGE: {
+                'IKey': self.login_frame_gsuid,
+                'ParentFrame': self.config_frame,
+                'Fn1': setup_config_frame,
+                'Fn0': check_config_frame,
+            },
+            self.SUMMARY_PAGE: {
+                'IKey': self.login_frame_gsuid,
+                'ParentFrame': self.summary_frame,
+                'Fn1': setup_summary_frame,
+                'Fn0': check_summary_frame,
+            }
+        }
+
+        log(LoggingLevel.INFO, f'Current frame: {page_index} - {page_map[page_index]["IKey"]}. Running checks')
+
+        Fn0, Fn1 = page_map[page_index]['Fn0'], page_map[page_index]['Fn1']
+
+        passed, n_errors, errors = cast(Tuple[bool, int, List[str]], Fn0())  # type: ignore
+
+        if not passed:
+            log(LoggingLevel.ERROR, 'Failed to fulfill page change request; N Errors: {n_errors}')
+            self.set_error_text(errors[0], 5)
+
+        log(LoggingLevel.INFO, f'Request made to change page to {page_index} (ID): {page_map[page_index]["IKey"]} (GSUID)')
+
+        self.set_error_text('QuizzingForm.SetupPage: Fn node not defined', 3)
+
+        self.current_page = page_index
+        return True
 
     def run(self) -> None:
         global APP_TITLE
@@ -140,11 +243,77 @@ class _UI(Thread):
         self.title.config(text='Quizzing Form', anchor=tk.W, justify=tk.LEFT)
         self.title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
 
-        self.setup_page(self.LOGIN_PAGE)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, pady=self.padY)
+        self.nav_btn_frame.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
+
+        self.error_label.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0), side=tk.BOTTOM)
+
+        self.next_frame.pack(fill=tk.X, expand=True, side=tk.RIGHT)
+        self.prev_frame.pack(fill=tk.X, expand=True, side=tk.LEFT)
+
+        self.inputs.extend([self.next_frame, self.prev_frame])
+        self.update_requests[gsuid()] = [self.main_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gsuid()] = [self.nav_btn_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests[gsuid()] = [self.error_label, ThemeUpdateCommands.CUSTOM, [
+            lambda *args: self.error_label.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=(args[4] - args[5])),
+            ThemeUpdateVars.BG, ThemeUpdateVars.ERROR, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL,
+            ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'padX')
+        ]]
+
         self.update_ui()
+
+        # Start the app
+        assert self.setup_page(self.LOGIN_PAGE), 'failed to setup LOGIN page'
+
+    def set_error_text(self, text: str, timeout_seconds: float) -> None:
+        assert 1 <= timeout_seconds <= 60, 'Timeout delay must be between 1 and 60 seconds (incl.)'
+
+        text = f'\u26a0 {text.strip()}'
+        self.error_label.config(text=text)
+
+        # Start timeout
+        K = 'Jobs.SetErrorText.Timers'
+        timers = self.active_jobs.get(K, {})
+        for _, timer in timers.items():
+            timer.cancel()
+
+        uid = gsuid('SET.Timers')
+        timer = Timer(timeout_seconds, lambda: self._clear_error_text(uid))
+        self.active_jobs[K] = {uid: timer}
+        timer.start()
+
+    def _clear_error_text(self, timer_uid: Optional[str] = None) -> None:
+        if len(self.error_label.cget('text').strip()) <= 0: return
+
+        self.data['GLOBAL'] = self.data.get('GLOBAL', {'Attr_'})
+        self.data['GLOBAL']['Attr_'] = self.data['GLOBAL'].get('Attr_', {})
+        self.data['GLOBAL']['Attr_']['Animating.PauseClose.Set'] = True
+
+        # Fade out
+        gradient = ColorFunctions.fade(self.theme_update_map[ThemeUpdateVars.ERROR].color, self.theme_update_map[ThemeUpdateVars.BG].color)  # type: ignore
+        for stage in gradient:
+            self.error_label.config(fg=stage)
+
+            for i in range(int(3e5)): continue   # <.1s delay
+
+        self.error_label.config(text='', fg=self.theme_update_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+
+        self.data['GLOBAL']['Attr_']['Animating.PauseClose.Set'] = False
+
+        # Timer handler
+        if isinstance(timer_uid, str) and timer_uid in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).keys():
+            self.active_jobs['Jobs.SetErrorText.Timers'].pop(timer_uid)
 
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
+
+        for timer_uid, timer in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
+            try:
+                timer.cancel()
+            except Exception as E:
+                log(LoggingLevel.WARNING, f'Failed to cancel Jobs.SetErrorText.Timer {timer_uid}: {E} {str(E)}')
+
+        self._clear_error_text()
 
         self.window_size = [self.root.winfo_width(), self.root.winfo_height()]
         self.screen_pos = [self.root.winfo_x(), self.root.winfo_y()]
@@ -218,6 +387,9 @@ class _UI(Thread):
 
                 if isinstance(cleaned_args[index], qa_functions.HexColor):
                     cleaned_args[index] = cleaned_args[index].color
+
+            if 'logArgs' in elID:
+                print('UPDATE_UI LOG_ARGS', cleaned_args)
 
             if command == ThemeUpdateCommands.BG:  # Background
                 if len(cleaned_args) == 1:

@@ -2,3 +2,9 @@
 testpaths=[
     "qa_auto_tests",
 ]
+
+[tool.mypy]
+exclude = [
+    "venv",
+    "./qa_gem"
+]
