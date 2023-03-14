@@ -894,8 +894,7 @@ class _UI(Thread):
                 avail_themes = {**theme_json['file_info']['avail_themes']}
                 avail_themes.pop('num_themes')
 
-                print('@', theme_json, avail_themes)
-                all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes, _pr=True)
+                all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes, _pr=False)
 
                 it, ins = [], []
 
@@ -903,7 +902,6 @@ class _UI(Thread):
                     theme_name, theme_data = ((*td.keys(),)[0], (*td.values(),)[0])
 
                     comp_theme_dict = gen_cmp_theme_dict(theme_data)
-                    print('c', comp_theme_dict)
 
                     dn = f"{theme_data.theme_file_display_name}: {theme_data.theme_display_name}"
 
@@ -1002,7 +1000,6 @@ Technical Information:
             )
             installed.append(f"{install_dir}\\{filename}")
 
-        print('installed', installed)
         self.enable_all_inputs()
         return installed
 
