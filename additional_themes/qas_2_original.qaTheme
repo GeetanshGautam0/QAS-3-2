@@ -17,6 +17,7 @@
         "ok": "#138811",
         "gray": "#5C5C5C",
         "font": {
+            "title_font_face": "Century Gothic Bold",
             "font_face": "Century Gothic",
             "alt_font_face": "Century Gothic",
             "size_small": 10,

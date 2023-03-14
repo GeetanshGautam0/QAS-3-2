@@ -116,6 +116,7 @@ class _UI(Thread):
 
         self.showcase_primary_font = ttk.Button(self.showcase_primary, command=self.prim_font)
         self.showcase_alt_font = ttk.Button(self.showcase_alt, command=self.alt_font)
+        self.showcase_title_font = ttk.Button(self.showcase_primary, command=self.title_font)
 
         self.showcase_fp_1 = tk.Button(self.showcase_primary)
         self.showcase_fp_2 = tk.Button(self.showcase_primary)
@@ -411,6 +412,7 @@ class _UI(Thread):
         )
 
         self.showcase_primary_font.config(text=f"Primary Font: {self.theme.font_face}")
+        self.showcase_title_font.config(text=f"Title Font: {self.theme.title_font_face}")
         self.showcase_alt_font.config(text=f"Alternative Font: {self.theme.font_alt_face}")
 
         self.showcase_ap_1.config(text=f"Small: {self.theme.font_small_size}")
@@ -527,6 +529,7 @@ class _UI(Thread):
             ThemeUpdateVars.FONT_SIZE_XL_TITLE: self.theme.font_xl_title_size,
             ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
             ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
+            ThemeUpdateVars.TITLE_FONT_FACE: self.theme.title_font_face,
         }
 
     def run(self) -> None:
@@ -665,6 +668,7 @@ class _UI(Thread):
         self.showcase_alt.pack(fill=tk.BOTH, expand=True)
 
         self.showcase_primary_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0), padx=self.padX)
+        self.showcase_title_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0), padx=self.padX)
         self.showcase_alt_font.pack(fill=tk.X, expand=False, pady=(self.padY, 0), padx=self.padX)
 
         self.showcase_primary.config(text="Primary Font")
@@ -1366,6 +1370,9 @@ Technical Information:
                 new_theme.okay = change
             elif change_key == TUV.BORDER_COLOR:
                 new_theme.border_color = change
+            else:
+                raise UnexpectedEdgeCase('0xa981')
+
         elif type(change) in (int, float):
             if change_key == TUV.FONT_SIZE_SMALL:
                 new_theme.font_small_size = cast(Union[float, int], change)
@@ -1379,18 +1386,26 @@ Technical Information:
                 new_theme.font_xl_title_size = cast(Union[float, int], change)
             elif change_key == TUV.BORDER_SIZE:
                 new_theme.border_size = cast(Union[float, int], change)
+            else:
+                raise UnexpectedEdgeCase('0xa982')
+
         elif isinstance(change, str):
             if change_key == TUV.DEFAULT_FONT_FACE:
                 new_theme.font_face = change
             elif change_key == TUV.ALT_FONT_FACE:
                 new_theme.font_alt_face = change
+            elif change_key == TUV.TITLE_FONT_FACE:
+                new_theme.title_font_face = change
+            else:
+                raise UnexpectedEdgeCase('0xa983')
+
         else:
-            raise UnexpectedEdgeCase
+            raise UnexpectedEdgeCase('0xa980')
 
         if gen_cmp_theme_dict(new_theme) != gen_cmp_theme_dict(self.theme):
             self.update_ui(new_theme)
         else:
-            sys.stdout.write("no changes in theme\n")
+            sys.stderr.write("no changes in theme\n")
 
         self.enable_all_inputs()
 
@@ -1404,6 +1419,11 @@ Technical Information:
         raw = s_mem.get()
         assert isinstance(raw, str)
         return None if raw.strip() == '0' else raw
+
+    def title_font(self) -> None:
+        new_font = self.font_picker()
+        if isinstance(new_font, str):
+            self.preview_change(ThemeUpdateVars.TITLE_FONT_FACE, new_font)
 
     def prim_font(self) -> None:
         new_font = self.font_picker()
@@ -1468,7 +1488,8 @@ def clone_theme(theme_data: qa_functions.Theme) -> qa_functions.Theme:
         gray=theme_data.gray, error=theme_data.error, warning=theme_data.warning, okay=theme_data.okay,
         font_face=theme_data.font_face, font_alt_face=theme_data.font_alt_face, font_small_size=theme_data.font_small_size,
         font_main_size=theme_data.font_main_size, font_large_size=theme_data.font_large_size, font_title_size=theme_data.font_title_size,
-        font_xl_title_size=theme_data.font_xl_title_size, border_size=theme_data.border_size, border_color=theme_data.border_color
+        font_xl_title_size=theme_data.font_xl_title_size, border_size=theme_data.border_size, border_color=theme_data.border_color,
+        title_font_face=theme_data.title_font_face
     )
 
 
@@ -1481,6 +1502,7 @@ def gen_cmp_theme_dict(theme_data: Theme) -> Dict[str, Union[int, float, str]]:
         'warning': theme_data.warning.color.upper(),
         'okay': theme_data.okay.color.upper(),
         'gray': theme_data.gray.color.upper(),
+        'fft': theme_data.title_font_face.upper(),
         'ff': theme_data.font_face.upper(),
         'faf': theme_data.font_alt_face.upper(),
         'fss': theme_data.font_small_size,

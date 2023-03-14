@@ -96,8 +96,10 @@ class _UI(Thread):
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_main_size, 'My')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_large_size, 'MyLarge')
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
-           
-        self.title = tk.Label(self.root)
+
+        self.title_box = tk.Frame(self.root)
+        self.title_img = tk.Label(self.title_box)
+        self.title_txt = tk.Label(self.title_box)
 
         self.screen_data: Dict[int, Dict[Any, Any]] = {}
         [self.LOGIN_PAGE, self.CONFIGURATION_PAGE, self.SUMMARY_PAGE] = range(3)
@@ -123,12 +125,22 @@ class _UI(Thread):
         self.first_name, self.last_name, self.ID, self.psw = \
             tk.StringVar(self.root), tk.StringVar(self.root), tk.StringVar(self.root), tk.StringVar(self.root)
 
-        self.first_name_field = ttk.Entry(self.login_frame, textvariable=self.first_name, style='MyQuizzingApp.QFormLogin.TEntry')
-        self.last_name_field = ttk.Entry(self.login_frame, textvariable=self.last_name, style='MyQuizzingApp.QFormLogin.TEntry')
-        self.ID_field = ttk.Entry(self.login_frame, textvariable=self.ID, style='MyQuizzingApp.QFormLogin.TEntry')
-        self.password_field = ttk.Entry(self.login_frame, textvariable=self.psw, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.left_cont = tk.Frame(self.login_frame)
+        self.right_cont = tk.Frame(self.login_frame)
 
-        self.login_title = tk.Label(self.login_frame)
+        self.login_page_title = tk.Label(self.left_cont)
+
+        self.ID_cont = tk.LabelFrame(self.right_cont, text='About You')
+        self.ID_name_frame = tk.Frame(self.ID_cont)
+        self.first_name_lbl = tk.Label(self.ID_name_frame, text='First Name')
+        self.last_name_lbl = tk.Label(self.ID_name_frame, text='Last Name')
+        self.first_name_field = ttk.Entry(self.ID_name_frame, textvariable=self.first_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.last_name_field = ttk.Entry(self.ID_name_frame, textvariable=self.last_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.ID_lbl = tk.Label(self.ID_cont, text='Unique ID Number')
+        self.ID_field = ttk.Entry(self.ID_cont, textvariable=self.ID, style='MyQuizzingApp.QFormLogin.TEntry')
+
+        self.database_frame = tk.LabelFrame(self.right_cont)
+        self.select_database_btn = ttk.Button(self.database_frame)
 
         self.start()
         self.root.deiconify()
@@ -174,7 +186,8 @@ class _UI(Thread):
         self.prev_frame.config(state=tk.NORMAL if not (self.current_page == self.LOGIN_PAGE) else tk.DISABLED)
 
         def setup_login_frame() -> None:
-            return
+            self.left_cont.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+            self.right_cont.pack(fill=tk.BOTH, side=tk.RIGHT, expand=True)
 
         def check_login_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
@@ -216,7 +229,11 @@ class _UI(Thread):
 
         Fn0, Fn1 = page_map[self.current_page]['Fn0'], page_map[page_index]['Fn1']
 
-        passed, n_errors, errors = Fn0()  # type: ignore
+        if self.current_page == page_index:
+            passed, n_errors, error = True, 0, []  # type: ignore
+
+        else:
+            passed, n_errors, errors = Fn0()  # type: ignore
 
         if not passed:
             log(LoggingLevel.ERROR, f'Failed to fulfill page change request; N Errors: {n_errors}; {errors}')
@@ -225,6 +242,7 @@ class _UI(Thread):
 
         log(LoggingLevel.INFO, f'Request made to change page to {page_index} (ID): {page_map[page_index]["IKey"]} (GSUID)')
 
+        Fn1()  # type: ignore
         self.current_page = page_index
         return True
 
@@ -237,12 +255,18 @@ class _UI(Thread):
         self.root.geometry('%s+%s' % ('x'.join(str(d) for d in self.window_size), '+'.join(str(d) for d in self.screen_pos)))
 
         self.update_requests['QFRoot'] = [self.root, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
-        self.update_requests['QFTitleBG'] = [self.title, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
-        self.update_requests['QFTitleFG'] = [self.title, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
-        self.update_requests['QFTitleFont'] = [self.title, ThemeUpdateCommands.FONT, [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_XL_TITLE]]
+        self.update_requests['QFTitleBox'] = [self.title_box, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['QFTitleBG'] = [self.title_txt, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['QFTitleFG'] = [self.title_txt, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
+        self.update_requests['QFTitleFont'] = [self.title_txt, ThemeUpdateCommands.FONT, [ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_XL_TITLE]]
+        self.update_requests['QFTitleImgBG'] = [self.title_img, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
-        self.title.config(text='Quizzing Form', anchor=tk.W, justify=tk.LEFT)
-        self.title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.TOP)
+        self.title_box.pack(fill=tk.X, expand=False, pady=self.padY, side=tk.TOP)
+        self.title_img.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
+        self.title_img.config(image=cast(str, self.svgs['qf']))
+        self.title_img.pack(fill=tk.X, expand=False, padx=(self.padX, self.padX / 8), pady=self.padY, side=tk.LEFT)
+        self.title_txt.config(text='Quizzing Form', anchor=tk.W, justify=tk.LEFT)
+        self.title_txt.pack(fill=tk.X, expand=False, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.LEFT)
 
         self.main_frame.pack(fill=tk.BOTH, expand=True, pady=self.padY)
         self.nav_btn_frame.pack(fill=tk.X, expand=False, side=tk.BOTTOM)
@@ -260,6 +284,7 @@ class _UI(Thread):
             ThemeUpdateVars.BG, ThemeUpdateVars.ERROR, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL,
             ('<LOOKUP>', 'root_width'), ('<LOOKUP>', 'padX')
         ]]
+        self.update_requests[gsuid()] = [self.right_cont, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
 
         self.update_ui()
 
@@ -888,6 +913,7 @@ class _UI(Thread):
             ThemeUpdateVars.FONT_SIZE_XL_TITLE: self.theme.font_xl_title_size,
             ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
             ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
+            ThemeUpdateVars.TITLE_FONT_FACE: self.theme.title_font_face,
         }
 
     def load_png(self) -> None:

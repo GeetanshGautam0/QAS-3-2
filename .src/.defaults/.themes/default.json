@@ -24,6 +24,7 @@
     "gray":           "#5C5C5C",
 
     "font": {
+      "title_font_face":  "Montserrat Semibold",
       "font_face":        "Montserrat",
       "alt_font_face":    "Consolas",
 
@@ -54,6 +55,7 @@
     "gray":           "#929292",
 
     "font": {
+      "title_font_face":  "Montserrat Semibold",
       "font_face":        "Montserrat",
       "alt_font_face":    "Consolas",
 

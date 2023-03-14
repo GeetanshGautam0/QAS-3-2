@@ -19,6 +19,7 @@
         "warning": "#000000",
         "ok": "#000000",
         "font": {
+            "title_font_face":  "Segoe UI Bold",
             "font_face":        "Segoe UI Semibold",
             "alt_font_face":    "Century Gothic",
 
@@ -43,6 +44,7 @@
         "warning": "#ffffff",
         "ok": "#ffffff",
         "font": {
+            "title_font_face":  "Segoe UI Bold",
             "font_face":        "Segoe UI Semibold",
             "alt_font_face":    "Century Gothic",
 
@@ -67,6 +69,7 @@
         "warning": "#ffc65c",
         "ok": "#cbdf90",
         "font": {
+            "title_font_face":  "Montserrat Semibold",
             "font_face":        "Montserrat",
             "alt_font_face":    "Century Gothic",
 

@@ -310,7 +310,8 @@ class MessagePrompts:
                 ThemeUpdateVars.FONT_SIZE_MAIN: self.theme.font_main_size,
                 ThemeUpdateVars.FONT_SIZE_SMALL: self.theme.font_small_size,
                 ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
-                ThemeUpdateVars.BORDER_COLOR: self.theme.border_color
+                ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
+                ThemeUpdateVars.TITLE_FONT_FACE: self.theme.title_font_face,
             }
 
         def run(self) -> None:

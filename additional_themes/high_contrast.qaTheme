@@ -17,6 +17,7 @@
         "ok": "#00FF00",
         "gray": "#949494",
         "font": {
+            "title_font_face":  "Courier New Bold",
             "font_face": "Courier New",
             "alt_font_face": "Consolas",
             "size_small": 12,

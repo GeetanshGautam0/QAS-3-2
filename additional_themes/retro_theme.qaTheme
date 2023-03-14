@@ -17,6 +17,7 @@
         "ok": "#00FF00",
         "gray": "#949494",
         "font": {
+            "title_font_face": "Terminal",
             "font_face": "Terminal",
             "alt_font_face": "Courier",
             "size_small": 10,

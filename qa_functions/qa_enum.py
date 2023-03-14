@@ -69,6 +69,7 @@ class ThemeUpdateVars(Enum):
 
     GRAY = 16
 
+    TITLE_FONT_FACE = 17
     DEFAULT_FONT_FACE = 6
     ALT_FONT_FACE = 7
 

@@ -156,7 +156,7 @@ class Splash(tk.Toplevel):
 
         self.root.config(bg=self.theme.background.color)
         self.frame.config(bg=self.theme.background.color)
-        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.font_face, math.floor(self.theme.font_title_size * 1.1)), anchor=tk.W, justify=tk.LEFT)
+        self.titleLbl.config(bg=self.theme.background.color, font=(self.theme.title_font_face, math.floor(self.theme.font_title_size * 1.1)), anchor=tk.W, justify=tk.LEFT)
         self.infoLbl.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=tk.W, justify=tk.LEFT)
         self.loading_label.config(bg=self.theme.background.color, fg=self.theme.foreground.color, font=(self.theme.font_face, self.theme.font_small_size), anchor=tk.W, justify=tk.LEFT)
 

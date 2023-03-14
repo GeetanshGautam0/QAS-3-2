@@ -446,6 +446,7 @@ class _UI(Thread):
             ThemeUpdateVars.FONT_SIZE_XL_TITLE: self.theme.font_xl_title_size,
             ThemeUpdateVars.BORDER_SIZE: self.theme.border_size,
             ThemeUpdateVars.BORDER_COLOR: self.theme.border_color,
+            ThemeUpdateVars.TITLE_FONT_FACE: self.theme.title_font_face,
         }
 
     def run_all(self) -> None:

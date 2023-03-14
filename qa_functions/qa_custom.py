@@ -51,6 +51,7 @@ class Theme:
     gray:                       HexColor
 
     # Font Faces
+    title_font_face:            str
     font_face:                  str
     font_alt_face:              str
 
