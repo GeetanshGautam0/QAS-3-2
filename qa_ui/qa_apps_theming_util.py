@@ -853,6 +853,7 @@ class _UI(Thread):
                 'okay': exs.okay.color,
                 'gray': exs.gray.color,
                 'ff': exs.font_face,
+                'fft': exs.title_font_face,
                 'faf': exs.font_alt_face,
                 'fss': exs.font_small_size,
                 'fms': exs.font_main_size,
@@ -893,7 +894,8 @@ class _UI(Thread):
                 avail_themes = {**theme_json['file_info']['avail_themes']}
                 avail_themes.pop('num_themes')
 
-                all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes)
+                print('@', theme_json, avail_themes)
+                all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes, _pr=True)
 
                 it, ins = [], []
 
@@ -901,6 +903,7 @@ class _UI(Thread):
                     theme_name, theme_data = ((*td.keys(),)[0], (*td.values(),)[0])
 
                     comp_theme_dict = gen_cmp_theme_dict(theme_data)
+                    print('c', comp_theme_dict)
 
                     dn = f"{theme_data.theme_file_display_name}: {theme_data.theme_display_name}"
 
@@ -920,6 +923,10 @@ class _UI(Thread):
                     raise Exception((("\n\tCouldn't install {} theme(s) from '{}': identical theme(s) already installed.\n\t\tFailed to install the following themes:\n\t\t\t*{}\n".format(str(len(it)), fn, "\n\t\t\t*".join(f"<{a}> = <{b}>" for a, b in it))) if len(it) > 0 else "") + ((("\n" if len(it) > 0 else "") +("\n\tCouldn't install {} theme(s) from '{}': theme with identical names already installed.\n\t\tFailed to install the following themes:\n\t\t\t*{}\n".format(str(len(ins)), fn, "\n\t\t\t*".join(j for j in ins)))) if len(ins) > 0 else ""))
 
             except Exception as E:
+                tb = traceback.format_exc()
+
+                log(LoggingLevel.ERROR, f'QATU-ThemeInstaller: Error x1: {tb}')
+
                 qa_prompts.MessagePrompts.show_error(
                     qa_prompts.InfoPacket(
                         msg=f"""Failed to install theme from file '{fn}'.
@@ -928,7 +935,7 @@ Error: {str(E)}
 Error Code: {hashlib.md5(str(E).encode()).hexdigest()}
 
 Technical Information:
-{traceback.format_exc()}""",
+{tb}""",
                         title="Couldn't Install Theme"
                     )
                 )
@@ -970,6 +977,7 @@ Technical Information:
                     'ok': theme.okay.color,
                     'gray': theme.gray.color,
                     'font': {
+                        'title_font_face': theme.title_font_face,
                         'font_face': theme.font_face,
                         'alt_font_face': theme.font_alt_face,
                         'size_small': theme.font_small_size,
@@ -994,6 +1002,7 @@ Technical Information:
             )
             installed.append(f"{install_dir}\\{filename}")
 
+        print('installed', installed)
         self.enable_all_inputs()
         return installed
 
@@ -1148,6 +1157,7 @@ Technical Information:
                     'ok': ct.okay.color,
                     'gray': ct.gray.color,
                     'font': {
+                        'title_font_face': ct.title_font_face,
                         'font_face': ct.font_face,
                         'alt_font_face': ct.font_alt_face,
                         'size_small': ct.font_small_size,
@@ -1268,6 +1278,7 @@ Technical Information:
             'ok': self.theme.okay.color,
             'gray': self.theme.gray.color,
             'font': {
+                'title_font_face': self.theme.title_font_face,
                 'font_face': self.theme.font_face,
                 'alt_font_face': self.theme.font_alt_face,
                 'size_small': self.theme.font_small_size,

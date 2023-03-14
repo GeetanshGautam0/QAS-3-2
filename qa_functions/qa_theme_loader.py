@@ -307,11 +307,16 @@ class Load:
         return output_acc
 
     @staticmethod
-    def _load_theme(file_path: str, raw_theme_json: Dict[str, Any], theme_names: Dict[Any, Any], _skip_test: bool = False) -> Dict[str, Dict[str, qa_custom.Theme]]:
+    def _load_theme(file_path: str, raw_theme_json: Dict[str, Any], theme_names: Dict[Any, Any], _skip_test: bool = False, _pr: bool = False) -> Dict[str, Dict[str, qa_custom.Theme]]:
         o: Dict[str, Dict[str, qa_custom.Theme]] = {}
+        if _pr:
+            print('n', raw_theme_json, theme_names)
 
         for theme_name, theme in theme_names.items():
             assert theme in raw_theme_json, f"Data for '{theme_name}' theme not found."
+
+            if _pr:
+                print('a', raw_theme_json[theme])
 
             if not _skip_test:
                 assert Test.check_theme(theme_name, raw_theme_json[theme], False), f"Theme '{theme_name}' - Invalid theme data found."
@@ -344,6 +349,8 @@ class Load:
 
             o = {**o, theme: {t['display_name']: ot}}
 
+        if _pr:
+            print('0', o)
         return o
 
 
@@ -448,6 +455,7 @@ class Test:
 
         n_acc: int = 0
         acc: List[str] = []
+
         for item_name, item_type in checks:
             e, d = qa_std.data_at_dict_path(item_name, theme_data)
             f1 = n_acc
