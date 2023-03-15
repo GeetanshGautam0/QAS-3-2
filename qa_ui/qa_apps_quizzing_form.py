@@ -783,7 +783,7 @@ class _UI(Thread):
             background=self.theme.gray.color
         )
 
-        configure_entry_style(self.ttk_style, self.theme, self.theme_update_map[ThemeUpdateVars.FONT_SIZE_MAIN], pref='MyQuizzingApp.QFormLogin')
+        configure_entry_style(self.ttk_style, self.theme, cast(Union[float, int], self.theme_update_map[ThemeUpdateVars.FONT_SIZE_MAIN]), pref='MyQuizzingApp.QFormLogin')
 
         elID = "<lUP::unknown>"
 
