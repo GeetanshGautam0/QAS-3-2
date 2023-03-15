@@ -1,6 +1,6 @@
 import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, traceback
 from . import qa_prompts
-from .qa_prompts import gsuid, configure_scrollbar_style
+from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
 from qa_functions.qa_std import ANSI, AppLogColors
 from qa_functions.qa_custom import HexColor
@@ -132,14 +132,16 @@ class _UI(Thread):
 
         self.ID_cont = tk.LabelFrame(self.right_cont, text='About You')
         self.ID_name_frame = tk.Frame(self.ID_cont)
-        self.first_name_lbl = tk.Label(self.ID_name_frame, text='First Name')
-        self.last_name_lbl = tk.Label(self.ID_name_frame, text='Last Name')
-        self.first_name_field = ttk.Entry(self.ID_name_frame, textvariable=self.first_name, style='MyQuizzingApp.QFormLogin.TEntry')
-        self.last_name_field = ttk.Entry(self.ID_name_frame, textvariable=self.last_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.ID_first_name_frame = tk.Frame(self.ID_name_frame)
+        self.ID_last_name_frame = tk.Frame(self.ID_name_frame)
+        self.first_name_lbl = tk.Label(self.ID_first_name_frame, text='First Name')
+        self.last_name_lbl = tk.Label(self.ID_last_name_frame, text='Last Name')
+        self.first_name_field = ttk.Entry(self.ID_first_name_frame, textvariable=self.first_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.last_name_field = ttk.Entry(self.ID_last_name_frame, textvariable=self.last_name, style='MyQuizzingApp.QFormLogin.TEntry')
         self.ID_lbl = tk.Label(self.ID_cont, text='Unique ID Number')
         self.ID_field = ttk.Entry(self.ID_cont, textvariable=self.ID, style='MyQuizzingApp.QFormLogin.TEntry')
 
-        self.database_frame = tk.LabelFrame(self.right_cont)
+        self.database_frame = tk.LabelFrame(self.right_cont, text='Database Selection')
         self.select_database_btn = ttk.Button(self.database_frame)
 
         self.start()
@@ -182,24 +184,112 @@ class _UI(Thread):
             log(LoggingLevel.ERROR, f'QuizzingForm.SetupPage: page_index out of range ({page_index})')
             return False
 
-        self.next_frame.config(state=tk.NORMAL if not (self.current_page == self.SUMMARY_PAGE) else tk.DISABLED)
-        self.prev_frame.config(state=tk.NORMAL if not (self.current_page == self.LOGIN_PAGE) else tk.DISABLED)
+        self.disable_all_inputs()
 
         def setup_login_frame() -> None:
-            self.left_cont.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
-            self.right_cont.pack(fill=tk.BOTH, side=tk.RIGHT, expand=True)
+            self.config_frame.pack_forget()
+            self.summary_frame.pack_forget()
+            self.login_frame.pack(fill=tk.BOTH, expand=True)
+
+            if not self.data.get('flag_SetupLoginElements', False):
+                log(LoggingLevel.INFO, 'Setting up QF.LOGIN page')
+
+                self.left_cont.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+                self.right_cont.pack(fill=tk.BOTH, side=tk.RIGHT, expand=True)
+
+                self.login_page_title.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+                self.login_page_title.config(text='Login')
+
+                self.ID_cont.pack(fill=tk.BOTH, expand=True)
+                self.database_frame.pack(fill=tk.BOTH, expand=False)
+
+                self.ID_name_frame.pack(fill=tk.BOTH, expand=False)
+                self.ID_first_name_frame.pack(fill=tk.X, expand=True, side=tk.LEFT)
+                self.ID_last_name_frame.pack(fill=tk.X, expand=True, side=tk.LEFT)
+
+                self.first_name_lbl.config(anchor=tk.W, justify=tk.LEFT)
+                self.last_name_lbl.config(anchor=tk.W, justify=tk.LEFT)
+
+                self.first_name_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+                self.last_name_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+                self.first_name_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+                self.last_name_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+
+                self.data['flag_SetupLoginElements'] = True
+
+            if not self.data.get('flag_SetupLoginUpdateRequests', False):
+                self.update_requests[gsuid()] = [self.login_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+                self.update_requests[gsuid()] = [self.left_cont, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.right_cont, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+                self.update_requests[gsuid()] = [self.login_page_title, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
+                self.update_requests[gsuid()] = [self.login_page_title, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.login_page_title, ThemeUpdateCommands.FONT, [ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_TITLE]]
+
+                self.update_requests[gsuid() + '&cus+LBLF'] = [
+                    None, ThemeUpdateCommands.CUSTOM, [
+                        lambda *args: self.ID_cont.config(
+                            bg=args[0], fg=args[1], bd=args[2], borderwidth=args[2], highlightthickness=args[2], highlightcolor=args[3],
+                            highlightbackground=args[3], font=(args[4], args[5])
+                        ),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, 0, ThemeUpdateVars.BG, ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+                    ]
+                ]
+
+                self.update_requests[gsuid() + '&cus+LBLF'] = [
+                    None, ThemeUpdateCommands.CUSTOM, [
+                        lambda *args: self.database_frame.config(
+                            bg=args[0], fg=args[1], bd=args[2], borderwidth=args[2], highlightthickness=args[2], highlightcolor=args[3],
+                            highlightbackground=args[3], font=(args[4], args[5])
+                        ),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, 0, ThemeUpdateVars.BG, ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+                    ]
+                ]
+
+                self.update_requests[gsuid()] = [self.ID_name_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.ID_first_name_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.ID_last_name_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+                self.update_requests[gsuid() + '&cus+LBL'] = [
+                    None, ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *args: self.first_name_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+                    ]
+                ]
+
+                self.update_requests[gsuid() + '&cus+LBL'] = [
+                    None, ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *args: self.last_name_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+                    ]
+                ]
+
+                self.data['flag_SetupLoginUpdateRequests'] = True
 
         def check_login_frame() -> Tuple[bool, int, List[str]]:
-            return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
+            errs: List[str] = []
+
+            if not len(self.first_name.get().strip()) & len(self.last_name.get().strip()):
+                errs.append('Please enter your first and last names.')
+
+            return len(errs) == 0, len(errs), errs
 
         def setup_config_frame() -> None:
-            return
+            self.login_frame.pack_forget()
+            self.summary_frame.pack_forget()
+            self.config_frame.pack(fill=tk.BOTH, expand=True)
 
         def check_config_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
 
         def setup_summary_frame() -> None:
-            return
+            self.login_frame.pack_forget()
+            self.config_frame.pack_forget()
+            self.summary_frame.pack(fill=tk.BOTH, expand=True)
 
         def check_summary_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
@@ -229,7 +319,7 @@ class _UI(Thread):
 
         Fn0, Fn1 = page_map[self.current_page]['Fn0'], page_map[page_index]['Fn1']
 
-        if self.current_page == page_index:
+        if self.current_page >= page_index:
             passed, n_errors, error = True, 0, []  # type: ignore
 
         else:
@@ -244,6 +334,13 @@ class _UI(Thread):
 
         Fn1()  # type: ignore
         self.current_page = page_index
+        self.enable_all_inputs()
+
+        self.next_frame.config(state=tk.NORMAL if not (self.current_page == self.SUMMARY_PAGE) else tk.DISABLED)
+        self.prev_frame.config(state=tk.NORMAL if not (self.current_page == self.LOGIN_PAGE) else tk.DISABLED)
+
+        self.update_ui()
+
         return True
 
     def run(self) -> None:
@@ -685,6 +782,8 @@ class _UI(Thread):
             'TSeparator',
             background=self.theme.gray.color
         )
+
+        configure_entry_style(self.ttk_style, self.theme, self.theme_update_map[ThemeUpdateVars.FONT_SIZE_MAIN], pref='MyQuizzingApp.QFormLogin')
 
         elID = "<lUP::unknown>"
 
