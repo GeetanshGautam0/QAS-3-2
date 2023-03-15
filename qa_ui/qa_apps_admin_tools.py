@@ -489,7 +489,7 @@ class _UI(Thread):
                 lambda *args: self.edit_question_title.config(
                     bg=args[1], fg=args[0], font=(args[2], args[3])
                 ),
-                TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_TITLE
+                TUV.BG, TUV.ACCENT, TUV.TITLE_FONT_FACE, TUV.FONT_SIZE_TITLE
             ]
         ]
 
@@ -827,7 +827,7 @@ class _UI(Thread):
                 lambda *args: self.edit_configuration_title.config(
                     bg=args[1], fg=args[0], font=(args[2], args[3])
                 ),
-                VAR.BG, VAR.ACCENT, VAR.DEFAULT_FONT_FACE, VAR.FONT_SIZE_TITLE
+                VAR.BG, VAR.ACCENT, VAR.TITLE_FONT_FACE, VAR.FONT_SIZE_TITLE
             ]
         ]
         self.update_requests['edit_config_acc_btns0'] = [
@@ -940,7 +940,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
                 lambda *args: self.edit_export_ttl.config(
                     bg=args[1], fg=args[0], font=(args[2], args[3])
                 ),
-                TUV.BG, TUV.ACCENT, TUV.DEFAULT_FONT_FACE, TUV.FONT_SIZE_TITLE
+                TUV.BG, TUV.ACCENT, TUV.TITLE_FONT_FACE, TUV.FONT_SIZE_TITLE
             ]
         ]
         self.update_requests[gsuid()] = [self.edit_export_master_frame, TUC.BG, [TUV.BG]]
@@ -1404,7 +1404,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX / 8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX / 8), pady=self.padY, side=tk.LEFT)
 
-        self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, uid='title_label')
+        self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, uid='title_label', font=ThemeUpdateVars.TITLE_FONT_FACE)
         self.label_formatter(self.title_icon, uid='title_icon')
 
         TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
@@ -1427,9 +1427,9 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         self.update_requests['select_frame0'] = [self.select_frame, TUC.BG, [TUV.BG]]
         self.update_requests['db_frame0'] = [self.db_frame, TUC.BG, [TUV.BG]]
         self.update_requests['create_frame0'] = [self.create_frame, TUC.BG, [TUV.BG]]
-        self.label_formatter(self.select_lbl, size=TUV.FONT_SIZE_SMALL, uid='select_lbl')
-        self.label_formatter(self.create_title, size=TUV.FONT_SIZE_TITLE, fg=TUV.ACCENT, uid='create_title')
-        self.label_formatter(self.general_info_label, size=TUV.FONT_SIZE_SMALL, uid='general_info_label')
+        self.label_formatter(self.select_lbl, size=TUV.FONT_SIZE_SMALL, uid='select_lbl', font=ThemeUpdateVars.TITLE_FONT_FACE)
+        self.label_formatter(self.create_title, size=TUV.FONT_SIZE_TITLE, fg=TUV.ACCENT, uid='create_title', font=ThemeUpdateVars.TITLE_FONT_FACE)
+        self.label_formatter(self.general_info_label, size=TUV.FONT_SIZE_SMALL, uid='general_info_label', font=ThemeUpdateVars.TITLE_FONT_FACE)
 
         self.root.bind('<3>', self.context_menu_show)
         self.root.bind('<F5>', self.update_ui)

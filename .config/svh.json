@@ -124,8 +124,8 @@
         "sha": "801ba19bb3e06313ee21f1cfaac33e854d1fe412f9e0731fc5316ef1dee2a639fe77e793f65143626e66ae9754a861d468fdd7382d9cf3cca662f2e0fbc66683"
     },
     ".\\.config\\main_config.json": {
-        "md5": "74714bf89066f38cc7985147ddf7d307",
-        "sha": "b2d1cfee70d0b9b9f3d7ea46576aa0dc57cfbc345ae3c84def375ef16ab74a4251ea1be059bfbc87b464e8d1f3d490bafc7643fda65aab07bf93b1f0c043c005"
+        "md5": "11e5ae6646847ba0c3d26e0cf61187f6",
+        "sha": "f0427185ba3c4fe4423a06de5581766c797527ceb3bb569f5110ca4252576d3874825030bd8d39ddebc5f96d44e7b7e9d134baef981e938374b08465cefea0cc"
     },
     ".\\qa_ui\\qa_apps_quizzing_form.py": {
         "md5": "96f1f62c719d4b7d1abf1a575d598359",

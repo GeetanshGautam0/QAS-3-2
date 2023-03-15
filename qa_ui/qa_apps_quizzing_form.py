@@ -216,6 +216,15 @@ class _UI(Thread):
                 self.first_name_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
                 self.last_name_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
 
+                self.ID_lbl.config(justify=tk.LEFT, anchor=tk.W)
+                self.ID_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0))
+
+                self.ID_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+
+                self.first_name.set('')
+                self.last_name.set('')
+                self.ID.set('')
+
                 self.data['flag_SetupLoginElements'] = True
 
             if not self.data.get('flag_SetupLoginUpdateRequests', False):
@@ -268,6 +277,14 @@ class _UI(Thread):
                     ]
                 ]
 
+                self.update_requests[gsuid() + '&cus+LBL'] = [
+                    None, ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *args: self.ID_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3])),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.ACCENT, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL
+                    ]
+                ]
+
                 self.data['flag_SetupLoginUpdateRequests'] = True
 
         def check_login_frame() -> Tuple[bool, int, List[str]]:
@@ -275,6 +292,9 @@ class _UI(Thread):
 
             if not len(self.first_name.get().strip()) & len(self.last_name.get().strip()):
                 errs.append('Please enter your first and last names.')
+
+            if not len(self.ID.get().strip()) >= 6:
+                errs.append('Please enter an alphanumeric ID, consisting of at least 6 characters.')
 
             return len(errs) == 0, len(errs), errs
 
@@ -327,6 +347,7 @@ class _UI(Thread):
 
         if not passed:
             log(LoggingLevel.ERROR, f'Failed to fulfill page change request; N Errors: {n_errors}; {errors}')
+            self.enable_all_inputs()
             self.set_error_text(errors[0], 5)
             return False
 
