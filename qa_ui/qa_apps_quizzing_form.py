@@ -1,4 +1,6 @@
-import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, traceback
+import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib
+import traceback
+
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
@@ -12,8 +14,9 @@ from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
 from io import BytesIO
 from ctypes import windll
-from time import sleep
 from typing import *
+from tkinter import filedialog as tkfld
+from . import qa_adv_forms as qa_forms
 
 
 AUTO = 3
@@ -100,6 +103,7 @@ class _UI(Thread):
         self.title_box = tk.Frame(self.root)
         self.title_img = tk.Label(self.title_box)
         self.title_txt = tk.Label(self.title_box)
+        self.title_info = tk.Label(self.title_box)
 
         self.screen_data: Dict[int, Dict[Any, Any]] = {}
         [self.LOGIN_PAGE, self.CONFIGURATION_PAGE, self.SUMMARY_PAGE] = range(3)
@@ -142,7 +146,7 @@ class _UI(Thread):
         self.ID_field = ttk.Entry(self.ID_cont, textvariable=self.ID, style='MyQuizzingApp.QFormLogin.TEntry')
 
         self.database_frame = tk.LabelFrame(self.right_cont, text='Database Selection')
-        self.select_database_btn = ttk.Button(self.database_frame)
+        self.select_database_btn = ttk.Button(self.database_frame, style='TButton')
 
         self.start()
         self.root.deiconify()
@@ -150,10 +154,14 @@ class _UI(Thread):
         self.root.mainloop()
 
     def close(self) -> None:
-        if self.data.get('GLOBAL', {}).get('Attr_', {}).get('Animating.PauseClose.Set', False):
-            log(LoggingLevel.WARNING, 'QuizzingForm.CLOSE: Flag Animating.PauseClose.Set is active; re-executing close fn after 0.1s')
-            Timer(0.1, self.close).start()
-            return
+        # if self.data.get('GLOBAL', {}).get('Attr_', {}).get('Animating.PauseClose.Set', False):
+            # log(LoggingLevel.WARNING, 'QuizzingForm.CLOSE: Flag Animating.PauseClose.Set is active; re-executing close fn after 0.1s')
+            # Timer(0.1, self.close).start()
+            # return
+
+        if len(self.error_label.cget('text')):
+            log(LoggingLevel.WARNING, 'QuizzingForm.WARNINGS.Task_f1')
+            self.error_label.config(text='')  # clearing the text will automatically clear the animation and cancel any invoked animation calls.
 
         for _, timer in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
             cast(Timer, timer).cancel()
@@ -176,6 +184,291 @@ class _UI(Thread):
 
         self.setup_page(self.current_page - 1)
 
+    @staticmethod
+    def _check_db(db: Dict[str, Any]) -> Tuple[int, List[str], Dict[str, Any]]:
+        assert isinstance(db, dict)
+        name_f, name_d = qa_functions.data_at_dict_path('DB/name', db)
+        assert name_f
+
+        errors: List[str] = []
+
+        log(LoggingLevel.INFO, 'QuizzingForm._CHECK_DB: Checking database integrity')
+
+        if not isinstance(name_d, str):
+            errors.append('QuizzingForm._CHECK_DB.ERR: 0x1a - DB_NAME: T')
+        elif len(name_d.strip()) <= 0:
+            errors.append('QuizzingForm._CHECK_DB.ERR: 0x1b - DB_NAME: L')
+
+        _, psw_d = qa_functions.data_at_dict_path('DB/psw', db)
+        b = isinstance(psw_d, list)
+        if b:
+            b &= len(psw_d) == 2
+            if b:
+                b &= isinstance(psw_d[0], bool)
+                b &= isinstance(psw_d[1], str)
+
+                if b:
+                    b &= not (len(psw_d[1]) != 128 and psw_d[0])  # NAND logic
+
+                    # NAND:
+                    # <!128> and <!enb>: True
+                    # <128> and <!enb>: False
+                    # <!128> and <enb>: False
+                    # <128> and <enb>: True
+
+        if not b:
+            errors.append('QuizzingForm._CHECK_DB.ERR: 0x2a DB_PSW.')
+
+        del psw_d
+
+        _, q_psw_d = qa_functions.data_at_dict_path('DB/q_psw', db)
+        b = isinstance(q_psw_d, list)
+        if b:
+            b &= len(q_psw_d) == 2
+            if b:
+                b &= isinstance(q_psw_d[0], bool)
+                b &= isinstance(q_psw_d[1], str)
+
+                if b:
+                    b &= not (len(q_psw_d[1]) != 128 and q_psw_d[0])  # NAND logic gate
+
+                    # NAND:
+                    # <!128> and <!enb>: True
+                    # <128> and <!enb>: False
+                    # <!128> and <enb>: False
+                    # <128> and <enb>: True
+
+        if not b:
+            errors.append('QuizzingForm._CHECK_DB.ERR: 0x2b QZ_PSW.')
+
+        # Configuration checks
+        cr = 'CONFIGURATION'
+        cd = db.get(cr)
+
+        if not cd:
+            errors.append("QuizzingForm._CHECK_DB.ERR: 0x3a ~CONFIG.")
+
+        elif isinstance(cd, dict):
+            f: List[Any] = []
+
+            for k, (tp, default, opts) in (
+                    ('acc', (bool, False, [])),
+                    ('poa', (str, 'p', ['p', 'a'])),
+                    ('rqo', (bool, False, [])),
+                    ('ssd', (int, 2, [])),
+                    ('dpi', (bool, False, [])),
+                    ('a2d', (int, 1, [])),
+            ):
+                assert isinstance(k, str)
+                assert isinstance(opts, (list, tuple, set))
+
+                if not isinstance(cd.get(k), tp):
+                    f.append(f'"{k}": TP')
+                    continue
+
+                if len(cast(Sized, opts)) > 0:
+                    if cd.get(k) not in opts:
+                        f.append(f'"{k}": OPT')
+                        continue
+
+                log(LoggingLevel.SUCCESS, f'QuizzingForm._CHECK_DB.CONFIG: Value for "{k}" is okay (tp, opt).')
+
+            for failure in f:
+                errors.append(f'QuizzingForm._CHECK_DB.ERR: 0xA0 - {failure}')
+
+            db[cr] = cd
+
+        else:
+            raise qa_functions.UnexpectedEdgeCase('QuizzingForm._CHECK_DB.ERR: 0xF1 :: ?CONFIG (cd) :: !dict, !NoneType')
+
+        qr = 'QUESTIONS'
+        qd = db.get(qr)
+        cQAcc = 0
+
+        if qd is None:
+            errors.append("QuizzingForm._CHECK_DB.ERR: 0x4a ~QUESTIONS.")
+
+        elif isinstance(qd, dict):
+            if not qd:
+                errors.append('QuizzingForm._CHECK_DB.ERR: 0x4b - NO QUESTIONS.')
+
+            for i, (k, v) in enumerate(list(qd.items())):
+                try:
+                    assert isinstance(k, str), f'QuizzingForm._CHECK_DB.ERR: 0x50 qTe::tpT1'
+                    try:
+                        int(k)
+                    except Exception as e1:
+                        raise AssertionError('QuizzingForm._CHECK_DB.ERR: 0x51 qTe::tpT2')
+
+                    assert isinstance(v, dict), 'QuizzingForm._CHECK_DB.ERR: 0x52 aTe::tpT1'
+                    assert len(v.values()) == 4, 'QuizzingForm._CHECK_DB.ERR: 0x53 aTe::vv2'
+                    assert min([vk in v for vk in ('0', '1', '2', 'd')]), f'QuizzingForm._CHECK_DB.ERR: 0x54 aTe::vk3'
+
+                    t, q, a, d = v['0'], v['1'], v['2'], v['d']
+                    assert t in ('nm', 'tf', 'mc0', 'mc1'), f'QuizzingForm._CHECK_DB.ERR: 0x55 aTe::aTp4'
+                    assert isinstance(q, str), 'QuizzingForm._CHECK_DB.ERR: 0x56 qTe::TpF'
+                    assert isinstance(d, str), 'QuizzingForm._CHECK_DB.ERR: 0x57 dTe::Tp1'
+                    assert isinstance(a, str if t[:2] != 'mc' else dict), 'QuizzingForm._CHECK_DB.ERR: 0x58 aTe::TpF'
+
+                    dSize = sum([d0.size for d0 in qa_forms.question_editor_form.Data0.entries]) + \
+                            sum([d1.size for d1 in qa_forms.question_editor_form.Data1.exEntries])
+
+                    assert len(d) == dSize, f'QuizzingForm._CHECK_DB.ERR: 0x59 dTe::Ln2'
+                    if t[:2] == 'mc':
+                        assert t[2] == d[sum([d0.size for d0 in qa_forms.question_editor_form.Data0.entries])], \
+                            'QuizzingForm._CHECK_DB.ERR: 0x5A dTe+tTe::m1'
+                        assert len(cast(Dict[str, Union[int, str]], a)) >= 4, \
+                            'QuizzingForm._CHECK_DB.ERR: 0x5B aTe::mc1'
+
+                except Exception as E:
+                    cQAcc += 1
+                    errors.append(f'{str(E)} <{i}>')
+
+        else:
+            raise qa_functions.UnexpectedEdgeCase('QuizzingForm._CHECK_DB.ERR: 0xF2 :: ~QUESTIONS :: !dict, !NoneType')
+
+        if not cQAcc:
+            log(LoggingLevel.SUCCESS, f'QuizzingForm._CHECK_DB.QUESTIONS: Successfully loaded questions (no errors found)')
+
+        else:
+            errors.append('QuizzingForm._CHECK_DB.ERR: 0x5F: 0+cQAcc')
+
+        return len(errors), errors, db
+
+    def set_database(self):
+        try:
+            self.select_database_btn.config(text='Select a Database', style='TButton', image="", compound=tk.CENTER)
+            self.data['DATABASE'] = {'file_path': "", 'data_recv': {'name': "", '_raw': b"", '_flags': [], '_security_info': {}, 'read': {}}, 'verified': False}
+
+            assert self.current_page == self.LOGIN_PAGE, 'SET_DATABASE.ERR (strict) 1: ~LoginPage'
+            res = tkfld.askopenfilename(defaultextension=qa_files.qa_quiz_extn, filetypes=(('Quiz Database', qa_files.qa_quiz_extn), ))
+
+            if not len(res.strip()):
+                self.set_error_text('No file selected.', 3)
+                return
+
+            assert os.path.isfile(res), 'SET_DATABASE.ERR (strict) 2: ~is_file'
+
+            file = qa_functions.File(res)
+            self.data['DATABASE']['file_path'] = file.file_path
+
+            # Load contents
+            with open(file.file_path, 'rb') as _database_file_handle:
+                _raw = _database_file_handle.read()
+                _database_file_handle.close()
+
+            # Steps to read:
+            # i) Decrypt _raw
+            # ii) Check and remove extension verifier
+            # iii) Load file sections (header, footer, body)
+            # iv) Check hashes
+            # v) Decrypt body
+            # vi) Check flags
+            #
+            # After reading:
+            # vii) Check for q_psw hash & enable flag (+ weak verification)
+            # viii) Prompt and check for password (if needed)
+
+            # i) Decrypting _raw
+            _dec1 = qa_functions.qa_file_handler._Crypt.decrypt(_raw, qa_files.qa_quiz_enck, qa_functions.ConverterFunctionArgs())
+
+            # ii) Check and remove extension verifier (last 5 characters)
+            assert len(_dec1) >= 5, 'SET_DATABASE.ERR (strict) 3: _dec1__LEN~>=5'
+            _c1 = _dec1[-7:]
+            assert _c1 == b'%qaQuiz', f'SET_DATABASE.ERR (strict) 4: _c1 failure ({_c1})'
+            _dec1 = _dec1[:-7]
+
+            # iii) Load file sections
+            # AND iv) Check hashes
+            # AND v) decrypt body
+            _dec2_bytes, _dec2_str = qa_files.load_file(qa_functions.FileType.QA_QUIZ, _dec1)
+            assert len(_dec2_str.strip()) > 0, 'SET_DATABASE.ERR (strict) 5: ~_dec2_str__LEN'
+
+            # convert _dec2_str to dict
+            _DB: Dict[str, Any] = json.loads(_dec2_str)  # type: ignore
+
+            # vi) Check flag
+            assert 'QZDB' in _DB['DB']['FLAGS'], 'SET_DATABASE.ERR (strict) 6: ~FLAG_QZDB'
+
+            # check database integrity
+            N_errors, errors, _DB = self._check_db(_DB)
+
+            if N_errors:
+                log(LoggingLevel.ERROR, f'SET_DATABASE.ERR (strict) 7: _DB.errs. {N_errors=}:')
+                for index, error in enumerate(errors):
+                    log(LoggingLevel.ERROR, f'\t{index}) {error} <7-strict>')
+
+                assert False, f'SET_DATABASE.ERR (strict) 7: _DB.errs.'
+
+            del N_errors, errors
+            log(LoggingLevel.SUCCESS, 'SET_DATABASE: No errors found')
+
+            # vii) q_psw
+            E_PSWQ, H_PSWQ = cast(Tuple[bool, str], _DB['DB']['q_psw'])
+
+            if E_PSWQ:
+                # need to check password.
+                s_mem = qa_functions.SMem()
+                qa_prompts.InputPrompts.SEntryPrompt(s_mem, f'Enter database password for \'{_DB["DB"]["name"]}\'', '')
+
+                r = s_mem.get()
+                if r is None:
+                    del s_mem
+                    qa_prompts.MessagePrompts.show_error(
+                        qa_prompts.InfoPacket('Couldn\'t open database: Invalid password', title='Quizzing Form | Security')
+                    )
+                    assert False, 'SET_DATABASE.ERR (strict) 8a: Q_PSW'
+
+                if r.strip() == '':
+                    del s_mem
+                    qa_prompts.MessagePrompts.show_error(
+                        qa_prompts.InfoPacket('Couldn\'t open database: Invalid password', title='Quizzing Form | Security')
+                    )
+                    assert False, 'SET_DATABASE.ERR (strict) 8b: Q_PSW'
+
+                if hashlib.sha3_512(r.encode()).hexdigest() != H_PSWQ:
+                    del s_mem
+                    qa_prompts.MessagePrompts.show_error(
+                        qa_prompts.InfoPacket('Couldn\'t open database: Invalid password', title='Quizzing Form | Security')
+                    )
+
+                    assert False, 'SET_DATABASE.ERR (strict) 8c: Q_PSW'
+
+                log(LoggingLevel.SUCCESS, 'SET_DATABASE: Authenticated')
+
+            else:
+                log(LoggingLevel.INFO, 'SET_DATABASE: Flag E_PSWQ not set')
+
+            self.data['DATABASE'] = {
+                'file_path': file.file_path,
+                'data_recv': {
+                    'name': cast(str, _DB['DB']['name']),
+                    '_raw': _raw,
+                    '_flags': cast(List[str], _DB['DB']['FLAGS']).copy(),
+                    '_security_info': {
+                        'E_PSW0': cast(bool, _DB['DB']['psw'][0]),
+                        'H_PSW0': cast(str, _DB['DB']['psw'][1]),
+                        'E_PSWQ': cast(bool, _DB['DB']['q_psw'][0]),
+                        'H_PSWQ': cast(str, _DB['DB']['q_psw'][1]),
+                    },
+                    'read': _DB,
+                },
+                'verified': True
+            }
+
+        except Exception as E:
+            log(LoggingLevel.ERROR, f'{E}\n{traceback.format_exc()}')
+            self.data['DATABASE'] = {'file_path': None, 'data_recv': {'name': "", '_raw': b"", '_flags': [], '_security_info': {}, 'read': {}}, 'verified': False}
+            self.set_error_text('Invalid/Corrupt data found in database. Please try again.', 3)
+
+        else:
+            self.select_database_btn.config(
+                text=f'Selected "{_DB["DB"]["name"]}"',
+                image=self.svgs['checkmark']['accent'],
+                compound=tk.LEFT,
+                style="Active.TButton"
+            )
+
     def setup_page(self, page_index: int) -> bool:
         if not isinstance(page_index, int):
             log(LoggingLevel.ERROR, f'QuizzingForm.SetupPage: page_index is not an integer ({type(page_index)}')
@@ -186,10 +479,19 @@ class _UI(Thread):
 
         self.disable_all_inputs()
 
+        # if self.data.get('GLOBAL', {}).get('Attr_', {}).get('Animating.PauseClose.Set', False):
+        if len(self.error_label.cget('text')):
+            log(LoggingLevel.WARNING, 'QuizzingForm.WARNINGS.Task_f1')
+            self.error_label.config(text='')  # clearing the text will automatically clear the animation and cancel any invoked animation calls.
+
         def setup_login_frame() -> None:
             self.config_frame.pack_forget()
             self.summary_frame.pack_forget()
             self.login_frame.pack(fill=tk.BOTH, expand=True)
+            self.title_info.config(text='')
+
+            if 'DATABASE' in self.data:
+                self.data['DATABASE']['verified'] = False  # any time the page is changed back to the login page, the database must be re-verified
 
             if not self.data.get('flag_SetupLoginElements', False):
                 log(LoggingLevel.INFO, 'Setting up QF.LOGIN page')
@@ -198,7 +500,7 @@ class _UI(Thread):
                 self.right_cont.pack(fill=tk.BOTH, side=tk.RIGHT, expand=True)
 
                 self.login_page_title.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
-                self.login_page_title.config(text='Login')
+                self.login_page_title.config(text='Getting Started')
 
                 self.ID_cont.pack(fill=tk.BOTH, expand=True)
                 self.database_frame.pack(fill=tk.BOTH, expand=False)
@@ -221,9 +523,24 @@ class _UI(Thread):
 
                 self.ID_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
 
+                self.select_database_btn.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY)
+                self.select_database_btn.config(text='Select a Database', command=self.set_database)
+
                 self.first_name.set('')
                 self.last_name.set('')
                 self.ID.set('')
+
+                self.data['DATABASE'] = {
+                    'file_path': None,
+                    'data_recv': {
+                        'name': "",
+                        '_raw': b"",
+                        '_flags': [],
+                        '_security_info': {},
+                        'read': {},
+                    },
+                    'verified': False
+                }
 
                 self.data['flag_SetupLoginElements'] = True
 
@@ -289,12 +606,38 @@ class _UI(Thread):
 
         def check_login_frame() -> Tuple[bool, int, List[str]]:
             errs: List[str] = []
+            self.first_name.set(self.first_name.get().strip().title())
+            self.last_name.set(self.last_name.get().strip().title())
+            self.ID.set(self.ID.get().strip())
 
-            if not len(self.first_name.get().strip()) & len(self.last_name.get().strip()):
+            if not (bool(len(self.first_name.get())) & bool(len(self.last_name.get()))):
                 errs.append('Please enter your first and last names.')
+                log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x01) {len(self.first_name.get())} & {len(self.last_name.get())} => {bool(len(self.first_name.get())) & bool(len(self.last_name.get()))}')
 
-            if not len(self.ID.get().strip()) >= 6:
+            if not len(self.ID.get()) >= 6:
                 errs.append('Please enter an alphanumeric ID, consisting of at least 6 characters.')
+                log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x02) {len(self.ID.get())}')
+
+            if self.data.get('DATABASE', {}).get('file_path') is None or \
+                (not os.path.isfile(self.data.get('DATABASE', {}).get('file_path', ''))) or \
+                len(self.data.get('DATABASE', {}).get('data_recv', {}).get('name').strip()) == 0 or \
+                len(self.data.get('DATABASE', {}).get('data_recv', {}).get('_raw').strip()) == 0 or \
+                len(self.data.get('DATABASE', {}).get('data_recv', {}).get('_flags')) == 0 or \
+                len(self.data.get('DATABASE', {}).get('data_recv', {}).get('_security_info')) == 0 or \
+                len(self.data.get('DATABASE', {}).get('data_recv', {}).get('read')) == 0:
+                errs.append('Please select a Quizzing Application | Quizzing Form database.')
+                log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x03)')
+
+            elif not self.data['DATABASE']['verified']:
+                N, e, _ = self._check_db(self.data['DATABASE']['data_recv']['read'])
+                if N:
+                    errs.append('Invalid / corrupt data found in selected database. Please try again.')
+                    log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x04)')
+                    for index, err in enumerate(e):
+                        log(LoggingLevel.ERROR, f'\t{index}) {err}')
+
+            else:
+                log(LoggingLevel.INFO, 'QuizzingForm.INFO.SETUP_PAGE.CHECK_LOGIN_PAGE: db already verified')
 
             return len(errs) == 0, len(errs), errs
 
@@ -302,6 +645,7 @@ class _UI(Thread):
             self.login_frame.pack_forget()
             self.summary_frame.pack_forget()
             self.config_frame.pack(fill=tk.BOTH, expand=True)
+            self.title_info.config(text=f'Logged in as {" ".join([self.first_name.get(), self.last_name.get()]).title()} ({self.ID.get()})', anchor=tk.W, justify=tk.LEFT)
 
         def check_config_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
@@ -378,7 +722,11 @@ class _UI(Thread):
         self.update_requests['QFTitleFG'] = [self.title_txt, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
         self.update_requests['QFTitleFont'] = [self.title_txt, ThemeUpdateCommands.FONT, [ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_XL_TITLE]]
         self.update_requests['QFTitleImgBG'] = [self.title_img, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['QFTitleInfoBG'] = [self.title_info, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.update_requests['QFTitleInfoFG'] = [self.title_info, ThemeUpdateCommands.FG, [ThemeUpdateVars.GRAY]]
+        self.update_requests['QFTitleInfoFont'] = [self.title_info, ThemeUpdateCommands.FONT, [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL]]
 
+        self.title_info.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
         self.title_box.pack(fill=tk.X, expand=False, pady=self.padY, side=tk.TOP)
         self.title_img.config(justify=tk.CENTER, anchor=tk.E, width=self.img_size[0], height=self.img_size[1])
         self.title_img.config(image=cast(str, self.svgs['qf']))
@@ -439,6 +787,7 @@ class _UI(Thread):
             self.error_label.config(fg=stage)
 
             for i in range(int(3e5)): continue   # <.1s delay
+            if not len(self.error_label.cget('text')): break
 
         self.error_label.config(text='', fg=self.theme_update_map[ThemeUpdateVars.ERROR].color)  # type: ignore
 

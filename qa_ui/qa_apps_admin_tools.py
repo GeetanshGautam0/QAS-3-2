@@ -1636,7 +1636,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         if len(fl.strip()) != 0:
             qa_functions.SaveFile.secure(
                 qa_functions.File(f'{fl}.{qa_files.qa_quiz_extn}'.replace('/', '\\')),
-                json.dumps(nDB),
+                qa_files.generate_file(qa_functions.FileType.QA_QUIZ, json.dumps(nDB))[0] + b'%qaQuiz',
                 qa_functions.SaveFunctionArgs(
                     False,
                     True,
@@ -2781,7 +2781,7 @@ Technical Information: {traceback.format_exc()}"""))
 
         try:
             if isinstance(data['DB'].get('FLAGS'), (tuple, list, set)):
-                assert 'QZDB' not in data['DB']['FLAGS']
+                assert 'QZDB' not in data['DB']['FLAGS']  # Do not want to open a Qzdb file
             
             O_data = copy.deepcopy(data)
             n_data = self._clean_db(data)

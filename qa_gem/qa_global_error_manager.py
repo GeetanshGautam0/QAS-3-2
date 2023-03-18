@@ -314,9 +314,9 @@ def SetExceptionMap(exception_code: ExceptionCodes, exception_class: Any) -> Non
 
     :return: None
     """
+
     global _EXC_MAP
     _EXC_MAP[exception_code] = exception_class
-
 
 
 def SetupException(exception: ExceptionObject, *exception_arguments, offset=0, **kwargs) -> Union[
