@@ -549,7 +549,7 @@ class _UI(Thread):
         self.title_label.pack(fill=tk.X, expand=True, padx=(self.padX/8, self.padX), pady=self.padY, side=tk.RIGHT)
         self.title_icon.pack(fill=tk.X, expand=True, padx=(self.padX, self.padX/8), pady=self.padY, side=tk.LEFT)
 
-        self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, font=ThemeUpdateVars.TITLE_FONT_FACE)
+        self.label_formatter(self.title_label, size=ThemeUpdateVars.FONT_SIZE_XL_TITLE, fg=ThemeUpdateVars.ACCENT, font_face=ThemeUpdateVars.TITLE_FONT_FACE)
         self.label_formatter(self.title_icon)
 
         TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars

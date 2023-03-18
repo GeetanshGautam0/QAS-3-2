@@ -335,7 +335,7 @@ class _UI(Thread):
 
         return len(errors), errors, db
 
-    def set_database(self):
+    def set_database(self) -> None:
         try:
             self.select_database_btn.config(text='Select a Database', style='TButton', image="", compound=tk.CENTER)
             self.data['DATABASE'] = {'file_path': "", 'data_recv': {'name': "", '_raw': b"", '_flags': [], '_security_info': {}, 'read': {}}, 'verified': False}
@@ -373,15 +373,15 @@ class _UI(Thread):
             _dec1 = qa_functions.qa_file_handler._Crypt.decrypt(_raw, qa_files.qa_quiz_enck, qa_functions.ConverterFunctionArgs())
 
             # ii) Check and remove extension verifier (last 5 characters)
-            assert len(_dec1) >= 5, 'SET_DATABASE.ERR (strict) 3: _dec1__LEN~>=5'
-            _c1 = _dec1[-7:]
-            assert _c1 == b'%qaQuiz', f'SET_DATABASE.ERR (strict) 4: _c1 failure ({_c1})'
-            _dec1 = _dec1[:-7]
+            assert len(_dec1) >= 5, 'SET_DATABASE.ERR (strict) 3: _dec1__LEN~>=5'  # type: ignore
+            _c1 = cast(bytes, _dec1)[-7:]
+            assert _c1 == b'%qaQuiz', f'SET_DATABASE.ERR (strict) 4: _c1 failure'
+            _dec1 = cast(bytes, _dec1)[:-7]
 
             # iii) Load file sections
             # AND iv) Check hashes
             # AND v) decrypt body
-            _dec2_bytes, _dec2_str = qa_files.load_file(qa_functions.FileType.QA_QUIZ, _dec1)
+            _dec2_bytes, _dec2_str = cast(Tuple[bytes, str], qa_files.load_file(qa_functions.FileType.QA_QUIZ, _dec1))
             assert len(_dec2_str.strip()) > 0, 'SET_DATABASE.ERR (strict) 5: ~_dec2_str__LEN'
 
             # convert _dec2_str to dict
@@ -654,6 +654,7 @@ class _UI(Thread):
             self.login_frame.pack_forget()
             self.config_frame.pack_forget()
             self.summary_frame.pack(fill=tk.BOTH, expand=True)
+            self.title_info.config(text=f'Logged in as {" ".join([self.first_name.get(), self.last_name.get()]).title()} ({self.ID.get()})', anchor=tk.W, justify=tk.LEFT)
 
         def check_summary_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']

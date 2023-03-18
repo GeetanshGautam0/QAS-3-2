@@ -1636,7 +1636,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         if len(fl.strip()) != 0:
             qa_functions.SaveFile.secure(
                 qa_functions.File(f'{fl}.{qa_files.qa_quiz_extn}'.replace('/', '\\')),
-                qa_files.generate_file(qa_functions.FileType.QA_QUIZ, json.dumps(nDB))[0] + b'%qaQuiz',
+                qa_files.generate_file(qa_functions.FileType.QA_QUIZ, json.dumps(nDB))[0] + b'%qaQuiz',  # type: ignore
                 qa_functions.SaveFunctionArgs(
                     False,
                     True,
