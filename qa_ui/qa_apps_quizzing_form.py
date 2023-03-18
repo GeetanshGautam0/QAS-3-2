@@ -1,6 +1,5 @@
-import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib
-import traceback
-
+import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback
+from time import sleep
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
@@ -19,7 +18,6 @@ from tkinter import filedialog as tkfld
 from . import qa_adv_forms as qa_forms
 
 
-AUTO = 3
 script_name = "APP_QF"
 APP_TITLE = "Quizzing Application | Quizzing Form"
 LOGGER_AVAIL = False
@@ -337,6 +335,7 @@ class _UI(Thread):
 
     def set_database(self) -> None:
         try:
+            self.disable_all_inputs()
             self.select_database_btn.config(text='Select a Database', style='TButton', image="", compound=tk.CENTER)
             self.data['DATABASE'] = {'file_path': "", 'data_recv': {'name': "", '_raw': b"", '_flags': [], '_security_info': {}, 'read': {}}, 'verified': False}
 
@@ -434,7 +433,7 @@ class _UI(Thread):
 
                     assert False, 'SET_DATABASE.ERR (strict) 8c: Q_PSW'
 
-                log(LoggingLevel.SUCCESS, 'SET_DATABASE: Authenticated')
+                sleep(1)
 
             else:
                 log(LoggingLevel.INFO, 'SET_DATABASE: Flag E_PSWQ not set')
@@ -468,6 +467,9 @@ class _UI(Thread):
                 compound=tk.LEFT,
                 style="Active.TButton"
             )
+
+        finally:
+            self.enable_all_inputs()
 
     def setup_page(self, page_index: int) -> bool:
         if not isinstance(page_index, int):
@@ -743,7 +745,7 @@ class _UI(Thread):
         self.next_frame.pack(fill=tk.X, expand=True, side=tk.RIGHT)
         self.prev_frame.pack(fill=tk.X, expand=True, side=tk.LEFT)
 
-        self.inputs.extend([self.next_frame, self.prev_frame])
+        self.inputs.extend([self.next_frame, self.prev_frame, self.first_name_field, self.last_name_field, self.select_database_btn, self.ID_field])
         self.update_requests[gsuid()] = [self.main_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
         self.update_requests[gsuid()] = [self.nav_btn_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
         self.update_requests[gsuid()] = [self.error_label, ThemeUpdateCommands.CUSTOM, [

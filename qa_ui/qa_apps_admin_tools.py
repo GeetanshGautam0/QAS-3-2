@@ -1632,8 +1632,11 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
         self.show_info(Message(Levels.NORMAL, 'Please select where to save the file'))
 
-        fl = filedialog.asksaveasfilename(filetypes=(('QaQuiz', f'.{qa_files.qa_quiz_extn}'), ))
-        if len(fl.strip()) != 0:
+        fl = filedialog.asksaveasfilename(filetypes=(('QaQuiz', f'.{qa_files.qa_quiz_extn}'), )).strip()
+        if len(fl) != 0:
+            if fl.split('.')[-1] == qa_files.qa_quiz_extn:
+                fl = fl[:-(len(qa_files.qa_quiz_extn) + 1)]
+
             qa_functions.SaveFile.secure(
                 qa_functions.File(f'{fl}.{qa_files.qa_quiz_extn}'.replace('/', '\\')),
                 qa_files.generate_file(qa_functions.FileType.QA_QUIZ, json.dumps(nDB))[0] + b'%qaQuiz',  # type: ignore
@@ -2897,110 +2900,113 @@ Technical Information: {traceback.format_exc()}"""
 
         def log_norm(com: str, el: tk.Widget) -> None:
             log(LoggingLevel.DEVELOPER, f'[UPDATE_UI] Applied command \'{com}\' to {el} successfully <{elID}>')
+        try:
+            for elID, (_e, _c, _a) in self.update_requests.items():
+                command = cast(ThemeUpdateCommands, _c)
+                element = cast(tk.Button, _e)
+                args = cast(List[Any], _a)
 
-        for elID, (_e, _c, _a) in self.update_requests.items():
-            command = cast(ThemeUpdateCommands, _c)
-            element = cast(tk.Button, _e)
-            args = cast(List[Any], _a)
+                lCommand = [False, '', -1]
+                cleaned_args = []
+                for index, arg in enumerate(args):
+                    cleaned_args.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
 
-            lCommand = [False, '', -1]
-            cleaned_args = []
-            for index, arg in enumerate(args):
-                cleaned_args.append(arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                    if isinstance(cleaned_args[index], qa_functions.HexColor):
+                        cleaned_args[index] = cleaned_args[index].color
 
-                if isinstance(cleaned_args[index], qa_functions.HexColor):
-                    cleaned_args[index] = cleaned_args[index].color
+                if command == ThemeUpdateCommands.BG:  # Background
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(bg=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            if command == ThemeUpdateCommands.BG:  # Background
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(bg=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.FG:  # Foreground
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(fg=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.FG:  # Foreground
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(fg=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(activebackground=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(activebackground=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(activeforeground=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(activeforeground=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(highlightthickness=cleaned_args[0], bd=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(highlightthickness=cleaned_args[0], bd=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.FONT:  # Font
+                    if len(cleaned_args) == 2:
+                        ok, rs = tr(lambda: element.config(font=(cleaned_args[0], cleaned_args[1])))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.FONT:  # Font
-                if len(cleaned_args) == 2:
-                    ok, rs = tr(lambda: element.config(font=(cleaned_args[0], cleaned_args[1])))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                elif command == ThemeUpdateCommands.CUSTOM:  # Custom
+                    if len(cleaned_args) <= 0:
+                        lCommand = [True, 'Function not provided', 1]
+                    elif len(cleaned_args) == 1:
+                        ok, rs = tr(cleaned_args[0])
+                        if not ok:
+                            lCommand = [True, rs, 0]
+                    elif len(cleaned_args) > 1:
+                        ok, rs = tr(lambda: cleaned_args[0](*cleaned_args[1::]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.CUSTOM:  # Custom
-                if len(cleaned_args) <= 0:
-                    lCommand = [True, 'Function not provided', 1]
-                elif len(cleaned_args) == 1:
-                    ok, rs = tr(cleaned_args[0])
-                    if not ok:
-                        lCommand = [True, rs, 0]
-                elif len(cleaned_args) > 1:
-                    ok, rs = tr(lambda: cleaned_args[0](*cleaned_args[1::]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
+                    if len(cleaned_args) == 1:
+                        ok, rs = tr(lambda: element.config(wraplength=cleaned_args[0]))
+                        if not ok:
+                            lCommand = [True, rs, 0]
 
-            elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
-                if len(cleaned_args) == 1:
-                    ok, rs = tr(lambda: element.config(wraplength=cleaned_args[0]))
-                    if not ok:
-                        lCommand = [True, rs, 0]
+                    else:
+                        lCommand = [True, 'Invalid args provided', 2]
 
-                else:
-                    lCommand = [True, 'Invalid args provided', 2]
+                if lCommand[0] is True:
+                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
+                elif DEBUG_NORM:
+                    log_norm(command.name, element)
 
-            if lCommand[0] is True:
-                log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
-            elif DEBUG_NORM:
-                log_norm(command.name, element)
+                del lCommand, cleaned_args
 
-            del lCommand, cleaned_args
+        except RuntimeError as E:
+            log(LoggingLevel.ERROR, str(E))
 
         # TTK
         self.ttk_style.configure(
@@ -3142,139 +3148,142 @@ Technical Information: {traceback.format_exc()}"""
         )
 
         elID = "<lUP::unknown>"
+        try:
+            for _e, commands in self.late_update_requests.items():
+                assert isinstance(commands, (list, tuple, set))
+                element = cast(tk.Button, _e)
 
-        for _e, commands in self.late_update_requests.items():
-            assert isinstance(commands, (list, tuple, set))
-            element = cast(tk.Button, _e)
+                for _c, _a in commands:
+                    command = cast(ThemeUpdateCommands, _c)
+                    args = cast(List[Any], _a)
 
-            for _c, _a in commands:
-                command = cast(ThemeUpdateCommands, _c)
-                args = cast(List[Any], _a)
+                    lCommand = [False]
+                    cleaned_args = []
+                    for index, arg in enumerate(args):
+                        cleaned_arg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
 
-                lCommand = [False]
-                cleaned_args = []
-                for index, arg in enumerate(args):
-                    cleaned_arg = (arg if arg not in ThemeUpdateVars.__members__.values() else self.theme_update_map[arg])
+                        if isinstance(arg, tuple):
+                            if len(arg) >= 2:
+                                if arg[0] == '<EXECUTE>':
+                                    ps, res = (tr(arg[1]) if len(args) == 2 else tr(arg[1], arg[2::]))
+                                    if ps:
+                                        cleaned_arg = res
+                                    else:
+                                        log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
 
-                    if isinstance(arg, tuple):
-                        if len(arg) >= 2:
-                            if arg[0] == '<EXECUTE>':
-                                ps, res = (tr(arg[1]) if len(args) == 2 else tr(arg[1], arg[2::]))
-                                if ps:
-                                    cleaned_arg = res
-                                else:
-                                    log(LoggingLevel.ERROR, f'Failed to run `exec_replace` routine in late_update: {res}:: {element}')
+                                if arg[0] == '<LOOKUP>':
+                                    rs_b: int = cast(int, {
+                                        'padX': self.padX,
+                                        'padY': self.padY,
+                                        'root_width': self.root.winfo_width(),
+                                        'root_height': self.root.winfo_height(),
+                                        'QMap': self.question_map.get(arg[2]) if len(arg) >= 3 else None,
+                                        'El': element
+                                    }.get(cast(str, arg[1])))
 
-                            if arg[0] == '<LOOKUP>':
-                                rs_b: int = cast(int, {
-                                    'padX': self.padX,
-                                    'padY': self.padY,
-                                    'root_width': self.root.winfo_width(),
-                                    'root_height': self.root.winfo_height(),
-                                    'QMap': self.question_map.get(arg[2]) if len(arg) >= 3 else None,
-                                    'El': element
-                                }.get(cast(str, arg[1])))
+                                    if rs_b is not None:
+                                        cleaned_arg = rs_b
+                                    else:
+                                        log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
 
-                                if rs_b is not None:
-                                    cleaned_arg = rs_b
-                                else:
-                                    log(LoggingLevel.ERROR, f'Failed to run `lookup_replace` routine in late_update: KeyError({arg[1]}):: {element}')
+                        cleaned_args.append(cleaned_arg)
 
-                    cleaned_args.append(cleaned_arg)
+                        if isinstance(cleaned_args[index], qa_functions.HexColor):
+                            cleaned_args[index] = cleaned_args[index].color
 
-                    if isinstance(cleaned_args[index], qa_functions.HexColor):
-                        cleaned_args[index] = cleaned_args[index].color
+                    if command == ThemeUpdateCommands.BG:  # Background
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(bg=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                if command == ThemeUpdateCommands.BG:  # Background
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(bg=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.FG:  # Foreground
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(fg=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.FG:  # Foreground
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(fg=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(activebackground=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.ACTIVE_BG:  # Active Background
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(activebackground=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(activeforeground=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.ACTIVE_FG:  # Active Foreground
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(activeforeground=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.ACTIVE_FG:  # BORDER COLOR
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(highlightcolor=self.theme.accent.color, highlightbackground=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(highlightthickness=cleaned_args[0], bd=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.BORDER_SIZE:  # BORDER SIZE
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(highlightthickness=cleaned_args[0], bd=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.FONT:  # Font
+                        if len(cleaned_args) == 2:
+                            ok, rs = tr(lambda: element.config(font=(cleaned_args[0], cleaned_args[1])))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.FONT:  # Font
-                    if len(cleaned_args) == 2:
-                        ok, rs = tr(lambda: element.config(font=(cleaned_args[0], cleaned_args[1])))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    elif command == ThemeUpdateCommands.CUSTOM:  # Custom
+                        if len(cleaned_args) <= 0:
+                            lCommand = [True, 'Function not provided', 1]
+                        elif len(cleaned_args) == 1:
+                            ok, rs = tr(cleaned_args[0])
+                            if not ok:
+                                lCommand = [True, rs, 0]
+                        elif len(cleaned_args) > 1:
+                            ok, rs = tr(lambda: cleaned_args[0](*cleaned_args[1::]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.CUSTOM:  # Custom
-                    if len(cleaned_args) <= 0:
-                        lCommand = [True, 'Function not provided', 1]
-                    elif len(cleaned_args) == 1:
-                        ok, rs = tr(cleaned_args[0])
-                        if not ok:
-                            lCommand = [True, rs, 0]
-                    elif len(cleaned_args) > 1:
-                        ok, rs = tr(lambda: cleaned_args[0](*cleaned_args[1::]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                    elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
+                        if len(cleaned_args) == 1:
+                            ok, rs = tr(lambda: element.config(wraplength=cleaned_args[0]))
+                            if not ok:
+                                lCommand = [True, rs, 0]
 
-                elif command == ThemeUpdateCommands.WRAP_LENGTH:  # WL
-                    if len(cleaned_args) == 1:
-                        ok, rs = tr(lambda: element.config(wraplength=cleaned_args[0]))
-                        if not ok:
-                            lCommand = [True, rs, 0]
+                        else:
+                            lCommand = [True, 'Invalid args provided', 2]
 
-                    else:
-                        lCommand = [True, 'Invalid args provided', 2]
+                    if lCommand[0] is True:
+                        log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
+                    elif DEBUG_NORM:
+                        log_norm(command.name, element)
 
-                if lCommand[0] is True:
-                    log_error(command.name, element, cast(str, lCommand[1]), cast(int, lCommand[2]))
-                elif DEBUG_NORM:
-                    log_norm(command.name, element)
+                    del lCommand, cleaned_args
 
-                del lCommand, cleaned_args
+        except RuntimeError as E:
+            log(LoggingLevel.ERROR, str(E))
 
     def button_formatter(self, button: tk.Button, accent: bool = False, font: ThemeUpdateVars = ThemeUpdateVars.DEFAULT_FONT_FACE, size: ThemeUpdateVars = ThemeUpdateVars.FONT_SIZE_MAIN,
                          padding: Union[None, int] = None, bg: ThemeUpdateVars = ThemeUpdateVars.BG, fg: ThemeUpdateVars = ThemeUpdateVars.FG, abg: ThemeUpdateVars = ThemeUpdateVars.ACCENT, afg: ThemeUpdateVars = ThemeUpdateVars.BG,
