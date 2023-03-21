@@ -1,4 +1,4 @@
-import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback, copy
+import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback, copy, re
 from time import sleep
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
@@ -6,7 +6,7 @@ from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLe
 from qa_functions.qa_std import ANSI, AppLogColors
 from qa_functions.qa_custom import HexColor
 from qa_functions.qa_colors import Functions as ColorFunctions
-from threading import Thread, Timer
+from threading import Thread
 from tkinter import ttk
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
@@ -38,7 +38,7 @@ class _UI(Thread):
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
         wd_w = 1000 if 1000 <= self.screen_dim[0] else self.screen_dim[0]
-        wd_h = 550 if 550 <= self.screen_dim[1] else self.screen_dim[1]
+        wd_h = 600 if 600 <= self.screen_dim[1] else self.screen_dim[1]
         self.window_size = [wd_w, wd_h]
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
@@ -182,8 +182,8 @@ class _UI(Thread):
             log(LoggingLevel.WARNING, 'QuizzingForm.WARNINGS.Task_f1')
             self.error_label.config(text='')  # clearing the text will automatically clear the animation and cancel any invoked animation calls.
 
-        for _, timer in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
-            cast(Timer, timer).cancel()
+        for _, task in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
+            self.root.after_cancel(task)
 
         sys.stdout.write("qf - _UI.close")
         self.ic.shell = self.ds
@@ -678,16 +678,19 @@ class _UI(Thread):
 
             # Though the elements only need to be placed once, their states must be reset when entering the page, iff the database is changed
             if not self.data.get('flag_SetupConfigElements', False):
+                # Logical configuration
                 self.inputs.extend([self.config_qd_ssd_field, self.config_qd_poa_P])
+                self.config_qd_ssd.trace('w', self._config_ssd_mod)
 
-                self.config_acc_status.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.TOP)
-                self.config_qd_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
-                self.config_pc_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+                # Interface configuration
+                self.config_acc_status.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.TOP)
+                self.config_qd_frame.pack(fill=tk.BOTH, expand=True, padx=(self.padX, 0), pady=(self.padY, 0), side=tk.LEFT)
+                self.config_pc_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=(self.padY, 0), side=tk.RIGHT)
 
                 self.config_acc_status.config(anchor=tk.W, justify=tk.LEFT)
 
-                self.config_qd_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
-                self.config_qd_poa_P.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+                self.config_qd_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
+                self.config_qd_poa_P.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
                 self.config_qd_ssd_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
                 self.config_qd_ssd_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
 
@@ -696,6 +699,10 @@ class _UI(Thread):
 
                 self.config_pc_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
                 self.config_pc_lbl.config(text='Select whether to penalize erroneous responses.', anchor=tk.W, justify=tk.LEFT)
+
+                self.config_rqo_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
+                self.config_rqo_enb.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+                self.config_rqo_lbl.config(text="Select whether to randomize question order or not.", anchor=tk.W, justify=tk.LEFT)
 
             if not self.data.get('flag_SetupConfigUpdateRequests', False):
                 self.update_requests[gsuid()] = [self.config_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
@@ -719,6 +726,12 @@ class _UI(Thread):
 
                 self.update_requests[gsuid()] = [self.config_qd_ssd_lbl, ThemeUpdateCommands.CUSTOM, [
                     lambda *args: self.config_qd_ssd_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4] // 2 - 4 * args[5])),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
+                    ('<LOOKUP>', 'padX')
+                ]]
+
+                self.update_requests[gsuid()] = [self.config_rqo_lbl, ThemeUpdateCommands.CUSTOM, [
+                    lambda *args: self.config_rqo_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4] // 2 - 4 * args[5])),
                     ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
                     ('<LOOKUP>', 'padX')
                 ]]
@@ -752,13 +765,16 @@ class _UI(Thread):
             _DB = self.data['CONFIG_INF:<DB>']
             _ST = {True: tk.NORMAL, False: tk.DISABLED}[_DB['CONFIGURATION']['acc'] or True]
             self.config_qd_poa_P.config(text='Subset' if _DB['CONFIGURATION']['poa'] == 'p' else 'All', command=self._config_qd_poa_switch, state=_ST)
+
             if _DB['CONFIGURATION']['poa'] == 'p':
                 self.config_qd_ssd.set(str(_DB['CONFIGURATION']['ssd']))
                 self.config_qd_ssd_field.configure(state=_ST)
-
             else:
                 self.config_qd_ssd.set('Set the above to "Subset" to modify.')
                 self.config_qd_ssd_field.configure(state=tk.DISABLED)
+
+            self.config_rqo_enb.config(text='Randomized' if _DB['CONFIGURATION']['rqo'] else 'Not Randomized', command=self._config_qd_rqo_switch, state=_ST)
+
 
         def check_config_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
@@ -822,11 +838,71 @@ class _UI(Thread):
 
         return True
 
+    def _config_ssd_mod(self, *_) -> None:
+        if self.current_page != self.CONFIGURATION_PAGE:
+            return
+
+        if self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] != 'p':
+            return
+
+        try:
+            d_set = self.config_qd_ssd.get().strip()
+            p = True
+
+            if d_set in ('', None):
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = 1
+                # self.config_qd_ssd.set('1')
+                return
+
+            if not d_set.isnumeric():
+                fx = re.findall(r'[0-9]{1,2}', self.config_qd_ssd.get().strip())
+                self.config_qd_ssd.set(fx[0] if fx else '1')
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = fx[0] if fx else 1
+                p = False
+
+            if p and not 1 <= len(d_set) <= 2:
+                if len(d_set) == 0:
+                    self.config_qd_ssd.set('1')
+                    self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = 1
+
+                else:
+                    fx = re.findall(r'[0-9]{1,2}', d_set)
+                    self.config_qd_ssd.set(fx[0] if fx else '1')
+                    self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = fx[0] if fx else 1
+
+                p = False
+
+            assert p, 'Subsample divisor must be an integer between 1 and 10'
+
+            f = float(d_set)
+            if not (1 <= f <= 10):
+                self.config_qd_ssd.set('1' if f < 1 else '10')
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = '1' if f < 1 else '10'
+                assert False, 'Subsample divisor must be between 1 and 10'
+
+            if f != int(f):
+                self.config_qd_ssd.set(str(int(f)))
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = int(f)
+                assert False, 'Subsample divisor cannot contain a decimal'
+
+            self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd'] = int(f)
+
+        except Exception as E:
+            self.set_error_text(str(E), 3)
+            return
+
     def _config_qd_poa_switch(self) -> None:
         assert isinstance(self.data.get('CONFIG_INF:<DB>'), dict)
 
         self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] = 'p' if self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] == 'a' else 'a'
         log(LoggingLevel.WARNING, f'QuizzingForm._CONFIG_QD_POA_SWITCH: Switched "POA" mode to "{self.data["CONFIG_INF:<DB>"]["CONFIGURATION"]["poa"]}"')
+        self.setup_page(self.CONFIGURATION_PAGE)
+
+    def _config_qd_rqo_switch(self) -> None:
+        assert isinstance(self.data.get('CONFIG_INF:<DB>'), dict)
+
+        self.data['CONFIG_INF:<DB>']['CONFIGURATION']['rqo'] = not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['rqo']
+        log(LoggingLevel.WARNING, f'QuizzingForm._CONFIG_QD_POA_SWITCH: Switched "RQO" state to "{self.data["CONFIG_INF:<DB>"]["CONFIGURATION"]["rqo"]}"')
         self.setup_page(self.CONFIGURATION_PAGE)
 
     def run(self) -> None:
@@ -886,16 +962,20 @@ class _UI(Thread):
 
         # Start timeout
         K = 'Jobs.SetErrorText.Timers'
-        timers = self.active_jobs.get(K, {})
-        for _, timer in timers.items():
-            timer.cancel()
+        _tasks = self.active_jobs.get(K, {})
+        for _, _task in _tasks.items():
+            self.root.after_cancel(_task)
 
         uid = gsuid('SET.Timers')
-        timer = Timer(timeout_seconds, lambda: self._clear_error_text(uid))
-        self.active_jobs[K] = {uid: timer}
-        timer.start()
+        _task = self.root.after(int(timeout_seconds*1000), lambda: self._clear_error_text(uid))
+        self.active_jobs[K] = {uid: _task}
 
     def _clear_error_text(self, timer_uid: Optional[str] = None) -> None:
+        # Timer handler
+        if isinstance(timer_uid, str) and timer_uid in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).keys():
+            try: self.root.after_cancel(self.active_jobs['Jobs.SetErrorText.Timers'][timer_uid])
+            except Exception as _: pass
+            self.active_jobs['Jobs.SetErrorText.Timers'].pop(timer_uid)
         if len(self.error_label.cget('text').strip()) <= 0: return
 
         self.data['GLOBAL'] = self.data.get('GLOBAL', {'Attr_'})
@@ -906,31 +986,28 @@ class _UI(Thread):
         gradient = ColorFunctions.fade(self.theme_update_map[ThemeUpdateVars.ERROR].color, self.theme_update_map[ThemeUpdateVars.BG].color)  # type: ignore
         for stage in gradient:
             self.error_label.config(fg=stage)
+            self.error_label.update()
 
-            for i in range(int(3e5)): continue   # <.1s delay
+            for _ in range(int(3e5)): continue  # v small delay
             if not len(self.error_label.cget('text')): break
 
-        self.error_label.config(text='', fg=self.theme_update_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+        self.error_label.config(text='', fg=self.theme.error.color)  # type: ignore
 
         self.data['GLOBAL']['Attr_']['Animating.PauseClose.Set'] = False
-
-        # Timer handler
-        if isinstance(timer_uid, str) and timer_uid in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).keys():
-            self.active_jobs['Jobs.SetErrorText.Timers'].pop(timer_uid)
 
     def _ent_size_update(self) -> None:
         for _i in self.inputs:
             if isinstance(_i, ttk.Entry):
-                _i.configure(font=(self.theme.font_face, self.theme.font_small_size), style='My.TEntry')
+                _i.configure(font=(self.theme.font_face, self.theme.font_main_size), style='My.TEntry')
 
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 
-        for timer_uid, timer in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
+        for task_uid, task in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).items():
             try:
-                timer.cancel()
+                self.root.after_cancel(task)
             except Exception as E:
-                log(LoggingLevel.WARNING, f'Failed to cancel Jobs.SetErrorText.Timer {timer_uid}: {E} {str(E)}')
+                log(LoggingLevel.WARNING, f'Failed to cancel Jobs.SetErrorText.Timer {task_uid}: {E} {str(E)}')
 
         self._clear_error_text()
 
