@@ -223,7 +223,7 @@ class InvalidCLIArgument(Exception):
         return f"CLI Error: Invalid Argument: Argument `{self.an}` got token `{self.ag}`; {self.ae}"
 
 
-class FlattenedDict(dict):
+class FlattenedDict(dict):  # type: ignore
     def __init__(self, org_dict: Dict[Any, Any], strict_flattening: bool = True) -> None:
         super().__init__()
         self.od = org_dict
@@ -234,7 +234,7 @@ class FlattenedDict(dict):
 
         def rec_search(d: Union[Dict[Any, Any], Tuple[Any], List[Any], Set[Any]], rt: str) -> Dict[str, Any]:
             od = deepcopy(d)
-            nd = {}
+            nd = {}  # type: ignore
 
             if isinstance(od, dict):
                 for k, v in od.items():
@@ -244,7 +244,7 @@ class FlattenedDict(dict):
                     elif isinstance(v, (list, set, tuple)) & self._sf:
                         for i, n0 in enumerate(v):
                             if isinstance(n0, (list, set, tuple, dict)):
-                                nd = {**nd, **rec_search(n0, f'{rt}/{k}/{i}')}
+                                nd = {**nd, **rec_search(n0, f'{rt}/{k}/{i}')}  # type: ignore
 
                             else:
                                 nd[f'{rt}/{k}/{i}'] = n0
@@ -255,7 +255,7 @@ class FlattenedDict(dict):
             elif isinstance(od, (list, set, tuple)) & self._sf:
                 for i, n0 in enumerate(od):
                     if isinstance(n0, (list, set, tuple, dict)):
-                        nd = {**nd, **rec_search(n0, f'{rt}/{i}')}
+                        nd = {**nd, **rec_search(n0, f'{rt}/{i}')}  # type: ignore
 
                     else:
                         nd[f'{rt}/{i}'] = n0

@@ -679,8 +679,9 @@ class _UI(Thread):
             # Though the elements only need to be placed once, their states must be reset when entering the page, iff the database is changed
             if not self.data.get('flag_SetupConfigElements', False):
                 # Logical configuration
-                self.inputs.extend([self.config_qd_ssd_field, self.config_qd_poa_P])
+                self.inputs.extend([self.config_qd_ssd_field, self.config_qd_poa_P, self.config_rqo_enb, self.config_pc_a2d_field, self.config_pc_enb])
                 self.config_qd_ssd.trace('w', self._config_ssd_mod)
+                self.config_pc_a2d.trace('w', self._config_a2d_mod)
 
                 # Interface configuration
                 self.config_acc_status.pack(fill=tk.X, expand=False, padx=self.padX, side=tk.TOP)
@@ -697,12 +698,19 @@ class _UI(Thread):
                 self.config_qd_lbl.config(text='Select whether to be prompted with a subset or all of the questions.', anchor=tk.W, justify=tk.LEFT)
                 self.config_qd_ssd_lbl.config(text='Select by what factor should the questions be divided by (only applicable if the above is set to "Subset" mode).', anchor=tk.W, justify=tk.LEFT)
 
+                self.config_rqo_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
+                self.config_rqo_enb.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY / 4, self.padY))
+                self.config_rqo_lbl.config(text="Select whether to randomize question order or not.", anchor=tk.W, justify=tk.LEFT)
+
                 self.config_pc_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+                self.config_pc_enb.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY / 4, self.padY))
+
                 self.config_pc_lbl.config(text='Select whether to penalize erroneous responses.', anchor=tk.W, justify=tk.LEFT)
 
-                self.config_rqo_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
-                self.config_rqo_enb.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
-                self.config_rqo_lbl.config(text="Select whether to randomize question order or not.", anchor=tk.W, justify=tk.LEFT)
+                self.config_pc_a2d_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
+                self.config_pc_a2d_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+
+                self.config_pc_a2d_lbl.config(text="Select how many points to deduct when an erroneous answers are provided.", anchor=tk.W, justify=tk.LEFT)
 
             if not self.data.get('flag_SetupConfigUpdateRequests', False):
                 self.update_requests[gsuid()] = [self.config_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
@@ -730,6 +738,12 @@ class _UI(Thread):
                     ('<LOOKUP>', 'padX')
                 ]]
 
+                self.update_requests[gsuid()] = [self.config_pc_a2d_lbl, ThemeUpdateCommands.CUSTOM, [
+                    lambda *args: self.config_pc_a2d_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4] // 2 - 4 * args[5])),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
+                    ('<LOOKUP>', 'padX')
+                ]]
+
                 self.update_requests[gsuid()] = [self.config_rqo_lbl, ThemeUpdateCommands.CUSTOM, [
                     lambda *args: self.config_rqo_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4] // 2 - 4 * args[5])),
                     ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
@@ -745,12 +759,6 @@ class _UI(Thread):
             if str(qa_functions.FlattenedDict(self.data.get('CONFIG_INF:<DB> _copy', {}), strict_flattening=True)) != \
                     str(qa_functions.FlattenedDict(self.data['DATABASE']['data_recv']['read'], strict_flattening=True)):
 
-                self.config_acc_status.config(text=\
-                                                "The administrator allows for custom quiz configuration." if \
-                                                self.data['DATABASE']['data_recv']['read']['CONFIGURATION']['acc'] else \
-                                                "The administrator does not allow for custom quiz configuration."
-                                              )
-
                 log(LoggingLevel.WARNING, 'QuizzingForm.WARNINGS.SETUP_PAGE.SETUP_CONFIG_PAGE: (0x1) - rst due to db ch')
 
                 self.update_requests['CONFIG.ACC.STATUS.FG'] = [
@@ -762,8 +770,10 @@ class _UI(Thread):
                 self.data['CONFIG_INF:<DB>'] = copy.deepcopy(self.data['DATABASE']['data_recv']['read'])
 
             # Configure all inputs
+            self.config_acc_status.config(text= "The administrator allows for custom quiz configuration." if self.data['CONFIG_INF:<DB>']['CONFIGURATION']['acc'] else \
+                                                  "The administrator does not allow for custom quiz configuration.")
             _DB = self.data['CONFIG_INF:<DB>']
-            _ST = {True: tk.NORMAL, False: tk.DISABLED}[_DB['CONFIGURATION']['acc'] or True]
+            _ST = {True: tk.NORMAL, False: tk.DISABLED}[_DB['CONFIGURATION']['acc']]
             self.config_qd_poa_P.config(text='Subset' if _DB['CONFIGURATION']['poa'] == 'p' else 'All', command=self._config_qd_poa_switch, state=_ST)
 
             if _DB['CONFIGURATION']['poa'] == 'p':
@@ -775,9 +785,22 @@ class _UI(Thread):
 
             self.config_rqo_enb.config(text='Randomized' if _DB['CONFIGURATION']['rqo'] else 'Not Randomized', command=self._config_qd_rqo_switch, state=_ST)
 
+            self.config_pc_enb.config(text='Enabled' if _DB['CONFIGURATION']['dpi'] else 'Disabled', state=_ST, command=self._config_pc_switch)
+            if _DB['CONFIGURATION']['dpi']:
+                self.config_pc_a2d.set(str(_DB['CONFIGURATION']['a2d']))
+                self.config_pc_a2d_field.configure(state=_ST)
+            else:
+                self.config_pc_a2d.set('Set the above to "Enabled" to modify.')
+                self.config_pc_a2d_field.configure(state=tk.DISABLED)
 
         def check_config_frame() -> Tuple[bool, int, List[str]]:
-            return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
+            errs = []
+
+            nce, ce, _= self._check_db(self.data['CONFIG_INF:<DB>'])
+            if nce:
+                errs.extend(['Configuration error.', *ce])
+
+            return len(errs) == 0, len(errs), errs
 
         def setup_summary_frame() -> None:
             self.login_frame.pack_forget()
@@ -838,7 +861,59 @@ class _UI(Thread):
 
         return True
 
-    def _config_ssd_mod(self, *_) -> None:
+    def _config_a2d_mod(self, *_: Any) -> None:
+        if self.current_page != self.CONFIGURATION_PAGE:
+            return
+
+        if not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['dpi']:
+            return
+
+        try:
+            d_set = self.config_pc_a2d.get().strip()
+            p = True
+
+            if d_set in ('', None):
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = 1
+                return
+
+            if not d_set.isnumeric():
+                fx = re.findall(r'[0-9]{1,2}', self.config_pc_a2d.get().strip())
+                self.config_pc_a2d.set(fx[0] if fx else '1')
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = fx[0] if fx else 1
+                p = False
+
+            if p and not 1 <= len(d_set) <= 2:
+                if len(d_set) == 0:
+                    self.config_pc_a2d.set('1')
+                    self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = 1
+
+                else:
+                    fx = re.findall(r'[0-9]{1,2}', d_set)
+                    self.config_pc_a2d.set(fx[0] if fx else '1')
+                    self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = fx[0] if fx else 1
+
+                p = False
+
+            assert p, 'Penalty must be an integer between 1 and 10'
+
+            f = float(d_set)
+            if not (1 <= f <= 10):
+                self.config_pc_a2d.set('1' if f < 1 else '10')
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = '1' if f < 1 else '10'
+                assert False, 'Penalty must be between 1 and 10'
+
+            if f != int(f):
+                self.config_pc_a2d.set(str(int(f)))
+                self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = int(f)
+                assert False, 'Penalty cannot contain a decimal'
+
+            self.data['CONFIG_INF:<DB>']['CONFIGURATION']['a2d'] = int(f)
+
+        except Exception as E:
+            self.set_error_text(str(E), 3)
+            return
+
+    def _config_ssd_mod(self, *_: Any) -> None:
         if self.current_page != self.CONFIGURATION_PAGE:
             return
 
@@ -890,6 +965,13 @@ class _UI(Thread):
         except Exception as E:
             self.set_error_text(str(E), 3)
             return
+
+    def _config_pc_switch(self) -> None:
+        assert isinstance(self.data.get('CONFIG_INF:<DB>'), dict)
+
+        self.data['CONFIG_INF:<DB>']['CONFIGURATION']['dpi'] = not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['dpi']
+        log(LoggingLevel.WARNING, f'QuizzingForm._CONFIG_QD_POA_SWITCH: Switched "DPI" state to "{self.data["CONFIG_INF:<DB>"]["CONFIGURATION"]["dpi"]}"')
+        self.setup_page(self.CONFIGURATION_PAGE)
 
     def _config_qd_poa_switch(self) -> None:
         assert isinstance(self.data.get('CONFIG_INF:<DB>'), dict)
@@ -988,7 +1070,7 @@ class _UI(Thread):
             self.error_label.config(fg=stage)
             self.error_label.update()
 
-            for _ in range(int(3e5)): continue  # v small delay
+            for _ in range(int(3e5)): continue  # type: ignore
             if not len(self.error_label.cget('text')): break
 
         self.error_label.config(text='', fg=self.theme.error.color)  # type: ignore
@@ -1609,14 +1691,20 @@ class _UI(Thread):
 
     def enable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button], ...]) -> None:
         if self.current_page == self.LOGIN_PAGE:
-            exclude = (*exclude, self.prev_frame)
+            exclude = (*exclude, self.prev_frame)  # type: ignore
 
         elif self.current_page == self.SUMMARY_PAGE:
-            exclude = (*exclude, self.next_frame)
+            exclude = (*exclude, self.next_frame)  # type: ignore
 
         if self.current_page == self.CONFIGURATION_PAGE:
-            if self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] == 'a':
-                exclude = (*exclude, self.config_qd_ssd_field)
+            if (self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] == 'a') or not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['acc']:
+                exclude = (*exclude, self.config_qd_ssd_field)  # type: ignore
+
+            if not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['dpi'] or not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['acc']:
+                exclude = (*exclude, self.config_pc_a2d_field)  # type: ignore
+
+            if not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['acc']:
+                exclude = (*exclude, self.config_rqo_enb, self.config_pc_enb, self.config_qd_poa_P)  # type: ignore
 
         for btn in self.inputs:
             if btn not in exclude:
