@@ -1,4 +1,4 @@
-import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback
+import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback, copy
 from time import sleep
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
@@ -138,13 +138,34 @@ class _UI(Thread):
         self.ID_last_name_frame = tk.Frame(self.ID_name_frame)
         self.first_name_lbl = tk.Label(self.ID_first_name_frame, text='First Name')
         self.last_name_lbl = tk.Label(self.ID_last_name_frame, text='Last Name')
-        self.first_name_field = ttk.Entry(self.ID_first_name_frame, textvariable=self.first_name, style='MyQuizzingApp.QFormLogin.TEntry')
-        self.last_name_field = ttk.Entry(self.ID_last_name_frame, textvariable=self.last_name, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.first_name_field = ttk.Entry(self.ID_first_name_frame, textvariable=self.first_name, style='My.TEntry')
+        self.last_name_field = ttk.Entry(self.ID_last_name_frame, textvariable=self.last_name, style='TEntry')
         self.ID_lbl = tk.Label(self.ID_cont, text='Unique ID Number')
-        self.ID_field = ttk.Entry(self.ID_cont, textvariable=self.ID, style='MyQuizzingApp.QFormLogin.TEntry')
+        self.ID_field = ttk.Entry(self.ID_cont, textvariable=self.ID)
 
         self.database_frame = tk.LabelFrame(self.right_cont, text='Database Selection')
         self.select_database_btn = ttk.Button(self.database_frame, style='TButton')
+
+        # Configuration page
+        self.config_acc_status = tk.Label(self.config_frame)
+        self.config_qd_frame = tk.LabelFrame(self.config_frame, text="Quiz Distribution Configuration")
+        self.config_qd_lbl = tk.Label(self.config_qd_frame)
+        self.config_qd_poa_P = ttk.Button(self.config_qd_frame)
+
+        self.config_qd_ssd = tk.StringVar(self.root)
+        self.config_qd_ssd_lbl = tk.Label(self.config_qd_frame)
+        self.config_qd_ssd_field = ttk.Entry(self.config_qd_frame, textvariable=self.config_qd_ssd, style='MyQuizzingApp.TEntry')
+
+        self.config_rqo_lbl = tk.Label(self.config_qd_frame)
+        self.config_rqo_enb = ttk.Button(self.config_qd_frame)
+
+        self.config_pc_frame = tk.LabelFrame(self.config_frame, text="Penalty Configuration")
+        self.config_pc_lbl = tk.Label(self.config_pc_frame)
+        self.config_pc_enb = ttk.Button(self.config_pc_frame)
+
+        self.config_pc_a2d = tk.StringVar(self.root)
+        self.config_pc_a2d_lbl = tk.Label(self.config_pc_frame)
+        self.config_pc_a2d_field = ttk.Entry(self.config_pc_frame, textvariable=self.config_pc_a2d, style='MyQuizzingApp.TEntry')
 
         self.start()
         self.root.deiconify()
@@ -433,7 +454,7 @@ class _UI(Thread):
 
                     assert False, 'SET_DATABASE.ERR (strict) 8c: Q_PSW'
 
-                sleep(1)
+                log(LoggingLevel.SUCCESS, 'Authenticated')
 
             else:
                 log(LoggingLevel.INFO, 'SET_DATABASE: Flag E_PSWQ not set')
@@ -465,13 +486,14 @@ class _UI(Thread):
                 text=f'Selected "{_DB["DB"]["name"]}"',
                 image=self.svgs['checkmark']['accent'],
                 compound=tk.LEFT,
-                style="Active.TButton"
+                style="My.Active.TButton"
             )
 
         finally:
             self.enable_all_inputs()
 
     def setup_page(self, page_index: int) -> bool:
+
         if not isinstance(page_index, int):
             log(LoggingLevel.ERROR, f'QuizzingForm.SetupPage: page_index is not an integer ({type(page_index)}')
 
@@ -628,15 +650,18 @@ class _UI(Thread):
                 len(self.data.get('DATABASE', {}).get('data_recv', {}).get('_security_info')) == 0 or \
                 len(self.data.get('DATABASE', {}).get('data_recv', {}).get('read')) == 0:
                 errs.append('Please select a Quizzing Application | Quizzing Form database.')
-                log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x03)')
+                log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x03) n<DB>')
 
             elif not self.data['DATABASE']['verified']:
                 N, e, _ = self._check_db(self.data['DATABASE']['data_recv']['read'])
                 if N:
                     errs.append('Invalid / corrupt data found in selected database. Please try again.')
-                    log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x04)')
+                    log(LoggingLevel.WARNING, f'QuizzingForm.WARNINGS.SETUP_PAGE.CHECK_LOGIN_PAGE: (0x04) [V]n<DB>')
                     for index, err in enumerate(e):
                         log(LoggingLevel.ERROR, f'\t{index}) {err}')
+
+                elif self.current_page != page_index:
+                    self.data['DATABASE']['verified'] = True
 
             else:
                 log(LoggingLevel.INFO, 'QuizzingForm.INFO.SETUP_PAGE.CHECK_LOGIN_PAGE: db already verified')
@@ -644,10 +669,96 @@ class _UI(Thread):
             return len(errs) == 0, len(errs), errs
 
         def setup_config_frame() -> None:
+            assert self.data['DATABASE']['verified'], 'QuizzingForm.ERR.SETUP_PAGE.CONFIG_FRAME: (strict) 0: <DB>nVerified'
+
             self.login_frame.pack_forget()
             self.summary_frame.pack_forget()
             self.config_frame.pack(fill=tk.BOTH, expand=True)
             self.title_info.config(text=f'Logged in as {" ".join([self.first_name.get(), self.last_name.get()]).title()} ({self.ID.get()})', anchor=tk.W, justify=tk.LEFT)
+
+            # Though the elements only need to be placed once, their states must be reset when entering the page, iff the database is changed
+            if not self.data.get('flag_SetupConfigElements', False):
+                self.inputs.extend([self.config_qd_ssd_field, self.config_qd_poa_P])
+
+                self.config_acc_status.pack(fill=tk.X, expand=False, padx=self.padX, pady=(0, self.padY), side=tk.TOP)
+                self.config_qd_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+                self.config_pc_frame.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.RIGHT)
+
+                self.config_acc_status.config(anchor=tk.W, justify=tk.LEFT)
+
+                self.config_qd_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+                self.config_qd_poa_P.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+                self.config_qd_ssd_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=(self.padY, 0))
+                self.config_qd_ssd_field.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY/4, self.padY))
+
+                self.config_qd_lbl.config(text='Select whether to be prompted with a subset or all of the questions.', anchor=tk.W, justify=tk.LEFT)
+                self.config_qd_ssd_lbl.config(text='Select by what factor should the questions be divided by (only applicable if the above is set to "Subset" mode).', anchor=tk.W, justify=tk.LEFT)
+
+                self.config_pc_lbl.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+                self.config_pc_lbl.config(text='Select whether to penalize erroneous responses.', anchor=tk.W, justify=tk.LEFT)
+
+            if not self.data.get('flag_SetupConfigUpdateRequests', False):
+                self.update_requests[gsuid()] = [self.config_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+
+                self.update_requests[gsuid()] = [self.config_qd_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.config_qd_frame, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
+                self.update_requests[gsuid()] = [self.config_qd_frame, ThemeUpdateCommands.FONT, [ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL]]
+
+                self.update_requests[gsuid()] = [self.config_pc_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.config_pc_frame, ThemeUpdateCommands.FG, [ThemeUpdateVars.ACCENT]]
+                self.update_requests[gsuid()] = [self.config_pc_frame, ThemeUpdateCommands.FONT, [ThemeUpdateVars.TITLE_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL]]
+
+                self.update_requests[gsuid()] = [self.config_acc_status, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+                self.update_requests[gsuid()] = [self.config_acc_status, ThemeUpdateCommands.FONT, [ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN]]
+
+                self.update_requests[gsuid()] = [self.config_qd_lbl, ThemeUpdateCommands.CUSTOM, [
+                    lambda *args: self.config_qd_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4]//2-4*args[5])),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
+                    ('<LOOKUP>', 'padX')
+                ]]
+
+                self.update_requests[gsuid()] = [self.config_qd_ssd_lbl, ThemeUpdateCommands.CUSTOM, [
+                    lambda *args: self.config_qd_ssd_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4] // 2 - 4 * args[5])),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
+                    ('<LOOKUP>', 'padX')
+                ]]
+
+                self.update_requests[gsuid()] = [self.config_pc_lbl, ThemeUpdateCommands.CUSTOM, [
+                    lambda *args: self.config_pc_lbl.config(bg=args[0], fg=args[1], font=(args[2], args[3]), wraplength=int(args[4] - 4 * args[5])),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.DEFAULT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_SMALL, ('<LOOKUP>', 'root_width'),
+                    ('<LOOKUP>', 'padX')
+                ]]
+
+            if str(qa_functions.FlattenedDict(self.data.get('CONFIG_INF:<DB> _copy', {}), strict_flattening=True)) != \
+                    str(qa_functions.FlattenedDict(self.data['DATABASE']['data_recv']['read'], strict_flattening=True)):
+
+                self.config_acc_status.config(text=\
+                                                "The administrator allows for custom quiz configuration." if \
+                                                self.data['DATABASE']['data_recv']['read']['CONFIGURATION']['acc'] else \
+                                                "The administrator does not allow for custom quiz configuration."
+                                              )
+
+                log(LoggingLevel.WARNING, 'QuizzingForm.WARNINGS.SETUP_PAGE.SETUP_CONFIG_PAGE: (0x1) - rst due to db ch')
+
+                self.update_requests['CONFIG.ACC.STATUS.FG'] = [
+                    self.config_acc_status, ThemeUpdateCommands.FG,
+                    [ThemeUpdateVars.OKAY if self.data['DATABASE']['data_recv']['read']['CONFIGURATION']['acc'] else ThemeUpdateVars.ERROR]
+                ]
+
+                self.data['CONFIG_INF:<DB> _copy'] = copy.deepcopy(self.data['DATABASE']['data_recv']['read'])
+                self.data['CONFIG_INF:<DB>'] = copy.deepcopy(self.data['DATABASE']['data_recv']['read'])
+
+            # Configure all inputs
+            _DB = self.data['CONFIG_INF:<DB>']
+            _ST = {True: tk.NORMAL, False: tk.DISABLED}[_DB['CONFIGURATION']['acc'] or True]
+            self.config_qd_poa_P.config(text='Subset' if _DB['CONFIGURATION']['poa'] == 'p' else 'All', command=self._config_qd_poa_switch, state=_ST)
+            if _DB['CONFIGURATION']['poa'] == 'p':
+                self.config_qd_ssd.set(str(_DB['CONFIGURATION']['ssd']))
+                self.config_qd_ssd_field.configure(state=_ST)
+
+            else:
+                self.config_qd_ssd.set('Set the above to "Subset" to modify.')
+                self.config_qd_ssd_field.configure(state=tk.DISABLED)
 
         def check_config_frame() -> Tuple[bool, int, List[str]]:
             return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
@@ -710,6 +821,13 @@ class _UI(Thread):
         self.update_ui()
 
         return True
+
+    def _config_qd_poa_switch(self) -> None:
+        assert isinstance(self.data.get('CONFIG_INF:<DB>'), dict)
+
+        self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] = 'p' if self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] == 'a' else 'a'
+        log(LoggingLevel.WARNING, f'QuizzingForm._CONFIG_QD_POA_SWITCH: Switched "POA" mode to "{self.data["CONFIG_INF:<DB>"]["CONFIGURATION"]["poa"]}"')
+        self.setup_page(self.CONFIGURATION_PAGE)
 
     def run(self) -> None:
         global APP_TITLE
@@ -800,6 +918,11 @@ class _UI(Thread):
         if isinstance(timer_uid, str) and timer_uid in self.active_jobs.get('Jobs.SetErrorText.Timers', {}).keys():
             self.active_jobs['Jobs.SetErrorText.Timers'].pop(timer_uid)
 
+    def _ent_size_update(self) -> None:
+        for _i in self.inputs:
+            if isinstance(_i, ttk.Entry):
+                _i.configure(font=(self.theme.font_face, self.theme.font_small_size), style='My.TEntry')
+
     def update_ui(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
         self.load_theme()
 
@@ -810,6 +933,8 @@ class _UI(Thread):
                 log(LoggingLevel.WARNING, f'Failed to cancel Jobs.SetErrorText.Timer {timer_uid}: {E} {str(E)}')
 
         self._clear_error_text()
+
+        self.root.after(0, self._ent_size_update)
 
         self.window_size = [self.root.winfo_width(), self.root.winfo_height()]
         self.screen_pos = [self.root.winfo_x(), self.root.winfo_y()]
@@ -983,22 +1108,6 @@ class _UI(Thread):
 
         # TTK
         self.ttk_style.configure(
-            'TMenubutton',
-            background=self.theme.background.color,
-            foreground=self.theme.accent.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            arrowcolor=self.theme.accent.color,
-            borderwidth=0
-        )
-
-        self.ttk_style.map(
-            'TMenubutton',
-            background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)],
-            arrowcolor=[('active', self.theme.background.color), ('disabled', self.theme.gray.color)]
-        )
-
-        self.ttk_style.configure(
             'TButton',
             background=self.theme.background.color,
             foreground=self.theme.accent.color,
@@ -1017,7 +1126,7 @@ class _UI(Thread):
         )
 
         self.ttk_style.configure(
-            'LG.TButton',
+            'MyLG.TButton',
             background=self.theme.background.color,
             foreground=self.theme.accent.color,
             font=(self.theme.font_face, self.theme.font_large_size),
@@ -1029,33 +1138,15 @@ class _UI(Thread):
         )
 
         self.ttk_style.map(
-            'LG.TButton',
+            'MyLG.TButton',
             background=[('active', self.theme.accent.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
-            foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
-        )
-
-        self.ttk_style.configure(
-            'Err.TButton',
-            background=self.theme.background.color,
-            foreground=self.theme.error.color,
-            font=(self.theme.font_face, self.theme.font_main_size),
-            focuscolor=self.theme.error.color,
-            bordercolor=self.theme.border_color.color,
-            borderwidth=self.theme.border_size,
-            highlightcolor=self.theme.border_color.color,
-            highlightthickness=self.theme.border_size
-        )
-
-        self.ttk_style.map(
-            'Err.TButton',
-            background=[('active', self.theme.error.color), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
 
         cb_fg = qa_functions.qa_colors.Functions.calculate_more_contrast(qa_functions.HexColor("#000000"), qa_functions.HexColor("#ffffff"), self.theme.background).color
 
         self.ttk_style.configure(
-            'Contrast.TButton',
+            'My.Contrast.TButton',
             background=self.theme.background.color,
             foreground=cb_fg,
             font=(self.theme.font_face, self.theme.font_main_size),
@@ -1067,7 +1158,7 @@ class _UI(Thread):
         )
 
         self.ttk_style.map(
-            'Contrast.TButton',
+            'My.Contrast.TButton',
             background=[('active', cb_fg), ('disabled', self.theme.background.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.gray.color), ('readonly', self.theme.background.color)]
         )
@@ -1080,7 +1171,7 @@ class _UI(Thread):
         self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, self.theme.font_small_size, 'MySmall')
 
         self.ttk_style.configure(
-            'Active.TButton',
+            'My.Active.TButton',
             background=self.theme.accent.color,
             foreground=self.theme.background.color,
             font=(self.theme.font_face, self.theme.font_main_size),
@@ -1092,13 +1183,13 @@ class _UI(Thread):
         )
 
         self.ttk_style.map(
-            'Active.TButton',
+            'My.Active.TButton',
             background=[('active', self.theme.accent.color), ('disabled', self.theme.accent.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
         self.ttk_style.configure(
-            'Accent2.TButton',
+            'My.Accent2.TButton',
             background=self.theme.warning.color,
             foreground=self.theme.background.color,
             font=(self.theme.font_face, self.theme.font_main_size),
@@ -1110,13 +1201,13 @@ class _UI(Thread):
         )
 
         self.ttk_style.map(
-            'Accent2.TButton',
+            'My.Accent2.TButton',
             background=[('active', self.theme.warning.color), ('disabled', self.theme.warning.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
         self.ttk_style.configure(
-            'Accent2LG.TButton',
+            'My.Accent2LG.TButton',
             background=self.theme.warning.color,
             foreground=self.theme.background.color,
             font=(self.theme.font_face, self.theme.font_large_size),
@@ -1128,13 +1219,13 @@ class _UI(Thread):
         )
 
         self.ttk_style.map(
-            'Accent2LG.TButton',
+            'My.Accent2LG.TButton',
             background=[('active', self.theme.warning.color), ('disabled', self.theme.warning.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
         self.ttk_style.configure(
-            'ActiveLG.TButton',
+            'My.ActiveLG.TButton',
             background=self.theme.accent.color,
             foreground=self.theme.background.color,
             font=(self.theme.font_face, self.theme.font_large_size),
@@ -1146,17 +1237,18 @@ class _UI(Thread):
         )
 
         self.ttk_style.map(
-            'ActiveLG.TButton',
+            'My.ActiveLG.TButton',
             background=[('active', self.theme.accent.color), ('disabled', self.theme.accent.color), ('readonly', self.theme.gray.color)],
             foreground=[('active', self.theme.background.color), ('disabled', self.theme.background.color), ('readonly', self.theme.background.color)]
         )
 
         self.ttk_style.configure(
-            'TSeparator',
+            'My.TSeparator',
             background=self.theme.gray.color
         )
 
-        configure_entry_style(self.ttk_style, self.theme, cast(Union[float, int], self.theme_update_map[ThemeUpdateVars.FONT_SIZE_MAIN]), pref='MyQuizzingApp.QFormLogin')
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, pref='MyQuizzingApp')  # type: ignore
+        self.ttk_style = qa_functions.TTKTheme.configure_entry_style(self.ttk_style, self.theme, pref='MyQuizzingApp')  # type: ignore
 
         elID = "<lUP::unknown>"
 
@@ -1439,6 +1531,16 @@ class _UI(Thread):
                 btn.config(state=tk.DISABLED)
 
     def enable_all_inputs(self, *exclude: Tuple[Union[tk.Button, ttk.Button], ...]) -> None:
+        if self.current_page == self.LOGIN_PAGE:
+            exclude = (*exclude, self.prev_frame)
+
+        elif self.current_page == self.SUMMARY_PAGE:
+            exclude = (*exclude, self.next_frame)
+
+        if self.current_page == self.CONFIGURATION_PAGE:
+            if self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] == 'a':
+                exclude = (*exclude, self.config_qd_ssd_field)
+
         for btn in self.inputs:
             if btn not in exclude:
                 btn.config(state=tk.NORMAL)

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from .qa_enum import *
 from .qa_info import App
 import re, os, sys
+from copy import deepcopy
 
 
 # Globals
@@ -220,3 +221,51 @@ class InvalidCLIArgument(Exception):
 
     def __str__(self) -> str:
         return f"CLI Error: Invalid Argument: Argument `{self.an}` got token `{self.ag}`; {self.ae}"
+
+
+class FlattenedDict(dict):
+    def __init__(self, org_dict: Dict[Any, Any], strict_flattening: bool = True) -> None:
+        super().__init__()
+        self.od = org_dict
+        self._sf = strict_flattening
+
+    @property
+    def __flattened(self) -> Dict[str, Any]:
+
+        def rec_search(d: Union[Dict[Any, Any], Tuple[Any], List[Any], Set[Any]], rt: str) -> Dict[str, Any]:
+            od = deepcopy(d)
+            nd = {}
+
+            if isinstance(od, dict):
+                for k, v in od.items():
+                    if isinstance(v, dict):
+                        nd = {**nd, **rec_search(v, f'{rt}/{k}')}
+
+                    elif isinstance(v, (list, set, tuple)) & self._sf:
+                        for i, n0 in enumerate(v):
+                            if isinstance(n0, (list, set, tuple, dict)):
+                                nd = {**nd, **rec_search(n0, f'{rt}/{k}/{i}')}
+
+                            else:
+                                nd[f'{rt}/{k}/{i}'] = n0
+
+                    else:
+                        nd[f'{rt}/{k}'] = v
+
+            elif isinstance(od, (list, set, tuple)) & self._sf:
+                for i, n0 in enumerate(od):
+                    if isinstance(n0, (list, set, tuple, dict)):
+                        nd = {**nd, **rec_search(n0, f'{rt}/{i}')}
+
+                    else:
+                        nd[f'{rt}/{i}'] = n0
+
+            return nd
+
+        return rec_search(self.od, '')
+
+    def __str__(self) -> str:
+        return f'QA.QF.FD: {self.__flattened}'
+
+    def __repr__(self) -> str:
+        return f'FlattenedDict({self.__flattened})'
