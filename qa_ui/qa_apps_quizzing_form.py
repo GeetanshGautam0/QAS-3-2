@@ -2,6 +2,7 @@ import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, 
 from time import sleep
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
+from .qa_apps_admin_tools import CustomText
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel
 from qa_functions.qa_std import ANSI, AppLogColors
 from qa_functions.qa_custom import HexColor
@@ -166,6 +167,9 @@ class _UI(Thread):
         self.config_pc_a2d = tk.StringVar(self.root)
         self.config_pc_a2d_lbl = tk.Label(self.config_pc_frame)
         self.config_pc_a2d_field = ttk.Entry(self.config_pc_frame, textvariable=self.config_pc_a2d, style='MyQuizzingApp.TEntry')
+
+        self.summ_ttl = tk.Label(self.summary_frame)
+        self.summ_txt = CustomText(self.summary_frame)
 
         self.start()
         self.root.deiconify()
@@ -808,8 +812,73 @@ class _UI(Thread):
             self.summary_frame.pack(fill=tk.BOTH, expand=True)
             self.title_info.config(text=f'Logged in as {" ".join([self.first_name.get(), self.last_name.get()]).title()} ({self.ID.get()})', anchor=tk.W, justify=tk.LEFT)
 
+            if not self.data.get('flag_SetupSummaryElements', False):
+                self.summ_ttl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+                self.summ_ttl.config(text='Summary', anchor=tk.W, justify=tk.LEFT)
+
+                self.summ_txt.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+                self.summ_txt.delete('1.0', tk.END)
+
+                self.data['flag_SetupSummaryElements'] = True
+
+            if not self.data.get('flag_SetupSummaryUpdateRequests', False):
+                TUC, TUV = ThemeUpdateCommands, ThemeUpdateVars
+
+                self.update_requests[gsuid()] = [self.summ_ttl, TUC.BG, [TUV.BG]]
+                self.update_requests[gsuid()] = [self.summ_ttl, TUC.FG, [TUV.ACCENT]]
+                self.update_requests[gsuid()] = [self.summ_ttl, TUC.FONT, [TUV.TITLE_FONT_FACE, TUV.FONT_SIZE_TITLE]]
+
+                self.update_requests[gsuid()] = [self.summary_frame, TUC.BG, [TUV.BG]]
+
+                self.late_update_requests[self.summ_txt] = [
+                    [
+                        TUC.CUSTOM,
+                        [
+                            lambda *args: cast(CustomText, args[0]).auto_size(),
+                            self.summ_txt
+                        ]
+                    ],
+                    [
+                        TUC.CUSTOM,
+                        [
+                            lambda *args, **kwargs: cast(CustomText, args[5]).config(
+                                bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                                relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0]
+                            ),
+                            ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                            ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN,
+                            self.summ_txt
+                        ]
+                    ]
+                ]
+
+            self.summ_txt.config(state=tk.NORMAL)
+
+            _conf = self.data['CONFIG_INF:<DB>']['CONFIGURATION']
+
+            self.summ_txt.auto_size()
+            self.summ_txt.setup_color_tags(self.theme_update_map)
+            self.summ_txt.insert('end', 'Your Information:\n', '<accent>')
+            self.summ_txt.insert('end', '\t\u2022 Name: ')
+            self.summ_txt.insert('end', f'{self.last_name.get()}, {self.first_name.get()}\n', '<accent>')
+            self.summ_txt.insert('end', f'\t\u2022 ID: ')
+            self.summ_txt.insert('end', f'{self.ID.get()}\n\n', '<accent>')
+
+            self.summ_txt.insert('end', f'Configuration:\n', '<accent>')
+            self.summ_txt.insert('end', '\t\u2022 Question subsampling: ')
+            self.summ_txt.insert('end', 'Prompt with %s\n' % ('all questions.' if _conf['poa'] == 'a' else f'1/{_conf["ssd"]} of the questions.'), '<accent>')
+
+            self.summ_txt.insert('end', '\t\u2022 Question ordering: ')
+            self.summ_txt.insert('end', '%sandomize question order.\n' % ('R' if _conf['rqo'] else 'Do not r'), '<accent>')
+
+            self.summ_txt.insert('end', '\t\u2022 Erroneous response entry: ')
+            self.summ_txt.insert('end', 'Penalties disabled.' if not _conf['dpi'] else f"Deduct {_conf['a2d']} points per incorrect response.\n", '<accent>')
+
+            self.summ_txt.insert('end', '\nNote that this configuration will be reported to the quiz administrator along with your score.', '<gray_fg>')
+            self.summ_txt.config(state=tk.DISABLED)
+
         def check_summary_frame() -> Tuple[bool, int, List[str]]:
-            return False, 1, ['Uh oh. It looks like you have just found something that is not programmed yet!']
+            return True, 0, []
 
         page_map = {
             self.LOGIN_PAGE: {
@@ -990,6 +1059,7 @@ class _UI(Thread):
     def run(self) -> None:
         global APP_TITLE
 
+        self.root.resizable(False, False)
         self.root.protocol('WM_DELETE_WINDOW', self.close)
         self.root.iconbitmap(qa_functions.Files.QF_ico)
         self.root.title(APP_TITLE)
@@ -1693,8 +1763,8 @@ class _UI(Thread):
         if self.current_page == self.LOGIN_PAGE:
             exclude = (*exclude, self.prev_frame)  # type: ignore
 
-        elif self.current_page == self.SUMMARY_PAGE:
-            exclude = (*exclude, self.next_frame)  # type: ignore
+        # elif self.current_page == self.SUMMARY_PAGE:
+        #     exclude = (*exclude, self.next_frame)  # type: ignore
 
         if self.current_page == self.CONFIGURATION_PAGE:
             if (self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa'] == 'a') or not self.data['CONFIG_INF:<DB>']['CONFIGURATION']['acc']:
