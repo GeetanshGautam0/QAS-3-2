@@ -305,5 +305,5 @@ def dtc(
         original: Union[str, bytes, List[Any], Tuple[Any, ...], Set[Any], Dict[Any, Any], int, float],
         output_type: type,
         cfa: ConverterFunctionArgs
-) -> Union[Any]:
+) -> Any:
     return data_type_converter(original, output_type, cfa)

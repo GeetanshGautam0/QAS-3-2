@@ -161,18 +161,22 @@ class _UI(Thread):
         self.root.withdraw()
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
-        wd_w = 1000 if 1000 <= self.screen_dim[0] else self.screen_dim[0]
-        wd_h = 900 if 900 <= self.screen_dim[1] else self.screen_dim[1]
+        
+        width_to_height_ratio = 10/9
+        
+        wd_h = int(self.screen_dim[1] * 0.85)
+        wd_w = int(wd_h * width_to_height_ratio)
+        
         self.window_size = [wd_w, wd_h]
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
-            int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
+            int(self.screen_dim[1] * .43 - self.window_size[1] / 2)
         ]
 
         self.window_size_2 = [670, 475]
         self.screen_pos_2 = [
             int(self.screen_dim[0] / 2 - self.window_size_2[0] / 2),
-            int(self.screen_dim[1] / 2 - self.window_size_2[1] / 2)
+            int(self.screen_dim[1] * .43 - self.window_size_2[1] / 2)
         ]
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()

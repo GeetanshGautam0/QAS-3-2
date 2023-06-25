@@ -1,4 +1,4 @@
-import tkinter as tk, sys, os, qa_functions, traceback, subprocess, random
+import tkinter as tk, sys, os, qa_functions, traceback, subprocess, random, math
 from threading import Thread
 from tkinter import ttk
 from typing import *
@@ -29,13 +29,13 @@ class _UI(Thread):
         self.thread.__init__(self)
 
         self.root, self.ic, self.ds, self.kwargs = root, ic, ds, kwargs
-
+        
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
-        ratio = 4 / 3
-        wd_w = 700
-        wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-        self.window_size = [wd_w, int(ratio * wd_w)]
-        self.window_size[0] = 790
+        self.window_size = [int(math.pi/3.14 * .8 * self.screen_dim[1]), int(self.screen_dim[1] * .8)]
+        
+        if self.window_size[0] > (self.screen_dim[0] * 0.9): 
+            self.window_size[0] = int(self.screen_dim[0] * 0.9)
+            
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
             int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
@@ -452,7 +452,7 @@ class _UI(Thread):
     def run_all(self) -> None:
         self.disable_all_inputs()
         self.clear_lb()
-
+        
         fail_acc = 0
         pass_acc = 0
         warn_acc = 0

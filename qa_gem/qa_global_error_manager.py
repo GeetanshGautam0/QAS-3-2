@@ -1,10 +1,22 @@
-import sys, traceback as tb
+import sys, traceback as tb, hashlib, time, random
 from qa_functions import ANSI, LoggingLevel, ExceptionCodes, File, stderr, LoggingPackage, qa_logger
-from typing import Optional, Any, overload, Union, cast, Type, List
+from typing import Optional, Any, overload, Union, cast, Type, List, Tuple
 from dataclasses import dataclass
 
 
 LOGGING_FILE_NAME: Optional[str] = None
+_tb_buff = ['<%no_tb']
+
+def gen_codes(exception_class, exception_str, tb) -> Tuple[str, str, str]:
+    unique_hash = hashlib.md5(
+        f"{time.ctime(time.time())}{tb}{exception_str}{exception_class}{random.random()}".encode()
+    ).hexdigest()
+    
+    unique_hash = hex(int(unique_hash, 16))            
+    error_hash = hex(int(hashlib.md5(f"{exception_class}".encode()).hexdigest(), 16))
+    std_hash = hex(int(hashlib.md5(f"{exception_class}{exception_str}".encode()).hexdigest(), 16))
+    
+    return error_hash, unique_hash, std_hash
 
 
 def _cl_List(input_list: List[Any]) -> list:
@@ -25,13 +37,18 @@ class _B(Exception):
 
     @property
     def string(self) -> str:
-        return cast(str, self.sc.e_str() + f'\nQuzzingApp.{self.ec.name.upper()}')
+        return "* Error TRP Code: %s\n* Error SEC Code: %s\n* Error PRC Code: %s\n" % gen_codes(self.sc, self.sc.e_str(), _tb_buff[-1]) + cast(str, self.sc.e_str() + f'\nQuzzingApp.{self.ec.name.upper()}')
 
     @property
     def formatted_string(self) -> str:
         return cast(str,
+                    f"\n-------------------------------------x-------------------------------------\n\n" + \
+                    
+                    f"* Error TRP Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n* Error SEC Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n* Error PRC Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n" % gen_codes(self.sc, self.sc.e_str(), _tb_buff[-1]) + \
                     (self.sc.f_str() if 'f_str' in dir(self.sc) else self.string) + \
-                    f'\n{ANSI.FG_BRIGHT_MAGENTA}{ANSI.FG_BLACK}{ANSI.BOLD}QuizzingApp.{self.ec.name.upper()}{ANSI.RESET}'
+                    f'\n{ANSI.FG_BRIGHT_MAGENTA}{ANSI.FG_BLACK}{ANSI.BOLD}QuizzingApp.{self.ec.name.upper()}{ANSI.RESET}' + \
+                    
+                    f"\n\n------------------------------------END------------------------------------\n"
                 )
 
     @property
@@ -45,8 +62,8 @@ class _B(Exception):
     def __repr__(self) -> str:
         return f'Exceptions.{self.sc.__class__.__name__}(%s, EOff={self.sc.EOff}, ExpObj={self.EObj})' % ','.join([str(d) for d in self.sc._a])  # type: ignore
 
-    def __str__(self) -> str:
-        return f'Minf_18m_B:ms0: DUMP << {self.string} >>'
+    # def __str__(self) -> str:
+    #     return f'Minf_18m_B:ms0: DUMP << {self.string} >>'
 
 
 class Exceptions:
@@ -401,7 +418,14 @@ Minf_EH_Md7182_eHookTasks_PRE = []
 
 def _O_exception_hook(exception_type: Type[BaseException], value, traceback, _invoke_exception=True, _re_inst=False):
     global _O_map, Minf_EH_Md7182_eHookTasks
-
+    
+    _tb_buff.append("\n".join(tb.extract_tb(traceback).format()))
+    
+    if len(_tb_buff) > 5:
+        _tb_buff.pop(0)
+        for _i in range(1, 4):
+            _tb_buff[_i - 1] = _tb_buff[_i]
+    
     def _O_eh_run_tasks(tasks, fatal):
         for (condition, task) in tasks:
             try:
@@ -420,7 +444,7 @@ def _O_exception_hook(exception_type: Type[BaseException], value, traceback, _in
         rMap = {
             '@aCLS_nS': str(exception_type.__name__),
             '@aOE_dS': str(value),
-            '@traceback': "\n".join(tb.extract_tb(traceback).format())
+            '@traceback': _tb_buff[-1]
         }
 
         L = []

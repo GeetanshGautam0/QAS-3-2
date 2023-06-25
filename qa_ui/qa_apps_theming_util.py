@@ -1,4 +1,4 @@
-import tkinter as tk, sys, qa_functions, qa_files, os, traceback, hashlib, json, random, subprocess
+import tkinter as tk, sys, qa_functions, qa_files, os, traceback, hashlib, json, random, subprocess, math
 from threading import Thread
 from . import qa_prompts
 from tkinter import ttk, filedialog, colorchooser, font
@@ -33,11 +33,11 @@ class _UI(Thread):
         self.root.withdraw()
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
-        ratio = 4/3
-        wd_w = 700
-        wd_w = wd_w if wd_w <= self.screen_dim[0] else self.screen_dim[0]
-        self.window_size = [wd_w, int(ratio * wd_w)]
-        self.window_size[0] = 790
+        self.window_size = [int(math.pi/3.14 * .8 * self.screen_dim[1]), int(self.screen_dim[1] * .8)]
+        
+        if self.window_size[0] > (self.screen_dim[0] * 0.9): 
+            self.window_size[0] = int(self.screen_dim[0] * 0.9)
+            
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
             int(self.screen_dim[1] / 2 - self.window_size[1] / 2)

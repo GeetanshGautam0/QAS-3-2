@@ -11,6 +11,7 @@ user32 = ctypes.WinDLL('user32', use_last_error=True)
 gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
 
 FONTS_REG_PATH = r'Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+ICO_PATH = f".src\.icons\.app_ico"
 
 HWND_BROADCAST = 0xFFFF
 SMTO_ABORTIFHUNG = 0x0002
@@ -674,6 +675,21 @@ class Install(threading.Thread):
         self.okay_to_close = True
         self.close_button.config(state=tk.NORMAL)
         self.insert_item(f' ')
+        
+        self.insert_item("Configuring file icons")
+        self.insert_item(f' ')
+        
+        r1, r2, r3, r4, r5, r6 = config_icons()
+        
+        for i, (f, (b, s)) in enumerate(
+            [('Export', r1), ('Quiz', r2), ('Score', r3), ('Admin', r4), ('Log', r5), ('"ENC"', r6)]
+        ):
+            self.insert_item(f"    * {f} Files: {'SUCCESS' if b else 'FAILED'}", fg=_THEME['ok' if b else 'error'], sfg=_THEME['ok' if b else 'error'])
+            
+            if not b:
+                self.insert_item(f'    Error info: {s}')
+            
+        self.insert_item(' ')        
         self.insert_item(f'Executed all commands', fg=_THEME['ok'], sfg=_THEME['ok'])
 
         return
@@ -1091,6 +1107,41 @@ def load_manifest() -> Dict[str, Any]:
         manifest_file.close()
 
     return o
+
+
+def _set_key(REG_PATH: str, name: str = "DefaultIcon", value: str = f"{ICO_PATH}\\qaFile.ico") -> None:
+        winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, REG_PATH)
+        reg_key = winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, REG_PATH, 0, winreg.KEY_WRITE)
+        
+        winreg.SetValueEx(reg_key, name, 0, winreg.REG_SZ, value)
+        winreg.CloseKey(reg_key)
+
+
+def _get_key(REG_PATH: str, name: str = "DefaultIcon") -> Any:
+    reg_key = winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, REG_PATH, 0, winreg.KEY_READ)
+    value, _ = winreg.QueryValueEx(reg_key, name)
+        
+    return value
+
+
+def config_icons() -> Tuple[
+    Tuple[bool, Any],    # qaExport
+    Tuple[bool, Any],    # qaQuiz
+    Tuple[bool, Any],    # qaScore
+    Tuple[bool, Any],    # qaFile
+    Tuple[bool, Any],    # qaLog
+    Tuple[bool, Any],    # qaEnc
+]:    
+    global ICO_PATH
+    
+    _s1, _r1 = tr(_set_key, ".qaExport",    "DefaultIcon",      f"{ICO_PATH}\\qaExport.ico")
+    _s2, _r2 = tr(_set_key, ".qaQuiz",      "DefaultIcon",      f"{ICO_PATH}\\qaQuiz.ico")
+    _s3, _r3 = tr(_set_key, ".qaScore",     "DefaultIcon",      f"{ICO_PATH}\\qaScore.ico")
+    _s4, _r4 = tr(_set_key, ".qaFile",      "DefaultIcon",      f"{ICO_PATH}\\qaFile.ico")
+    _s5, _r5 = tr(_set_key, ".qaLog",       "DefaultIcon",      f"{ICO_PATH}\\qaLog.ico")
+    _s6, _r6 = tr(_set_key, ".qaEnc",       "DefaultIcon",      f"{ICO_PATH}\\qaEnc.ico")
+    
+    return (_s1, _r1), (_s2, _r2), (_s3, _r3), (_s4, _r4), (_s5, _r5), (_s6, _r6)
 
 
 def install_font(src_path: str) -> Tuple[bool, str]:  # type: ignore

@@ -170,14 +170,38 @@ class _ApplicationInstanceManager:
         try:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             tb = ''.join(i for i in traceback.format_tb(exc_traceback))
-            unique_hash = hashlib.sha3_512(
+            
+            unique_hash = hashlib.md5(
                 f"{time.ctime(time.time())}{tb}{exception_str}{exception_class}{random.random()}".encode()
             ).hexdigest()
-            error_hash = hashlib.md5(
-                f"{exception_str}{exception_class}".encode()
-            ).hexdigest()
+            
+            unique_hash = hex(int(unique_hash, 16))            
+            error_hash = hex(int(hashlib.md5(f"{exception_class}".encode()).hexdigest(), 16))
+            std_hash = hex(int(hashlib.md5(f"{exception_class}{exception_str}".encode()).hexdigest(), 16))
 
-            e_string = f"An error occurred during runtime; more info:\n\nError class: {exception_class}\n\nError: {exception_str}\n\nError Code: {error_hash}\n\nUnique Error Code: {unique_hash}\n\nTechnical Information:\n{tb}"
+            seq = '\n\t'; s = '\n'
+            
+            e_string = f"""
+            
+            -------------------------------------x-------------------------------------
+            
+            An error occurred during runtime; more info:
+            
+            Error class: <{exception_class}>
+            Error: "{exception_str}"
+            
+            * Error TPR Code: {error_hash}
+            * Error SEC Code: {std_hash}
+            * Error PRC Code: {unique_hash}
+            
+            
+            Technical Information:
+            \"
+                {seq.join(tb.split(s)).strip()} 
+            \"
+            ------------------------------------END------------------------------------
+            
+            """
             sys.stderr.write(e_string)
 
             if isinstance(self.shell, (tk.Tk, tk.Toplevel)):

@@ -856,6 +856,8 @@ class _UI(Thread):
 
             _conf = self.data['CONFIG_INF:<DB>']['CONFIGURATION']
 
+            self.summ_txt.delete('1.0', 'end')
+
             self.summ_txt.auto_size()
             self.summ_txt.setup_color_tags(self.theme_update_map)
             self.summ_txt.insert('end', 'Your Information:\n', '<accent>')
