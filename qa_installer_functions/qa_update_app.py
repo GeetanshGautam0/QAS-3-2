@@ -1007,7 +1007,7 @@ def addon(*args: Optional[Any], **kwargs: Optional[Any]) -> None:
 
 
 @_cli_handler.command()
-@click.argument("--install_dir", help="Specify the Installation directory path (absolute). Needed for icon path configuration.", type=str)
+@click.argument("install_dir", type=str)
 @click.option('--console', help='show console', is_flag=True)
 @click.option('--noAdmin', help='do not ask for uac elevation', is_flag=True)
 def install(**kwargs: Optional[Any]) -> None:
@@ -1138,12 +1138,19 @@ def config_icons() -> Tuple[
 ]:    
     global ICO_PATH, _S_InstallationPath
     
-    _s1, _r1 = tr(_set_key, ".qaExport",    "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaExport.ico")
-    _s2, _r2 = tr(_set_key, ".qaQuiz",      "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaQuiz.ico")
-    _s3, _r3 = tr(_set_key, ".qaScore",     "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaScore.ico")
-    _s4, _r4 = tr(_set_key, ".qaFile",      "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaFile.ico")
-    _s5, _r5 = tr(_set_key, ".qaLog",       "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaLog.ico")
-    _s6, _r6 = tr(_set_key, ".qaEnc",       "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaEnc.ico")
+    tr(_set_key, ".qaExport", "", "QuizzingApplication.File.Export")
+    tr(_set_key, ".qaQuiz", "", "QuizzingApplication.File.Quiz")
+    tr(_set_key, ".qaScore", "", "QuizzingApplication.File.Score")
+    tr(_set_key, ".qaFile", "", "QuizzingApplication.File.File")
+    tr(_set_key, ".qaLog", "", "QuizzingApplication.File.Log")
+    tr(_set_key, ".qaEnc", "", "QuizzingApplication.File.Enc")
+    
+    _s1, _r1 = tr(_set_key, "QuizzingApplication.File.Export\DefaultIcon",    "",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaExport.ico")
+    _s2, _r2 = tr(_set_key, "QuizzingApplication.File.Quiz\DefaultIcon",      "",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaQuiz.ico")
+    _s3, _r3 = tr(_set_key, "QuizzingApplication.File.Score\DefaultIcon",     "",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaScore.ico")
+    _s4, _r4 = tr(_set_key, "QuizzingApplication.File.File\DefaultIcon",      "",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaFile.ico")
+    _s5, _r5 = tr(_set_key, "QuizzingApplication.File.Log\DefaultIcon",       "",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaLog.ico")
+    _s6, _r6 = tr(_set_key, "QuizzingApplication.File.Enc\DefaultIcon",       "",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaEnc.ico")
     
     return (_s1, _r1), (_s2, _r2), (_s3, _r3), (_s4, _r4), (_s5, _r5), (_s6, _r6)
 
