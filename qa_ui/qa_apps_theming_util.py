@@ -40,7 +40,7 @@ class _UI(Thread):
             
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
-            int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
+            int(self.screen_dim[1] * .43 - self.window_size[1] / 2)
         ]
 
         self.theme: qa_functions.Theme = qa_functions.LoadTheme.auto_load_pref_theme()

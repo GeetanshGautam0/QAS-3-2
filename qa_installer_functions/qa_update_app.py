@@ -12,6 +12,7 @@ gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
 
 FONTS_REG_PATH = r'Software\Microsoft\Windows NT\CurrentVersion\Fonts'
 ICO_PATH = f".src\.icons\.app_ico"
+_S_InstallationPath = None
 
 HWND_BROADCAST = 0xFFFF
 SMTO_ABORTIFHUNG = 0x0002
@@ -1006,10 +1007,13 @@ def addon(*args: Optional[Any], **kwargs: Optional[Any]) -> None:
 
 
 @_cli_handler.command()
+@click.argument("--install_dir", help="Specify the Installation directory path (absolute). Needed for icon path configuration.", type=str)
 @click.option('--console', help='show console', is_flag=True)
 @click.option('--noAdmin', help='do not ask for uac elevation', is_flag=True)
 def install(**kwargs: Optional[Any]) -> None:
-    global APPDATA
+    global APPDATA, _S_InstallationPath
+    
+    _S_InstallationPath = kwargs.get('install_dir')
 
     if _is_admin() or kwargs['noadmin']:
         try:
@@ -1132,14 +1136,14 @@ def config_icons() -> Tuple[
     Tuple[bool, Any],    # qaLog
     Tuple[bool, Any],    # qaEnc
 ]:    
-    global ICO_PATH
+    global ICO_PATH, _S_InstallationPath
     
-    _s1, _r1 = tr(_set_key, ".qaExport",    "DefaultIcon",      f"{ICO_PATH}\\qaExport.ico")
-    _s2, _r2 = tr(_set_key, ".qaQuiz",      "DefaultIcon",      f"{ICO_PATH}\\qaQuiz.ico")
-    _s3, _r3 = tr(_set_key, ".qaScore",     "DefaultIcon",      f"{ICO_PATH}\\qaScore.ico")
-    _s4, _r4 = tr(_set_key, ".qaFile",      "DefaultIcon",      f"{ICO_PATH}\\qaFile.ico")
-    _s5, _r5 = tr(_set_key, ".qaLog",       "DefaultIcon",      f"{ICO_PATH}\\qaLog.ico")
-    _s6, _r6 = tr(_set_key, ".qaEnc",       "DefaultIcon",      f"{ICO_PATH}\\qaEnc.ico")
+    _s1, _r1 = tr(_set_key, ".qaExport",    "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaExport.ico")
+    _s2, _r2 = tr(_set_key, ".qaQuiz",      "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaQuiz.ico")
+    _s3, _r3 = tr(_set_key, ".qaScore",     "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaScore.ico")
+    _s4, _r4 = tr(_set_key, ".qaFile",      "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaFile.ico")
+    _s5, _r5 = tr(_set_key, ".qaLog",       "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaLog.ico")
+    _s6, _r6 = tr(_set_key, ".qaEnc",       "DefaultIcon",      f"{_S_InstallationPath}\\{ICO_PATH}\\qaEnc.ico")
     
     return (_s1, _r1), (_s2, _r2), (_s3, _r3), (_s4, _r4), (_s5, _r5), (_s6, _r6)
 

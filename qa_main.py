@@ -279,7 +279,7 @@ def start_app(**kwargs: Optional[None]) -> None:
 
 
 @_CLIHandler.command()
-@click.argument('file_path')
+@click.argument('file_path', type=str)
 def check_file(**kwargs: Optional[None]) -> None:
     default_cli_handling(**kwargs)
     return

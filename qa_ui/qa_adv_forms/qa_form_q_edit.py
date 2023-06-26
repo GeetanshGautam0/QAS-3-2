@@ -185,12 +185,16 @@ class QEditUI(Thread):
         self._job: Union[None, str] = None
 
         self.screen_dim = [self.root.winfo_screenwidth(), self.root.winfo_screenheight()]
-        wd_w = 850 if 850 <= self.screen_dim[0] else self.screen_dim[0]
-        wd_h = 900 if 900 <= self.screen_dim[1] else self.screen_dim[1]
+        
+        w2h = 8.5/9
+        
+        wd_h = int(self.screen_dim[1] * 0.70)
+        wd_w = int(w2h * wd_h)
+        
         self.window_size = [wd_w, wd_h]
         self.screen_pos = [
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
-            int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
+            int(self.screen_dim[1] * .43 - self.window_size[1] / 2)
         ]
 
         self.update_requests: Dict[str, List[Any]] = {}
