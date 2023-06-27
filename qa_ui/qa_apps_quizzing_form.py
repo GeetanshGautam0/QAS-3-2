@@ -368,8 +368,14 @@ class _UI(Thread):
         _ins('\n\nArranging questions ...\n\n')
         
         q = self._arr_q(_q, _ins)
+        _ins(f'\nSuccessfully arranged questions.\n\n', '<okay>')
+        sleep(1)
         
+        self.data['__quiz']['__questionBase'] = copy.deepcopy(q)        
         self.data['__quiz']['__prep'] = True
+        
+        _ins(f'\nPreparing quiz form... Get Ready!', '<warning>')
+        sleep(1)
         
     def _arr_q(self, q: Dict[Any, Any], _ins: Any) -> Dict[Any, Any]:        
         ssb = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa']
@@ -386,20 +392,18 @@ class _UI(Thread):
         _ins(f'\n       - Randomize Question Order: ')
         _ins('Enabled' if rqo else 'Disabled', '<accent>')
         
+        qPb: Dict[Any, Any] = {}
+        
         if rqo:
             qPa: List[str] = cast(List[str], [*q.keys()])
-            qPb: Dict[Any, Any] = {}
             
             for I in range(len(q)):
                 r = random.randint(0, len(qPa) - 1)
                 qPb[str(I)] = q[qPa[r]]
                 qPa.pop(r)
             
-            print("\n --- qPb --- \n")
-            print(json.dumps(qPb, indent=4))
-            
         else:
-            qPb: Dict[Any, Any] = cast(Dict[Any, Any], copy.deepcopy(q))
+            qPb = copy.deepcopy(q)
         
         if subsampling:
             ind0 = random.randint(0, len(q) // 2)
@@ -407,10 +411,7 @@ class _UI(Thread):
             
             qPa = [*qPb.keys()]
             qPc = {k: qPb[k] for k in qPa[ind0:indf]}
-            
-            print("\n --- qPc --- \n")
-            print(json.dumps(qPc, indent=4))
-            
+
             return qPc
         
         else:
