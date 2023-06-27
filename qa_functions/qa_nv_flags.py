@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, hashlib
 from .qa_info import App
 from typing import *
 
@@ -20,7 +20,8 @@ def create_flag(script: str, name: str) -> None:
     name = name.replace(DELIMITER, '__')
 
     if not check_flag(script, name):
-        with open(f"{ROOT}\\{script}{DELIMITER}{name}", 'w') as flag:
+        with open(f"{ROOT}\\{script}{DELIMITER}{name}.qaEnc", 'w') as flag:
+            flag.write(hex(int(hashlib.sha3_512(f'{script}{DELIMITER}{name}.qaEnc'.encode()).hexdigest(), 16)))
             flag.close()
 
 
@@ -30,7 +31,7 @@ def delete_flag(script: str, name: str) -> None:
     name = name.replace(DELIMITER, '__')
 
     if check_flag(script, name):
-        os.remove(f"{ROOT}\\{script}{DELIMITER}{name}")
+        os.remove(f"{ROOT}\\{script}{DELIMITER}{name}.qaEnc")
 
 
 def check_flag(script: str, name: str) -> bool:
@@ -38,7 +39,24 @@ def check_flag(script: str, name: str) -> bool:
 
     name = name.replace(DELIMITER, '__')
 
-    return os.path.exists(f"{ROOT}\\{script}{DELIMITER}{name}")
+    return os.path.exists(f"{ROOT}\\{script}{DELIMITER}{name}.qaEnc")
+
+
+def verify_flag(script: str, name: str) -> bool:
+    global ROOT, DELIMETER
+    
+    file = f"{script}{DELIMITER}{name}.qaEnc"
+    path = f'{ROOT}\\{file}'
+    
+    if not os.path.exists(path):
+        return False
+    
+    else:
+        with open(path, 'r') as file_vec:
+            file_contents = file_vec.read().strip()
+            file_vec.close()
+            
+        return file_contents == hex(int(hashlib.sha3_512(file.encode()).hexdigest(), 16))
 
 
 def clear_all_app_flags(script: str) -> None:

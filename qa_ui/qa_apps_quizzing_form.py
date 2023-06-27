@@ -1,4 +1,4 @@
-import sys, qa_functions, os, PIL, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback, copy, re
+import sys, qa_functions, os, PIL, math, subprocess, tkinter as tk, random, qa_files, json, hashlib, traceback, copy, re, datetime
 from time import sleep
 from . import qa_prompts
 from .qa_prompts import gsuid, configure_scrollbar_style, configure_entry_style
@@ -105,7 +105,7 @@ class _UI(Thread):
         self.title_info = tk.Label(self.title_box)
 
         self.screen_data: Dict[int, Dict[Any, Any]] = {}
-        [self.LOGIN_PAGE, self.CONFIGURATION_PAGE, self.SUMMARY_PAGE] = range(3)
+        [self.LOGIN_PAGE, self.CONFIGURATION_PAGE, self.SUMMARY_PAGE, self._page_code_aft] = range(4)
         for i in range(3): self.screen_data[i] = {}
         self.current_page = self.LOGIN_PAGE
 
@@ -117,6 +117,8 @@ class _UI(Thread):
         self.login_frame_gsuid = gsuid('QuizzingForm.PageMap<GSUID>')
         self.config_frame_gsuid = gsuid('QuizzingForm.PageMap<GSUID>')
         self.summary_frame_gsuid = gsuid('QuizzingForm.PageMap<GSUID>')
+        self.quiz_frame_gsuid = gsuid('QuizzingForm.PageMap.QUIZ<GSUID>')
+        self.complete_frame_gsuid = gsuid('QuizingForm.PageMap.DONE<GSUID>')
 
         self.nav_btn_frame = tk.Frame(self.root)
         self.next_frame = ttk.Button(self.nav_btn_frame, text='Next Step \u2b9e', style='MyQuizzingApp.QFormRoot.TButton', command=self.proceed)
@@ -171,6 +173,15 @@ class _UI(Thread):
         self.summ_ttl = tk.Label(self.summary_frame)
         self.summ_txt = CustomText(self.summary_frame)
 
+        self.quiz_frame = tk.Frame(self.main_frame)
+        self.complete_frame = tk.Frame(self.main_frame)
+        
+        self.complete_stage_1 = tk.Frame(self.complete_frame)  # Checking answers
+        self.complete_stage_2 = tk.Frame(self.complete_frame)  # Done (allow to exit)
+        
+        self.quiz_activity_lbl = tk.Label(self.quiz_frame)
+        self.quiz_activity_box = CustomText(self.quiz_frame)
+        
         self.start()
         self.root.deiconify()
         self.root.focus_get()
@@ -195,15 +206,225 @@ class _UI(Thread):
 
         self.root.after(0, self.root.quit)
 
+    def _abort_quiz(self, _: bool = True) -> None:
+        s_f, s_d = qa_functions.data_at_dict_path('<QUIZ>/is_started', self.data)
+        
+        if not (s_f and s_d):
+            return 
+    
+        self.root.overrideredirect(False)
+        self.root.wm_attributes('-topmost', 0)
+        self.root.geometry(f'{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}')
+
+        self.close()
+        
+        return
+    
+    def _get_attempt_number(self) -> int:
+        s_f, s_d = qa_functions.data_at_dict_path('<QUIZ>/is_started', self.data)
+        
+        if not (s_f and s_d):
+            return -1
+        
+        i, f = 0, 0
+        
+        while i < 10000:
+            s = self._gen_user_id() + f"({i})"
+            m = 'QZ.ActAb'
+            
+            if qa_functions.VerifyNVFlag(m, s):
+                f += 1
+            
+            i += 1
+        
+        log(LoggingLevel.INFO, f'{ANSI.BG_MAGENTA}{ANSI.FG_WHITE}{ANSI.BOLD}User {s[:-1* (len(str(i)) + 2):]} has had {f} attempts (excluding current attempt).{ANSI.RESET}')
+        
+        return f
+    
+    def _gen_user_id(self, ex: str = "") -> str:
+        return \
+            hex(int(hashlib.md5(f'{self.last_name.get()}.{self.first_name.get()}.{self.ID.get()}{self.data["DATABASE"]["data_recv"]["name"]}{ex}'.encode()).hexdigest(), 16))[2:]
+    
+    def _start_quiz(self) -> None:
+        if self.current_page != self.SUMMARY_PAGE:
+            raise Exception (f'QA.PageSequencing Error <{self.current_page}> -> <_aft>. Error ECC Code: _start_quiz+0x02')
+        
+        self.root.geometry("{}x{}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
+        self.root.overrideredirect(True)
+        self.root.wm_attributes('-topmost', 1)
+        self.root.protocol("WM_DELETE_WINDOW", self._abort_quiz)
+        self.data['<QUIZ>'] = {'is_started': True}
+        
+        self.current_page = self._page_code_aft
+        self.summary_frame.pack_forget()
+        self.nav_btn_frame.pack_forget()
+        
+        self.quiz_frame.pack(fill=tk.BOTH, expand=True)
+        self.update_requests[self.quiz_frame_gsuid + '.bg'] = [self.quiz_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        
+        self.late_update_requests[self.quiz_activity_box] = [
+            [
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args: cast(CustomText, args[0]).auto_size(),
+                    self.quiz_activity_box
+                ]
+            ],
+            [
+                ThemeUpdateCommands.CUSTOM,
+                [
+                    lambda *args, **kwargs: cast(CustomText, args[5]).config(
+                        bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                        relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0]
+                    ),
+                    ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                    ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN,
+                    self.quiz_activity_box
+                ]
+            ]
+        ]
+        
+        self.quiz_activity_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
+        self.quiz_activity_box.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=(0, self.padY))
+        
+        self.label_formatter(self.quiz_activity_lbl, fg=ThemeUpdateVars.GRAY)
+        self.quiz_activity_lbl.config(text="Setup Activity Monitor", justify=tk.LEFT, anchor=tk.W)
+        
+        self.quiz_activity_box.config(state=tk.NORMAL)
+        self.quiz_activity_box.delete('1.0', 'end')
+        self.quiz_activity_box.config(state=tk.DISABLED)
+        
+        self.update_ui()
+        
+        self._prepare_quiz()
+        self._prompt_quiz()
+        
+    def _prompt_quiz(self) -> None:
+        assert qa_functions.data_at_dict_path('__quiz/__prep', self.data)[1], 'QA.QzSeq.Prompt.!Prep <0xF0>'
+
+        i = 0   
+        while i < 10000:
+            s = self._gen_user_id() + f"({i})"
+            m = 'QZ.ActAb'
+            
+            log(LoggingLevel.INFO, f'Checking Flag "{m}.{s}" for _ab_seq')
+            
+            if not qa_functions.VerifyNVFlag(m, s):
+                qa_functions.CreateNVFlag(m, s)
+                break
+            
+            i += 1
+            
+        if self._get_attempt_number() != self.data['__quiz']['__attempt']:
+            assert i < 9999, f'Too many attempts for {self._gen_user_id()}. Please contact your quiz administrator for further instructions.'
+                
+            qa_functions.DeleteNVFlag(m, s)
+            assert False, 'Could not process attempt number. Please try again.'
+            
+        log(LoggingLevel.SUCCESS, f'QA.QzSeq.Prompt: Successfully configured attempt number ({self._get_attempt_number()}); id: {self._gen_user_id()}')
+        
+    def _prepare_quiz(self) -> None:
+        self.quiz_activity_box.auto_size()
+        self.quiz_activity_box.setup_color_tags(self.theme_update_map)
+        
+        def _ins(text: str, frmt: str = "") -> None:
+            self.quiz_activity_box.config(state=tk.NORMAL)
+            self.quiz_activity_box.insert('end', text, frmt)
+            self.quiz_activity_box.config(state=tk.DISABLED)
+
+            self.quiz_activity_box.update()
+            self.root.update()
+            
+        _ins('Computing your session ID.', '<accent>')
+        
+        self.data['__quiz'] = {}
+        self.data['__quiz']['__user_session_code'] = self._gen_user_id(datetime.datetime.now().strftime("%H%M%S%d%m%Y"))
+        self.data['__quiz']['__attempt'] = self._get_attempt_number() + 1
+       
+        _ins(f'\nYour session ID: ')
+        _ins(self.data['__quiz']['__user_session_code'], '<warning>')
+        _ins(f'\n   --> Note that this code is provided to the administrator to identify this session.', '<italics>')
+                
+        _ins('\n\nComputing attempt number.', '<accent>')
+        _ins(f'\nFor this user ({self.last_name.get()}, {self.first_name.get()} :: {self.ID.get()}), this is attempt {self.data["__quiz"]["__attempt"]}')
+       
+        self.title_info.config(
+            text=(self.title_info.cget('text') + f' Session ID: {self.data["__quiz"]["__user_session_code"]}. Attempt {self.data["__quiz"]["__attempt"]}')
+        )
+        
+        _ins('\n\nLoading questions from database.', '<accent>')
+        _q = self.data['CONFIG_INF:<DB>']['QUESTIONS']
+        
+        if not len(_q):
+            _ins(f'\n[FATAL] Did not find any questions in database.', '<error>')
+            _ins(f'\n      --> The quiz has been ABORTED. Please contact your administrator.', '<error>')
+            _ins(f'\n      --> This attempt is not counted towards your reported "# of attempts" statistic.')
+            
+            self._abort_quiz(False)
+            
+            return
+        
+        _ins(f'\nFound {len(_q)} questions in database "{self.data["DATABASE"]["data_recv"]["name"]}".', '<okay>')
+        _ins('\n\nArranging questions ...\n\n')
+        
+        q = self._arr_q(_q, _ins)
+        
+        self.data['__quiz']['__prep'] = True
+        
+    def _arr_q(self, q: Dict[Any, Any], _ins: Any) -> Dict[Any, Any]:        
+        ssb = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa']
+        rqo = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['rqo']
+        
+        assert ssb in ('p', 'a'), 'QA.PrepSeq._arr_q: E0x1 <SSB>'
+        assert isinstance(rqo, bool), 'Qa.PreSeq._arr_q: E0x2 <RQO>'
+        
+        subsampling: bool = (ssb == 'p') 
+        
+        _ins("  * Checking administrator policy for question distribution: ")
+        _ins(f"\n       - Subsampling: ")
+        _ins('Enabled' if subsampling else 'Disabled', '<accent>')
+        _ins(f'\n       - Randomize Question Order: ')
+        _ins('Enabled' if rqo else 'Disabled', '<accent>')
+        
+        if rqo:
+            qPa: List[str] = cast(List[str], [*q.keys()])
+            qPb: Dict[Any, Any] = {}
+            
+            for I in range(len(q)):
+                r = random.randint(0, len(qPa) - 1)
+                qPb[str(I)] = q[qPa[r]]
+                qPa.pop(r)
+            
+            print("\n --- qPb --- \n")
+            print(json.dumps(qPb, indent=4))
+            
+        else:
+            qPb: Dict[Any, Any] = cast(Dict[Any, Any], copy.deepcopy(q))
+        
+        if subsampling:
+            ind0 = random.randint(0, len(q) // 2)
+            indf = ind0 + math.ceil(len(q) / 2)
+            
+            qPa = [*qPb.keys()]
+            qPc = {k: qPb[k] for k in qPa[ind0:indf]}
+            
+            print("\n --- qPc --- \n")
+            print(json.dumps(qPc, indent=4))
+            
+            return qPc
+        
+        else:
+            return qPb
+    
     def proceed(self) -> None:
         if self.current_page == self.SUMMARY_PAGE:
-            return
-
+            raise Exception ("Unprogrammed behavior")
+        
         self.setup_page(self.current_page + 1)
 
     def go_back(self) -> None:
         if self.current_page == self.LOGIN_PAGE:
-            return
+            raise Exception ("Unprogrammed behavior")
 
         self.setup_page(self.current_page - 1)
 
@@ -925,9 +1146,14 @@ class _UI(Thread):
         self.current_page = page_index
         self.enable_all_inputs()
 
-        self.next_frame.config(state=tk.NORMAL if not (self.current_page == self.SUMMARY_PAGE) else tk.DISABLED)
+        # self.next_frame.config(state=tk.NORMAL if not (self.current_page == self.SUMMARY_PAGE) else tk.DISABLED)
         self.prev_frame.config(state=tk.NORMAL if not (self.current_page == self.LOGIN_PAGE) else tk.DISABLED)
 
+        if self.current_page == self.SUMMARY_PAGE:
+            self.next_frame.config(command=self._start_quiz, text="Start Quiz")
+        else:
+            self.next_frame.config(command=self.proceed, text="Next Step \u2b9e")
+        
         self.update_ui()
 
         return True

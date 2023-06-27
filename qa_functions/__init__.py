@@ -9,7 +9,7 @@ from .qa_file_handler import Open as OpenFile, Save as SaveFile
 from .qa_info import ConfigurationFile, App, Extensions, Files, Encryption, OnlineFiles, file_hash as ScriptHashes
 from .qa_logger import threaded_logger as _tl, normal_logger as _nl, clear_logs as _cl
 from .qa_nv_flags import create_flag as _cf, delete_flag as _df, check_flag as _chf, clear_all_app_flags as _caaf, clear_all_flags as _caf, \
-    yield_all_flags as _yaf, yield_all_flags_as_list as _yafal
+    yield_all_flags as _yaf, yield_all_flags_as_list as _yafal, verify_flag as _vf
 from .qa_std import float_map, check_hex_contrast, data_at_dict_path, show_bl_err, split_filename_direc, dict_check_redundant_data, \
     dict_check_redundant_data_inter_dict, copy_to_clipboard, brute_force_decoding, data_type_converter, gen_short_uid, SMem, clamp, \
     ANSI, AppLogColors, flatten_list, ExceptionCodes, stdout, stderr
@@ -45,6 +45,10 @@ def DeleteNVFlag(script: str, name: str) -> None:
 
 def CheckNVFlag(script: str, name: str) -> bool:
     return _chf(script, name)
+
+
+def VerifyNVFlag(script: str, name: str) -> bool:
+    return _vf(script, name)
 
 
 def ClearAppNVFlags(script: str) -> None:

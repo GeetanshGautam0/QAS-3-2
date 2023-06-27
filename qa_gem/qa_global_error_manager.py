@@ -37,14 +37,14 @@ class _B(Exception):
 
     @property
     def string(self) -> str:
-        return "* Error TRP Code: %s\n* Error SEC Code: %s\n* Error PRC Code: %s\n" % gen_codes(self.sc, self.sc.e_str(), _tb_buff[-1]) + cast(str, self.sc.e_str() + f'\nQuzzingApp.{self.ec.name.upper()}')
+        return "* Error aTRP Code: %s\n* Error aSEC Code: %s\n* Error aPRC Code: %s\n" % gen_codes(self.sc, self.sc.e_str(), _tb_buff[-1]) + cast(str, self.sc.e_str() + f'\nQuzzingApp.{self.ec.name.upper()}')
 
     @property
     def formatted_string(self) -> str:
         return cast(str,
-                    f"\n-------------------------------------x-------------------------------------\n\n" + \
+                    f";\n-------------------------------------x-------------------------------------\n\n" + \
                     
-                    f"* Error TRP Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n* Error SEC Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n* Error PRC Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n" % gen_codes(self.sc, self.sc.e_str(), _tb_buff[-1]) + \
+                    f"* Error aTRP Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n* Error aSEC Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n* Error aPRC Code: {ANSI.FG_GREEN}%s{ANSI.RESET}\n" % gen_codes(self.sc, self.sc.e_str(), _tb_buff[-1]) + \
                     (self.sc.f_str() if 'f_str' in dir(self.sc) else self.string) + \
                     f'\n{ANSI.FG_BRIGHT_MAGENTA}{ANSI.FG_BLACK}{ANSI.BOLD}QuizzingApp.{self.ec.name.upper()}{ANSI.RESET}' + \
                     

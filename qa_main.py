@@ -55,14 +55,22 @@ class _Run(Thread):
         messagebox.showerror('Crash', 'Unexpected shut down of application instance manager [FATAL]')
         sys.exit('AIM_SD')
 
-    def tk_err_handler(self, _: Any, val: Any, _1: Any) -> None:
+    def tk_err_handler(self, _0: Any, val: Any, _1: Any) -> None:
         global SPLASH
         try:
             if isinstance(SPLASH, qa_splash.Splash):
                 qa_splash.hide(SPLASH)
         except:
             pass
-
+        
+        unique_hash = hashlib.md5(
+            f"{time.ctime(time.time())}{_1}{val}{_0}{random.random()}".encode()
+        ).hexdigest()
+        
+        unique_hash = hex(int(unique_hash, 16))            
+        error_hash = hex(int(hashlib.md5(f"{_0}".encode()).hexdigest(), 16))
+        std_hash = hex(int(hashlib.md5(f"{_0}{val}".encode()).hexdigest(), 16))
+        
         if self.tokens['weakhandling']:
             tb = traceback.format_exc()
 
@@ -71,7 +79,7 @@ class _Run(Thread):
                 'ApplicationCrashError(Tk/Tcl)', f'Uncaught exception event (Tk/Tcl) => Error (AIM report) !? WeakHandling Enabled.\n\n', tb, offset=10
             )
 
-            messagebox.showerror('Error', f"(WeakHandling) The application's UI has encountered an unhandled error. More info:\n\n{val}\n\n{tb}")
+            messagebox.showerror('Error', f"(WeakHandling) The application's UI has encountered an unhandled error. More info:\n\n{val}\n\n{tb}\n\nRefferal Code: \n\n{unique_hash[2:]}-{error_hash[2:]}-{std_hash[2:]} (Error Code Format: nTSP)")
 
             try:
                 if isinstance(SPLASH, qa_splash.Splash):
@@ -82,14 +90,14 @@ class _Run(Thread):
         else:
             tb = traceback.format_exc()
 
-            stderr(f'\n{"*"*10}\n\nApplication Instance Manager (AIM) Log:\n==>\tWARN @ Application crashed\n\n{"*"*10}\n')
+            stderr(f'\n{"*"*10}\n\nApplication Instance Manager (AIM) Log:\n==>\tWARN @ Application crashed\n\nnTSP Code: {unique_hash[2:]}-{error_hash[2:]}-{std_hash[2:]}\n\n{"*"*10}\n')
 
             master_error_manager.InvokeException(
                 master_error_manager.ExceptionObject(master_error_manager.ExceptionCodes.INTERNAL_ERROR),
                 'ApplicationCrashError(Tk/Tcl)', f'Uncaught exception event (Tk/Tcl) => Crash (AIM report).\n\n', tb, offset=10
             )
 
-            messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{tb}")
+            messagebox.showerror('Crash', f"The application's UI has encountered an unrecoverable error (crash). More info:\n\n{val}\n\n{tb}\n\nRefferal Code: {unique_hash[2:]}-{error_hash[2:]}-{std_hash[2:]} (Error Code Format: nTSP)")
             sys.exit('AIM_TK_CRASH')
 
     def call(self) -> Union[None, tk.Tk, tk.Toplevel]:
