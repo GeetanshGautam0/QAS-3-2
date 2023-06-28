@@ -1115,7 +1115,9 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
             if len(nD) == d0Size:
                 if len(nT) == 3:
+                    # If it is a multiple choice question, then add the type of MCq to the end of the Data0 var. 
                     nD += nT[-1]
+                    
                 else:
                     nD += '0'
 

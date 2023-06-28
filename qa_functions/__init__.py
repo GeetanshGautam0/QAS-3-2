@@ -2,7 +2,7 @@ from typing import *
 
 from .qa_colors import Convert as ConvertColor, Functions as ColorFunctions
 from .qa_custom import HexColor, Theme, LoggingPackage, SaveFunctionArgs, ConverterFunctionArgs, OpenFunctionArgs, File, \
-    CannotSave, CannotCreateBackup, UnexpectedEdgeCase, EncryptionError, InvalidCLIArgument, FlattenedDict
+    CannotSave, CannotCreateBackup, UnexpectedEdgeCase, EncryptionError, InvalidCLIArgument, FlattenedDict, UnprogrammedBehavior
 from .qa_enum import LoggingLevel, ScriptLevelID, ExitCodes, CLI, ErrorLevels, Application, FileType
 from .qa_err import raise_error as _re
 from .qa_file_handler import Open as OpenFile, Save as SaveFile

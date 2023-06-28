@@ -17,6 +17,7 @@ from ctypes import windll
 from typing import *
 from tkinter import filedialog as tkfld
 from . import qa_adv_forms as qa_forms
+from .qa_adv_forms.qa_form_q_edit import Data0, Data1, DataEntry, DataType, mc_label_gen
 
 
 script_name = "APP_QF"
@@ -182,6 +183,18 @@ class _UI(Thread):
         self.quiz_activity_lbl = tk.Label(self.quiz_frame)
         self.quiz_activity_box = CustomText(self.quiz_frame)
         
+        self.quiz_host_frame = tk.Frame(self.quiz_frame)
+        self.quiz_host_canvas = tk.Canvas(self.quiz_host_frame)
+        self.quiz_host_vsb = ttk.Scrollbar(self.quiz_host_frame, style='MyQF.TScrollbar')
+        self.quiz_host_xsb = ttk.Scrollbar(self.quiz_host_frame, style='MyHorizQF.TScrollbar', orient=tk.HORIZONTAL)
+        self.quiz_H_frame = tk.Frame(self.quiz_host_canvas)
+        
+        self.quiz_curnt_time_lbl = tk.Label(self.quiz_host_frame)
+        self.quiz_time_taken_lbl = tk.Label(self.quiz_host_frame)
+        
+        self.quiz_submit_btn = ttk.Button(self.quiz_host_frame)
+        self.quiz_err_lbl = tk.Label(self.quiz_host_frame) 
+        
         self.start()
         self.root.deiconify()
         self.root.focus_get()
@@ -215,6 +228,8 @@ class _UI(Thread):
         self.root.overrideredirect(False)
         self.root.wm_attributes('-topmost', 0)
         self.root.geometry(f'{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}')
+
+        log(LoggingLevel.WARNING, 'QuizAborted')
 
         self.close()
         
@@ -307,8 +322,6 @@ class _UI(Thread):
             s = self._gen_user_id() + f"({i})"
             m = 'QZ.ActAb'
             
-            log(LoggingLevel.INFO, f'Checking Flag "{m}.{s}" for _ab_seq')
-            
             if not qa_functions.VerifyNVFlag(m, s):
                 qa_functions.CreateNVFlag(m, s)
                 break
@@ -322,6 +335,364 @@ class _UI(Thread):
             assert False, 'Could not process attempt number. Please try again.'
             
         log(LoggingLevel.SUCCESS, f'QA.QzSeq.Prompt: Successfully configured attempt number ({self._get_attempt_number()}); id: {self._gen_user_id()}')
+        
+        # Setup quiz frame        
+        self.quiz_submit_btn.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY, side=tk.BOTTOM)
+        self.quiz_err_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY, 0), side=tk.BOTTOM)
+        
+        self.quiz_curnt_time_lbl.pack(fill=tk.X, expand=False, padx=self.padX)
+        self.quiz_time_taken_lbl.pack(fill=tk.X, expand=False, padx=self.padX, pady=(self.padY//8, self.padY))
+        
+        self.quiz_curnt_time_lbl.config(justify=tk.LEFT, anchor=tk.W)
+        self.quiz_time_taken_lbl.config(justify=tk.LEFT, anchor=tk.W)
+        
+        self.quiz_submit_btn.config(text="Submit Answers", command=self._submit_quiz, style='My.Accent2LG.TButton')
+        
+        # Add update requests        
+        self.update_requests[gsuid()] = [self.quiz_host_frame, ThemeUpdateCommands.BG, [ThemeUpdateVars.BG]]
+        self.label_formatter(self.quiz_curnt_time_lbl, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL)
+        self.label_formatter(self.quiz_time_taken_lbl, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL)
+        self.label_formatter(self.quiz_err_lbl, fg=ThemeUpdateVars.ERROR)
+        
+        self.data['qz_tick'] = True
+        
+        # Add the damn quiz form
+        self._setup_form()
+        
+        # Final things
+        self.quiz_activity_box.pack_forget()
+        self.quiz_activity_lbl.pack_forget()
+        self.quiz_host_frame.pack(fill=tk.BOTH, expand=True)
+        self.update_ui()
+        
+        self.data['qz_tm_started'] = datetime.datetime.now()
+        self._qz_tick()
+    
+    def onFrameConfig(self, *_: Optional[Any]) -> None:
+        self.quiz_host_canvas.configure(scrollregion=self.quiz_host_canvas.bbox("all"))
+    
+    def _on_mousewheel(self, event: Any) -> None:
+        """
+        Straight out of stackoverflow
+        Article: https://stackoverflow.com/questions/17355902/tkinter-binding-mousewheel-to-scrollbar
+        Change: added "int" around the first arg
+        """
+        
+        self.quiz_host_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    
+    def _setup_form(self) -> None:        
+        assert qa_functions.data_at_dict_path('__quiz/__questionBase', self.data)[1]
+        
+        if '_setup_qz_host' not in self.data:
+            self.quiz_host_xsb.pack(fill=tk.X, expand=False, pady=self.padY, padx=self.padX, side=tk.BOTTOM)
+            self.quiz_host_vsb.pack(fill=tk.Y, expand=False, pady=self.padY, padx=self.padX, side=tk.RIGHT)
+            self.quiz_host_canvas.pack(fill=tk.BOTH, expand=True, padx=self.padX, side=tk.LEFT)
+            
+            self.quiz_host_vsb.configure(command=self.quiz_host_canvas.yview)
+            self.quiz_host_xsb.configure(command=self.quiz_host_canvas.xview)
+            
+            self.quiz_host_canvas.configure(yscrollcommand=self.quiz_host_vsb.set, xscrollcommand=self.quiz_host_xsb.set)
+
+            self.quiz_host_canvas.create_window(
+                0, 0,
+                window=self.quiz_H_frame,
+                anchor="nw",
+                tags="self.quiz_H_frame"
+            )
+
+            self.quiz_H_frame.update()
+            self.quiz_H_frame.bind("<Configure>", self.onFrameConfig)
+            self.quiz_host_canvas.bind("<MouseWheel>", self._on_mousewheel)
+            
+            self.late_update_requests[self.quiz_host_canvas] = [
+                *self.late_update_requests.get(self.quiz_host_canvas, []),
+                [
+                    ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *x: self.quiz_host_canvas.configure(width=x[0], bg=x[1], borderwidth=0, highlightthickness=0, highlightbackground=x[1]),
+                        ('<EXECUTE>', lambda *_: self.quiz_host_frame.winfo_width()), ThemeUpdateVars.BG
+                    ]
+                ],
+                [
+                    ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *x: self.quiz_H_frame.configure(width=x[0], bg=x[1]),
+                        ('<EXECUTE>', lambda *_: self.root.winfo_width()), ThemeUpdateVars.BG
+                    ]
+                ]
+            ]
+        
+            self.data['_setup_qz_host'] = 1
+        
+        for i, question in enumerate(self.data['__quiz']['__questionBase'].values()):
+            # 0: mode   
+            #
+            # 1: question
+            #
+            # 2: answer         
+            #
+            # d: data           xxxxx
+            #                   AutoMark (0; 1), AutoMark:FuzzyMatch(1; 1), AutoMark:FuzzyMatch:Threshold(2; 2), exD1(4, 1)
+            #                   exD1: if MC     -> MC<exD1>     -> mc0 or mc1 
+            #                                        <dictates whether option order is randomized or not>
+            
+            # The above is valid as of BUILD alpha_2306178.1411410104 and should only be used as a referrence.
+            # To avoid errors, use qa_form_q_edit.DATA0, ...DATA1
+            
+            # Extract question info
+            Q = question['1']
+            D0 = question['d']
+            D1 = question['0']
+            exD1 = D0[(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))-len(D0)]  # type: ignore
+            D0 = D0[:(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]  # type: ignore
+            A = question['2']
+            
+            tp: str = D1[Data1.QuestionType.index:Data1.QuestionType.index + Data1.QuestionType.size]
+            
+            if (tp not in ('mc', 'nm', 'tf')) or (len(exD1) != 1):
+                self.data['__quiz.errors'] = [
+                    *self.data.get('__quiz.errors', []),
+                    'QUESTION.TYPE INVALID (likely due to corrupted data)'
+                ]
+                continue
+            
+            if tp == 'mc':
+                tp += exD1
+                
+            self._qz_aq(Q, tp, i, A)            
+            
+        return
+    
+    def _qz_aq(self, question: str, question_type: str, index: int, A: Any) -> None:
+        
+        Q = question
+        q_uid = gsuid(f'qz<{index}>.question')
+        tp = question_type
+        
+        q_cont = tk.LabelFrame(self.quiz_H_frame, text=f'Question {index + 1}')
+        q_lbl = tk.Label(q_cont, text=Q.strip(), justify=tk.LEFT, anchor=tk.W)
+        q_elem = []
+        
+        q_lbl.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY, side=tk.TOP)
+        
+        def _mc(L: str, O: str) -> None:
+            q_B = ttk.Button(q_cont, text=f"[ {L} ] {O.strip()}", style='My.TButton', command=lambda: self._qz_q_mc_clk(q_uid, L))
+            q_elem.append(q_B)
+            
+            q_B.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY // 4)
+            
+            self.data['__quiz']['__Ans'] = {
+                **self.data['__quiz'].get("__Ans", {}),
+                q_uid: {
+                    **self.data['__quiz'].get('__Ans', {}).get(q_uid, {
+                        '__sel': None
+                    }),
+                    L: [O, q_B]
+                }
+            }
+            
+        if tp == 'nm':
+            # Written Response
+            q_E = CustomText(q_cont)
+            self.data['__quiz']['__Ans'] = {
+                **self.data['__quiz'].get('__Ans', {}),
+                q_uid: [index, tp, q_E]
+            }
+
+            q_elem.append(q_E)  # type: ignore
+            
+            q_E.pack(fill=tk.BOTH, expand=False, padx=self.padX, pady=self.padY)
+            
+            self.late_update_requests[q_E] = [
+                [
+                    ThemeUpdateCommands.CUSTOM,
+                    [
+                        lambda *args, **kwargs: cast(CustomText, args[5]).config(
+                            bg=args[0], fg=args[1], insertbackground=args[2], font=(args[3], args[4]),
+                            relief=tk.GROOVE, selectbackground=args[2], selectforeground=args[0]
+                        ),
+                        ThemeUpdateVars.BG, ThemeUpdateVars.FG, ThemeUpdateVars.ACCENT,
+                        ThemeUpdateVars.ALT_FONT_FACE, ThemeUpdateVars.FONT_SIZE_MAIN,
+                        q_E
+                    ]
+                ]
+            ]
+            
+        elif tp == 'tf':
+            # True/False
+            q_T = ttk.Button(q_cont, text="TRUE", command=lambda: self._qz_q_tf_clk(q_uid, True), style='My.TButton') 
+            q_F = ttk.Button(q_cont, text="FALSE", command=lambda: self._qz_q_tf_clk(q_uid, False), style='My.TButton')
+             
+            self.data['__quiz']['__Ans'] = {
+                **self.data['__quiz'].get('__Ans', {}),
+                q_uid: [index, tp, q_T, q_F, None]
+            }
+            
+            q_elem.extend([q_T, q_F])
+
+            q_T.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+            q_F.pack(fill=tk.X, expand=True, padx=self.padX, pady=self.padY, side=tk.LEFT)
+            
+        elif tp == 'mc0':  # option order not randomized
+            assert isinstance(A, dict)
+            C = A['C'].split('/')
+            N = A['N']
+            
+            Ap = copy.deepcopy(A)
+            Ap.pop('C')
+            Ap.pop('N')
+            
+            assert len(Ap) == N
+            
+            for i, option in enumerate(Ap.values()):
+                _mc(mc_label_gen(i + 1), option)
+            
+        elif tp == 'mc1':  # option order randomized
+            assert isinstance(A, dict)
+            C = A['C'].split('/')
+            N = A['N']
+            
+            Ap = copy.deepcopy(A)
+            Ap.pop('C')
+            Ap.pop('N')
+            
+            assert len(Ap) == N
+            
+            # Shuffling
+            Al = [*set(Ap.keys())]
+            As = {Ap[k] for k in Al}
+            
+            for i, option in enumerate(As):
+                _mc(mc_label_gen(i + 1), option)
+        
+        else:
+            raise qa_functions.UnexpectedEdgeCase ('_qz_aq k1')
+        
+        self.data['__quiz'] = {
+            **self.data.get('__quiz', {}),
+            '_q_cont_mp': {
+                **self.data['__quiz'].get('_q_cont_mp', {}),
+                q_uid: [q_cont, q_lbl, *q_elem]
+            }
+        }
+        
+        self.update_requests[gsuid('qz-form-lbl')] = [
+            q_lbl,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: q_lbl.config(wraplength=args[0]-args[1]*8),
+                ('<EXECUTE>', lambda *_: self.root.winfo_width()), ('<LOOKUP>', 'padX')
+            ]
+        ]
+        
+        self.update_requests[gsuid('qz-form-cont')] = [
+            q_lbl,
+            ThemeUpdateCommands.CUSTOM,
+            [
+                lambda *args: q_cont.config(width=args[0] - args[1]*4),
+                ('<EXECUTE>', lambda *_: self.root.winfo_width()), ('<LOOKUP>', 'padX')
+            ]
+        ]
+        
+        self.label_formatter(q_cont, fg=ThemeUpdateVars.GRAY, size=ThemeUpdateVars.FONT_SIZE_SMALL)
+        self.label_formatter(q_lbl)
+        
+        q_cont.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY // 2)
+    
+    def _qz_q_tf_clk(self, question_uid: str, selection: bool) -> None:        
+        self.data['__quiz']['__Ans'][question_uid][-1] = selection
+        log(LoggingLevel.DEBUG, f'{question_uid} T/F -> {selection}')
+        
+        if selection:
+            cast(ttk.Button, self.data['__quiz']['__Ans'][question_uid][2]).configure(style='My.Active.TButton')
+            cast(ttk.Button, self.data['__quiz']['__Ans'][question_uid][3]).configure(style='My.TButton')
+            
+        else:
+            cast(ttk.Button, self.data['__quiz']['__Ans'][question_uid][3]).configure(style='My.Active.TButton')
+            cast(ttk.Button, self.data['__quiz']['__Ans'][question_uid][2]).configure(style='My.TButton')
+    
+    def _qz_q_mc_clk(self, question_uid: str, label: str) -> None: 
+        log(LoggingLevel.DEBUG, f'{question_uid} M/C -> {label}')
+               
+        self.data['__quiz']['__Ans'][question_uid]['__sel'] = label
+        
+        for L, V in self.data['__quiz']['__Ans'][question_uid].items():
+            if L == '__sel': continue
+            
+            (_, B) = V
+            
+            if L == label:
+                B.configure(style="My.Active.TButton")
+            else:
+                B.configure(style='My.TButton')
+                
+        return
+    
+    def _submit_quiz(self) -> None:
+        log(LoggingLevel.INFO, 'Checking answers now; disabling quiz_tick_timer')
+        self.data['qz_tick'] = False
+        
+        assert qa_functions.data_at_dict_path('__quiz/__questionBase', self.data)[1]
+        
+        def _ret(err_txt: str = "Failed to submit answers; 'Time Elapsed' timer continues...") -> None:
+            self.data['qz_tick'] = True
+            self.quiz_err_lbl.config(wraplength=self.root.winfo_width() - 4 * self.padX)
+            self._qz_set_error_text(err_txt.strip(), 10)
+            self._qz_tick()
+        
+        tp_map = {
+            DataType.boolean:   lambda string: bool(int(string)),
+            DataType.integer:   lambda string: int(string),
+            DataType.string:    lambda string: string
+        }
+        
+        for question in self.data['__quiz']['__questionBase'].values():
+            # 0: mode
+            #
+            # 1: question
+            #
+            # 2: answer         NOT USED
+            #
+            # d: data           xxxxx
+            #                   AutoMark (0; 1), AutoMark:FuzzyMatch(1; 1), AutoMark:FuzzyMatch:Threshold(2; 2), exD1(4, 1)
+            #                   exD1: if MC     -> MC<exD1>     -> mc0 or mc1 
+            #                                        <dictates whether option order is randomized or not>
+            
+            # The above is valid as of BUILD alpha_2306178.1411410104 and should only be used as a referrence.
+            # To avoid errors, use qa_form_q_edit.DATA0, ...DATA1
+            
+            Q = question['1']
+            D0 = question['d']
+            D1 = question['0']
+            exD1 = D0[(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))-len(D0)]  # type: ignore
+            D0 = D0[:(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]  # type: ignore
+            
+            tp: str = D1[Data1.QuestionType.index:Data1.QuestionType.index + Data1.QuestionType.size]
+            
+            if (tp not in ('mc', 'nm', 'tf')) or (len(exD1) != 1):
+                continue
+            
+            if tp == 'mc':
+                tp += exD1
+                
+            AutoMark = tp_map[Data0.AutoMark.type](D0[Data0.AutoMark.index : Data0.AutoMark.index + Data0.AutoMark.size])
+            AutoMark_UseApproxMatch = AutoMark & tp_map[Data0.Fuzzy.type](D0[Data0.Fuzzy.index : Data0.Fuzzy.index + Data0.Fuzzy.size])
+            AutoMark_ApproxMatch_PM = tp_map[Data0.FuzzyThrs.type](D0[Data0.FuzzyThrs.index:Data0.FuzzyThrs.index + Data0.FuzzyThrs.size])
+            
+        _ret() 
+        return
+        
+    def _qz_tick(self) -> None:
+        if not self.data.get('qz_tick', False):
+            return
+        
+        n = datetime.datetime.now()
+        d = int(cast(datetime.timedelta, (n - self.data['qz_tm_started'])).total_seconds())
+        
+        self.quiz_curnt_time_lbl.config(text=f"Current Time: {n.strftime('%H:%M:%S')}")
+        self.quiz_time_taken_lbl.config(text='Time Elapsed: %02d:%02d:%02d' % ((d // 3600), (d // 60) % 60 , (d % 60)))
+    
+        self.active_jobs['qztck'] = self.root.after(1000, self._qz_tick)
         
     def _prepare_quiz(self) -> None:
         self.quiz_activity_box.auto_size()
@@ -375,7 +746,6 @@ class _UI(Thread):
         self.data['__quiz']['__prep'] = True
         
         _ins(f'\nPreparing quiz form... Get Ready!', '<warning>')
-        sleep(1)
         
     def _arr_q(self, q: Dict[Any, Any], _ins: Any) -> Dict[Any, Any]:        
         ssb = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa']
@@ -1344,7 +1714,8 @@ class _UI(Thread):
         # Start timeout
         K = 'Jobs.SetErrorText.Timers'
         _tasks = self.active_jobs.get(K, {})
-        for _, _task in _tasks.items():
+        for n, _task in _tasks.items():
+            if 'timers' not in n.lower(): continue
             self.root.after_cancel(_task)
 
         uid = gsuid('SET.Timers')
@@ -1376,6 +1747,50 @@ class _UI(Thread):
 
         self.data['GLOBAL']['Attr_']['Animating.PauseClose.Set'] = False
 
+    def _qz_set_error_text(self, text: str, timeout_seconds: float) -> None:
+        assert 1 <= timeout_seconds <= 60, 'Timeout delay must be between 1 and 60 seconds (incl.)'
+
+        text = f'\u26a0 {text.strip()}'
+        self.quiz_err_lbl.config(text=text)
+
+        # Start timeout
+        K = 'Jobs.QZSetErrorText.Timers'
+        _tasks = self.active_jobs.get(K, {})
+        
+        for n, _task in _tasks.items():
+            if 'timers' not in n.lower(): continue
+            self.root.after_cancel(_task)
+
+        uid = gsuid('SET.Timers')
+        _task = self.root.after(int(timeout_seconds*1000), lambda: self._qz_clear_error_text(uid))
+        self.active_jobs[K] = {uid: _task}
+
+    def _qz_clear_error_text(self, timer_uid: Optional[str] = None) -> None:
+        # Timer handler
+        if isinstance(timer_uid, str) and timer_uid in self.active_jobs.get('Jobs.QZSetErrorText.Timers', {}).keys():
+            try: self.root.after_cancel(self.active_jobs['Jobs.QZSetErrorText.Timers'][timer_uid])
+            except Exception as _: pass
+            self.active_jobs['Jobs.QZSetErrorText.Timers'].pop(timer_uid)
+            
+        if len(self.quiz_err_lbl.cget('text').strip()) <= 0: return
+
+        self.data['GLOBAL'] = self.data.get('GLOBAL', {'Attr_'})
+        self.data['GLOBAL']['Attr_'] = self.data['GLOBAL'].get('Attr_', {})
+        self.data['GLOBAL']['Attr_']['Animating.PauseClose.Set'] = True
+
+        # Fade out
+        gradient = ColorFunctions.fade(self.theme_update_map[ThemeUpdateVars.ERROR].color, self.theme_update_map[ThemeUpdateVars.BG].color)  # type: ignore
+        for stage in gradient:
+            self.quiz_err_lbl.config(fg=stage)
+            self.quiz_err_lbl.update()
+
+            for _ in range(int(3e5)): continue  # type: ignore
+            if not len(self.quiz_err_lbl.cget('text')): break
+
+        self.quiz_err_lbl.config(text='', fg=self.theme.error.color)  # type: ignore
+
+        self.data['GLOBAL']['Attr_']['Animating.PauseClose.Set'] = False
+    
     def _ent_size_update(self) -> None:
         for _i in self.inputs:
             if isinstance(_i, ttk.Entry):

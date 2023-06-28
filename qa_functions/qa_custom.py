@@ -207,6 +207,14 @@ class UnexpectedEdgeCase(Exception):
         return self.str
 
 
+class UnprogrammedBehavior(Exception):
+    def __init__(self, string: str = ""):
+        self.str = string
+
+    def __str__(self) -> str:
+        return self.str
+
+
 class EncryptionError(Exception):
     def __init__(self, string: str = ""):
         self.str = string
