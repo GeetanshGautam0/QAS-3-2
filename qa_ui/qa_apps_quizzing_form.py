@@ -18,6 +18,7 @@ from typing import *
 from tkinter import filedialog as tkfld
 from . import qa_adv_forms as qa_forms
 from .qa_adv_forms.qa_form_q_edit import Data0, Data1, DataEntry, DataType, mc_label_gen
+from thefuzz import fuzz
 
 
 script_name = "APP_QF"
@@ -194,6 +195,7 @@ class _UI(Thread):
         
         self.quiz_submit_btn = ttk.Button(self.quiz_host_frame)
         self.quiz_err_lbl = tk.Label(self.quiz_host_frame) 
+        self.quiz_WAIT_lbl = tk.Label(self.quiz_frame)
         
         self.start()
         self.root.deiconify()
@@ -424,7 +426,7 @@ class _UI(Thread):
         
             self.data['_setup_qz_host'] = 1
         
-        for i, question in enumerate(self.data['__quiz']['__questionBase'].values()):
+        for i, question in self.data['__quiz']['__questionBase'].items():
             # 0: mode   
             #
             # 1: question
@@ -450,16 +452,16 @@ class _UI(Thread):
             tp: str = D1[Data1.QuestionType.index:Data1.QuestionType.index + Data1.QuestionType.size]
             
             if (tp not in ('mc', 'nm', 'tf')) or (len(exD1) != 1):
-                self.data['__quiz.errors'] = [
-                    *self.data.get('__quiz.errors', []),
-                    'QUESTION.TYPE INVALID (likely due to corrupted data)'
-                ]
+                self.data['__quiz']['__errors'] = {
+                    **self.data['__quiz'].get('__errors', {}),
+                    datetime.datetime.now().strftime("%H:%M:%S"): 'Errors.QuestionPrompt.QuestionTypeError (likely due to corrupted data)'
+                }
                 continue
             
             if tp == 'mc':
                 tp += exD1
                 
-            self._qz_aq(Q, tp, i, A)            
+            self._qz_aq(Q, tp, int(i), A)            
             
         return
     
@@ -468,6 +470,11 @@ class _UI(Thread):
         Q = question
         q_uid = gsuid(f'qz<{index}>.question')
         tp = question_type
+        
+        self.data['__quiz']['__qMap'] = {
+            **self.data['__quiz'].get('__qMap', {}),
+            str(index): [q_uid, tp, Q]
+        }
         
         q_cont = tk.LabelFrame(self.quiz_H_frame, text=f'Question {index + 1}')
         q_lbl = tk.Label(q_cont, text=Q.strip(), justify=tk.LEFT, anchor=tk.W)
@@ -589,8 +596,8 @@ class _UI(Thread):
             q_lbl,
             ThemeUpdateCommands.CUSTOM,
             [
-                lambda *args: q_cont.config(width=args[0] - args[1]*4),
-                ('<EXECUTE>', lambda *_: self.root.winfo_width()), ('<LOOKUP>', 'padX')
+                lambda *args: q_cont.config(width=args[0] - args[1]*4, highlightbackground=args[2], highlightcolor=args[2]),
+                ('<EXECUTE>', lambda *_: self.root.winfo_width()), ('<LOOKUP>', 'padX'), ThemeUpdateVars.GRAY
             ]
         ]
         
@@ -629,14 +636,51 @@ class _UI(Thread):
         return
     
     def _submit_quiz(self) -> None:
-        log(LoggingLevel.INFO, 'Checking answers now; disabling quiz_tick_timer')
+        self.quiz_submit_btn.config(state=tk.DISABLED)
+        self.quiz_WAIT_lbl.pack(fill=tk.BOTH, expand=True, padx=self.padX, pady=self.padY)
+        self.quiz_WAIT_lbl.config(text="Please wait as your SCORE file is being generated", wraplength=self.root.winfo_width() - self.padX * 4)
+        self.label_formatter(self.quiz_WAIT_lbl, fg=ThemeUpdateVars.ACCENT, size=ThemeUpdateVars.FONT_SIZE_LARGE, uid='SETUID_quiz_WAIT_lbl')
+        
         self.data['qz_tick'] = False
+        self.data['__quiz']['__score'] = {
+            'correct': 0,
+            'incorrect': 0,
+            'questions': self.data['__quiz']['__questionBase'],
+            'configuration': self.data['CONFIG_INF:<DB>']['CONFIGURATION'],
+            'd': {}
+        }
         
         assert qa_functions.data_at_dict_path('__quiz/__questionBase', self.data)[1]
+        self.quiz_host_frame.pack_forget()
+        self.update_ui()  # Also resets all colors to their default (essentially clears errors)
+        
+        def _show_error_q(quid: str) -> None:
+            q_cont, q_lbl = self.data['__quiz']['_q_cont_mp'][quid][:2]
+            q_cont.config(
+                highlightbackground=self.theme_update_map[ThemeUpdateVars.ERROR].color,  # type: ignore
+                highlightcolor=self.theme_update_map[ThemeUpdateVars.ERROR].color,  # type: ignore
+                fg=self.theme_update_map[ThemeUpdateVars.ERROR].color  # type: ignore
+            )
+            q_lbl.config(fg=self.theme_update_map[ThemeUpdateVars.ERROR].color)  # type: ignore
+            
+            q_cont.update()
+            q_lbl.update()
         
         def _ret(err_txt: str = "Failed to submit answers; 'Time Elapsed' timer continues...") -> None:
+            
+            self.data['__quiz']['__log'] = {
+                **self.data['__quiz'].get('__log', {}),
+                datetime.datetime.now().strftime('%H:%M:%S'): 'User attempted to submit quiz but the submission was rejected by the system.'
+            }
+            
+            self.quiz_host_canvas.yview_moveto(0)
+            self.quiz_host_canvas.xview_moveto(0)
+            
             self.data['qz_tick'] = True
+            self.quiz_WAIT_lbl.pack_forget()
+            self.quiz_host_frame.pack(fill=tk.BOTH, expand=True)
             self.quiz_err_lbl.config(wraplength=self.root.winfo_width() - 4 * self.padX)
+            self.quiz_submit_btn.config(state=tk.NORMAL)
             self._qz_set_error_text(err_txt.strip(), 10)
             self._qz_tick()
         
@@ -646,24 +690,13 @@ class _UI(Thread):
             DataType.string:    lambda string: string
         }
         
-        for question in self.data['__quiz']['__questionBase'].values():
-            # 0: mode
-            #
-            # 1: question
-            #
-            # 2: answer         NOT USED
-            #
-            # d: data           xxxxx
-            #                   AutoMark (0; 1), AutoMark:FuzzyMatch(1; 1), AutoMark:FuzzyMatch:Threshold(2; 2), exD1(4, 1)
-            #                   exD1: if MC     -> MC<exD1>     -> mc0 or mc1 
-            #                                        <dictates whether option order is randomized or not>
+        for i, question in self.data['__quiz']['__questionBase'].items():
             
-            # The above is valid as of BUILD alpha_2306178.1411410104 and should only be used as a referrence.
-            # To avoid errors, use qa_form_q_edit.DATA0, ...DATA1
-            
-            Q = question['1']
-            D0 = question['d']
             D1 = question['0']
+            Q = question['1']
+            A = question['2']
+            D0 = question['d']
+            
             exD1 = D0[(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))-len(D0)]  # type: ignore
             D0 = D0[:(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]  # type: ignore
             
@@ -679,8 +712,105 @@ class _UI(Thread):
             AutoMark_UseApproxMatch = AutoMark & tp_map[Data0.Fuzzy.type](D0[Data0.Fuzzy.index : Data0.Fuzzy.index + Data0.Fuzzy.size])
             AutoMark_ApproxMatch_PM = tp_map[Data0.FuzzyThrs.type](D0[Data0.FuzzyThrs.index:Data0.FuzzyThrs.index + Data0.FuzzyThrs.size])
             
-        _ret() 
-        return
+            (QUID, TPp, Qp) = self.data['__quiz']['__qMap'][i]
+            
+            if (TPp != tp) or (Qp != Q):
+                _ret('An error occured when checking your answers. Error Code: qz.Seq.Sbm.Chk: TTp vs tp, Qp vs Q <0xA0>.')
+                
+                qa_prompts.MessagePrompts.show_error(
+                    qa_prompts.InfoPacket('An error occured while checking your answers. Please contact your administartor. Error Code: 0xA0', 'EXIT', 'Quizzing Form | Response Verifier'),
+                    tk.Toplevel(self.root),
+                    True
+                )
+                
+                self._abort_quiz()
+                return
+
+            _AnsConfig = self.data['__quiz']['__Ans'][QUID]
+            
+            if isinstance(_AnsConfig, dict): 
+                # MC
+                selection = _AnsConfig['__sel']
+                
+                if selection is None:
+                    _show_error_q(QUID)                    
+                    _ret(f"Please answer all quesions before submitting the quiz.")
+                    return
+            
+                correct_answers = [A[j] for j in A['C'].split('/')]
+                selected_answer = _AnsConfig[selection][0]
+                
+                if selected_answer in correct_answers:
+                    self.data['__quiz']['__score']['correct'] += 1 
+                    #                                        [ID    Q  given answer     [%match, correct?], [conf_AM, conf_AM_Ap, conf_AM_PM]]
+                    self.data['__quiz']['__score']['d'][i] = [QUID, Q, selected_answer, [1, 1], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+
+                else:
+                    self.data['__quiz']['__score']['incorrect'] += 1
+                    self.data['__quiz']['__score']['d'][i] = [QUID, Q, selected_answer, [0, 0], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+            
+            elif isinstance(_AnsConfig, (list, tuple)):
+                if len(_AnsConfig) == 3:
+                    # WR
+                    box: CustomText = _AnsConfig[-1]
+                    response = box.get('1.0', 'end').strip()
+                    box.delete('1.0', 'end')
+                    box.insert('end', response)
+                    
+                    if not len(response):
+                        _show_error_q(QUID)
+                        _ret("Please answer all questions before submitting the quiz.")
+                        return                   
+                    
+                    match = fuzz.ratio(response, A) / 100
+                    
+                    #                                        [ID    Q  given answer     [%match, correct?], [conf_AM, conf_AM_Ap, conf_AM_PM]]
+                    if not AutoMark:
+                        self.data['__quiz']['__score']['d'][i] = [
+                            QUID, Q, response, [match, -1], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]
+                        ]
+                    
+                    else:
+                        if not AutoMark_UseApproxMatch:
+                            # Needs exact match
+                            c = (match == 1)
+                        
+                        else:
+                            c = (match >= AutoMark_ApproxMatch_PM)
+                        
+                        self.data['__quiz']['__score']['correct' if c else 'incorrect'] += 1
+                        self.data['__quiz']['__score']['d'][i] = [
+                            QUID, Q, response, [match, int(c)], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]
+                        ]
+                    
+                elif len(_AnsConfig) == 5:
+                    # TF
+                    state = _AnsConfig[-1]
+                    
+                    if state not in (True, False):
+                        _show_error_q(QUID)
+                        _ret("Please answer all questions before submitting the quiz.")
+                        return
+
+                    correct_answer = bool(int(A))
+                    
+                    if correct_answer == state:
+                        self.data['__quiz']['__score']['correct'] += 1 
+                        self.data['__quiz']['__score']['d'][i] = [QUID, Q, state, [1, True], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+
+                    else:
+                        self.data['__quiz']['__score']['incorrect'] += 1
+                        self.data['__quiz']['__score']['d'][i] = [QUID, Q, state, [0, False], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+                    
+                else:
+                    _ret(); return
+            
+            else:
+                _ret(); return
+        
+        # Successfully answered all questions.
+        # log(LoggingLevel.SUCCESS, json.dumps(self.data['__quiz']['__score'], indent=4))
+        self.quiz_WAIT_lbl.config(text='Your result is ready. The next version of the application will allow for the exporting of .qaScore files. We\'re almost there!')
         
     def _qz_tick(self) -> None:
         if not self.data.get('qz_tick', False):
@@ -749,10 +879,12 @@ class _UI(Thread):
         
     def _arr_q(self, q: Dict[Any, Any], _ins: Any) -> Dict[Any, Any]:        
         ssb = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['poa']
+        ssd = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['ssd']
         rqo = self.data['CONFIG_INF:<DB>']['CONFIGURATION']['rqo']
         
         assert ssb in ('p', 'a'), 'QA.PrepSeq._arr_q: E0x1 <SSB>'
         assert isinstance(rqo, bool), 'Qa.PreSeq._arr_q: E0x2 <RQO>'
+        assert isinstance(ssd, int), 'Qa.PreSeq._arr_q: E0x3 <SSD>'
         
         subsampling: bool = (ssb == 'p') 
         
@@ -776,11 +908,11 @@ class _UI(Thread):
             qPb = copy.deepcopy(q)
         
         if subsampling:
-            ind0 = random.randint(0, len(q) // 2)
-            indf = ind0 + math.ceil(len(q) / 2)
+            ind0 = random.randint(0, len(q) // ssd)
+            indf = ind0 + math.ceil(len(q) / ssd)
             
             qPa = [*qPb.keys()]
-            qPc = {k: qPb[k] for k in qPa[ind0:indf]}
+            qPc = {str(i): qPb[k] for i, k in enumerate(qPa[ind0:indf])}
 
             return qPc
         

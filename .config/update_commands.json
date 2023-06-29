@@ -129,7 +129,8 @@
     "additional_themes/retro_theme.qaTheme":  ".themes",
     "additional_themes/theme_addons.qaTheme": ".themes",
     "additional_themes/qas_2_original.qaTheme": ".themes",
-    "additional_themes/qas_2_original_dark.qaTheme": ".themes"
+    "additional_themes/qas_2_original_dark.qaTheme": ".themes",
+    "additional_themes/new_webstite_theme.qaTheme": ".themes"
   },
 
   "ADDONS_FONT": {
