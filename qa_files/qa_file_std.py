@@ -13,6 +13,7 @@ _ft_map: Dict[FileType, Tuple[str, bytes]] = {
     FileType.QA_ENC: (qa_enc_extn, qa_enc_enck),
     FileType.QA_EXPORT: (qa_export_extn, qa_export_enck),
     FileType.QA_QUIZ: (qa_quiz_extn, qa_quiz_enck),
+    FileType.QA_SCORE: (qa_score_extn, qa_score_enck)
 }
 
 

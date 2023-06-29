@@ -90,4 +90,5 @@ class FileType(Enum):
     QA_LOG = 3
     QA_QUIZ = 4
     QA_THEME = 5
+    QA_SCORE = 6
 

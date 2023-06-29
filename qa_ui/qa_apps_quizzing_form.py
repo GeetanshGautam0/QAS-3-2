@@ -8,7 +8,7 @@ from qa_functions.qa_std import ANSI, AppLogColors
 from qa_functions.qa_custom import HexColor
 from qa_functions.qa_colors import Functions as ColorFunctions
 from threading import Thread
-from tkinter import ttk
+from tkinter import ttk, filedialog
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from PIL import Image, ImageTk
@@ -47,6 +47,7 @@ class _UI(Thread):
             int(self.screen_dim[0] / 2 - self.window_size[0] / 2),
             int(self.screen_dim[1] / 2 - self.window_size[1] / 2)
         ]
+        self.original_pos = f'{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}'
 
         self.theme: qa_functions.qa_custom.Theme = qa_functions.LoadTheme.auto_load_pref_theme()
         self.theme_update_map: Dict[ThemeUpdateVars, Union[int, float, HexColor, str]] = {}  # type: ignore
@@ -229,7 +230,7 @@ class _UI(Thread):
     
         self.root.overrideredirect(False)
         self.root.wm_attributes('-topmost', 0)
-        self.root.geometry(f'{self.window_size[0]}x{self.window_size[1]}+{self.screen_pos[0]}+{self.screen_pos[1]}')
+        self.root.geometry(self.original_pos)
 
         log(LoggingLevel.WARNING, 'QuizAborted')
 
@@ -810,7 +811,65 @@ class _UI(Thread):
         
         # Successfully answered all questions.
         # log(LoggingLevel.SUCCESS, json.dumps(self.data['__quiz']['__score'], indent=4))
-        self.quiz_WAIT_lbl.config(text='Your result is ready. The next version of the application will allow for the exporting of .qaScore files. We\'re almost there!')
+        self.quiz_WAIT_lbl.config(text='Your score file is ready! Please select a location to export the file to.')
+        
+        self.data['__attr_quiz_complete'] = 1
+        self.export_score()
+        
+    def export_score(self) -> None:
+        assert self.data.get('__attr_quiz_complete'), 'export_score called before quiz is complete E: 0xB1.'
+        
+        self.root.wm_attributes('-topmost', 0)
+        self.root.deiconify()
+        self.root.geometry(self.original_pos)
+        
+        errors = self.data['__quiz'].get('__errors')
+        logs = self.data['__quiz'].get('__logs')
+        score_db = self.data['__quiz']['__score']
+        
+        export_data = {
+            'meta': {
+                'APP-build': qa_functions.qa_info.App.build_id,
+                'SCR-version': '0.0.1 <A>',
+                'SCR-create-time': datetime.datetime.now().strftime('%a, %B %d, %Y - %H:%M:%S'),
+                'SCR-format': ['_E', '_L', '_S'],    
+                'QZ-time-taken': self.quiz_time_taken_lbl.cget('text'),
+                'QZ-USER': [f'{self.last_name.get()}, {self.first_name.get()}', self.ID.get(), self._gen_user_id()],
+                'QZ-ATTEMPT': self._get_attempt_number(),
+                'QZ-start-time': self.data['qz_tm_started'].strftime('%a, %B %d, %Y - %H:%M:%S')
+            },
+            'content': {
+                '_E': errors,
+                '_L': logs,
+                '_S': score_db
+            }
+        }
+        
+        output_data = json.dumps(export_data)        
+        data_to_write, extension = qa_files.generate_file(qa_functions.FileType.QA_SCORE, output_data)  # type: ignore
+        output_file = filedialog.asksaveasfilename(filetypes=((f'.{extension}', f'.{extension}'),), defaultextension=f'.{extension}')
+        
+        while (not isinstance(output_file, str)) or (output_file in ('None', '')):
+            self.set_error_text('You MUST select an output location and filename', 5)
+            output_file = filedialog.asksaveasfilename(filetypes=((f'.{extension}', f'.{extension}'),), defaultextension=f'.{extension}')
+
+        assert isinstance(output_file, str), 'no idea how this assertion would fail Error code: 0x¯\_( ͡° ͜ʖ ͡°)_/¯'
+
+        if output_file.split('.')[-1] != extension:
+            output_file += f'.{extension}'
+            
+        assert qa_functions.SaveFile.secure(
+            qa_functions.File(output_file), data_to_write, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)
+        ), 'Failed to save SCORE (SCR) file. Please contact your administrator. Error: 0xBF'
+        
+        log(LoggingLevel.SUCCESS, f'Successfully created .qaScore file')
+        qa_prompts.MessagePrompts.show_info(
+            qa_prompts.InfoPacket('Successfully saved your score; share the file with your administrator.', 'EXIT', 'You\'re Done Here!')
+        )
+        
+        log(LoggingLevel.WARNING, 'Shutting down application after nominal operations.')
+        self.close()
+        
         
     def _qz_tick(self) -> None:
         if not self.data.get('qz_tick', False):

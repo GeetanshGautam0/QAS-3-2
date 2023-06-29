@@ -13,3 +13,6 @@ qa_quiz_extn = "qaQuiz"
 qa_quiz_enck = b"NjDst1kJ3UT0H2BT6tghmUNGGXcJUNQ8gEBQOCMCqms="
 
 qa_theme_extn = 'qaTheme'
+
+qa_score_extn = "qaScore"
+qa_score_enck = b'qqXG0c2l1qDWRxWrOm0ds4Oi4KmLDtv3g0_ygumSocY='
