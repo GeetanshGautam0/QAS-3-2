@@ -317,6 +317,23 @@ class _UI(Thread):
         self._prepare_quiz()
         self._prompt_quiz()
         
+        self.root.bind('<FocusOut>', self._on_focus_lost)
+        self.root.bind('<FocusIn>', self._on_focus_gained)
+    
+    def _on_focus_lost(self, event: tk.Event) -> None:
+        if event.widget == self.root and not self.data.get('__attr_quiz_complete', False):
+            self.data['__quiz']['__log'] = {
+                **self.data['__quiz'].get('__log', {}),
+                datetime.datetime.now().strftime("%H:%M:%S"): 'Quizzing form lost focus, likely due to user input.'
+            }
+    
+    def _on_focus_gained(self, event: Any) -> None:
+        if event.widget == self.root and not self.data.get('__attr_quiz_complete', False):
+            self.data['__quiz']['__log'] = {
+                **self.data['__quiz'].get('__log', {}),
+                datetime.datetime.now().strftime("%H:%M:%S"): 'Quizzing form regained focus.'
+            }    
+        
     def _prompt_quiz(self) -> None:
         assert qa_functions.data_at_dict_path('__quiz/__prep', self.data)[1], 'QA.QzSeq.Prompt.!Prep <0xF0>'
 
@@ -813,30 +830,37 @@ class _UI(Thread):
         # log(LoggingLevel.SUCCESS, json.dumps(self.data['__quiz']['__score'], indent=4))
         self.quiz_WAIT_lbl.config(text='Your score file is ready! Please select a location to export the file to.')
         
-        self.data['__attr_quiz_complete'] = 1
+        self.data['__attr_quiz_complete'] = True
         self.export_score()
         
     def export_score(self) -> None:
         assert self.data.get('__attr_quiz_complete'), 'export_score called before quiz is complete E: 0xB1.'
         
         self.root.wm_attributes('-topmost', 0)
-        self.root.deiconify()
         self.root.geometry(self.original_pos)
         
-        errors = self.data['__quiz'].get('__errors')
-        logs = self.data['__quiz'].get('__logs')
+        errors = self.data['__quiz'].get('__errors', {})
+        logs = self.data['__quiz'].get('__log', {})
         score_db = self.data['__quiz']['__score']
+        
+        for time, error in errors.items():
+            log(LoggingLevel.ERROR, f'LOG created during quiz: {time}: {error}')    
+            
+        for time, log_str in logs.items():
+            log(LoggingLevel.INFO, f'LOG created during quiz: {time}: {log_str}')
         
         export_data = {
             'meta': {
                 'APP-build': qa_functions.qa_info.App.build_id,
+                'APP-version': str(qa_functions.qa_info.App.version),
                 'SCR-version': '0.0.1 <A>',
                 'SCR-create-time': datetime.datetime.now().strftime('%a, %B %d, %Y - %H:%M:%S'),
                 'SCR-format': ['_E', '_L', '_S'],    
                 'QZ-time-taken': self.quiz_time_taken_lbl.cget('text'),
                 'QZ-USER': [f'{self.last_name.get()}, {self.first_name.get()}', self.ID.get(), self._gen_user_id()],
                 'QZ-ATTEMPT': self._get_attempt_number(),
-                'QZ-start-time': self.data['qz_tm_started'].strftime('%a, %B %d, %Y - %H:%M:%S')
+                'QZ-start-time': self.data['qz_tm_started'].strftime('%a, %B %d, %Y - %H:%M:%S'),
+                'QZ-session-ID': self.data['__quiz']['__user_session_code']
             },
             'content': {
                 '_E': errors,
