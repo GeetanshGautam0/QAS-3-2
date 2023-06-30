@@ -1634,18 +1634,30 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
     def export_qz(self) -> None:
         self.save_db()
         nDB = copy.deepcopy(self.data[self.EDIT_PAGE]['db_saved'])
-        nDB['DB']['FLAGS'] = ['QZDB']
-
+        
+        sDB = qa_files.QZ_GEN_LATEST(
+            ['QZDB', f'QZDB.R2<{qa_files.QZ_FRMT.QZDB_R2.value}>', *nDB['DB'].get('FLAGS', [])],
+            nDB['DB']['q_psw'],
+            nDB['DB']['psw'],
+            nDB['DB']['name'],
+            qa_functions.qa_info.App.build_id,
+            qa_functions.qa_info.App.version,
+            nDB['CONFIGURATION'],
+            nDB['QUESTIONS']
+        )[-1]
+        
+        print(sDB)
+        
         self.show_info(Message(Levels.NORMAL, 'Please select where to save the file'))
 
-        fl = filedialog.asksaveasfilename(filetypes=(('QaQuiz', f'.{qa_files.qa_quiz_extn}'), )).strip()
+        fl = filedialog.asksaveasfilename(filetypes=(('Quiz File', f'.{qa_files.qa_quiz_extn}'), )).strip()
         if len(fl) != 0:
             if fl.split('.')[-1] == qa_files.qa_quiz_extn:
                 fl = fl[:-(len(qa_files.qa_quiz_extn) + 1)]
 
             qa_functions.SaveFile.secure(
                 qa_functions.File(f'{fl}.{qa_files.qa_quiz_extn}'.replace('/', '\\')),
-                qa_files.generate_file(qa_functions.FileType.QA_QUIZ, json.dumps(nDB))[0] + b'%qaQuiz',  # type: ignore
+                qa_files.generate_file(qa_functions.FileType.QA_QUIZ, sDB)[0] + qa_files.C_QZ_TRAILING_ID.encode(),  # type: ignore
                 qa_functions.SaveFunctionArgs(
                     False,
                     True,

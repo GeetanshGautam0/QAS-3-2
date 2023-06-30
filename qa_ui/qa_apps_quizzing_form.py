@@ -317,6 +317,23 @@ class _UI(Thread):
         self._prepare_quiz()
         self._prompt_quiz()
         
+        self.root.bind('<FocusOut>', self._on_focus_lost)
+        self.root.bind('<FocusIn>', self._on_focus_gained)
+    
+    def _on_focus_lost(self, event: tk.Event) -> None:  # type: ignore
+        if event.widget == self.root and not self.data.get('__attr_quiz_complete', False):
+            self.data['__quiz']['__log'] = {
+                **self.data['__quiz'].get('__log', {}),
+                datetime.datetime.now().strftime("%H:%M:%S"): 'Quizzing form lost focus, likely due to user input.'
+            }
+    
+    def _on_focus_gained(self, event: Any) -> None:
+        if event.widget == self.root and not self.data.get('__attr_quiz_complete', False):
+            self.data['__quiz']['__log'] = {
+                **self.data['__quiz'].get('__log', {}),
+                datetime.datetime.now().strftime("%H:%M:%S"): 'Quizzing form regained focus.'
+            }    
+        
     def _prompt_quiz(self) -> None:
         assert qa_functions.data_at_dict_path('__quiz/__prep', self.data)[1], 'QA.QzSeq.Prompt.!Prep <0xF0>'
 
@@ -648,7 +665,7 @@ class _UI(Thread):
             'incorrect': 0,
             'questions': self.data['__quiz']['__questionBase'],
             'configuration': self.data['CONFIG_INF:<DB>']['CONFIGURATION'],
-            'd': {}
+            'd': []
         }
         
         assert qa_functions.data_at_dict_path('__quiz/__questionBase', self.data)[1]
@@ -743,12 +760,19 @@ class _UI(Thread):
                 
                 if selected_answer in correct_answers:
                     self.data['__quiz']['__score']['correct'] += 1 
-                    #                                        [ID    Q  given answer     [%match, correct?], [conf_AM, conf_AM_Ap, conf_AM_PM]]
-                    self.data['__quiz']['__score']['d'][i] = [QUID, Q, selected_answer, [1, 1], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+                    self.data['__quiz']['__score']['d'].append(qa_files.SCR_QUESTION(
+                        int(i), QUID, Q, selected_answer, 
+                        100, qa_files.SCR_VERDICT.CORRECT, 
+                        AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM
+                    ))
 
                 else:
                     self.data['__quiz']['__score']['incorrect'] += 1
-                    self.data['__quiz']['__score']['d'][i] = [QUID, Q, selected_answer, [0, 0], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+                    self.data['__quiz']['__score']['d'].append(qa_files.SCR_QUESTION(
+                        int(i), QUID, Q, selected_answer, 
+                        0, qa_files.SCR_VERDICT.INCORRECT, 
+                        AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM
+                    ))
             
             elif isinstance(_AnsConfig, (list, tuple)):
                 if len(_AnsConfig) == 3:
@@ -763,13 +787,15 @@ class _UI(Thread):
                         _ret("Please answer all questions before submitting the quiz.")
                         return                   
                     
-                    match = fuzz.ratio(response, A) / 100
+                    match = fuzz.ratio(response, A)
                     
                     #                                        [ID    Q  given answer     [%match, correct?], [conf_AM, conf_AM_Ap, conf_AM_PM]]
                     if not AutoMark:
-                        self.data['__quiz']['__score']['d'][i] = [
-                            QUID, Q, response, [match, -1], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]
-                        ]
+                        self.data['__quiz']['__score']['d'].append(qa_files.SCR_QUESTION(
+                            int(i), QUID, Q, response, 
+                            match, qa_files.SCR_VERDICT.UNDETERMINED, 
+                            AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM
+                        ))
                     
                     else:
                         if not AutoMark_UseApproxMatch:
@@ -780,9 +806,11 @@ class _UI(Thread):
                             c = (match >= AutoMark_ApproxMatch_PM)
                         
                         self.data['__quiz']['__score']['correct' if c else 'incorrect'] += 1
-                        self.data['__quiz']['__score']['d'][i] = [
-                            QUID, Q, response, [match, int(c)], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]
-                        ]
+                        self.data['__quiz']['__score']['d'].append(qa_files.SCR_QUESTION(
+                            int(i), QUID, Q, response, 
+                            match, qa_files.SCR_VERDICT.CORRECT if c else qa_files.SCR_VERDICT.INCORRECT, 
+                            AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM
+                        ))
                     
                 elif len(_AnsConfig) == 5:
                     # TF
@@ -797,11 +825,19 @@ class _UI(Thread):
                     
                     if correct_answer == state:
                         self.data['__quiz']['__score']['correct'] += 1 
-                        self.data['__quiz']['__score']['d'][i] = [QUID, Q, state, [1, True], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+                        self.data['__quiz']['__score']['d'].append(qa_files.SCR_QUESTION(
+                            int(i), QUID, Q, state, 
+                            100, qa_files.SCR_VERDICT.CORRECT, 
+                            AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM
+                        ))
 
                     else:
                         self.data['__quiz']['__score']['incorrect'] += 1
-                        self.data['__quiz']['__score']['d'][i] = [QUID, Q, state, [0, False], [AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM]]
+                        self.data['__quiz']['__score']['d'].append(qa_files.SCR_QUESTION(
+                            int(i), QUID, Q, state, 
+                            0, qa_files.SCR_VERDICT.INCORRECT, 
+                            AutoMark, AutoMark_UseApproxMatch, AutoMark_ApproxMatch_PM
+                        ))
                     
                 else:
                     _ret(); return
@@ -813,39 +849,41 @@ class _UI(Thread):
         # log(LoggingLevel.SUCCESS, json.dumps(self.data['__quiz']['__score'], indent=4))
         self.quiz_WAIT_lbl.config(text='Your score file is ready! Please select a location to export the file to.')
         
-        self.data['__attr_quiz_complete'] = 1
+        self.data['__attr_quiz_complete'] = True
         self.export_score()
         
     def export_score(self) -> None:
         assert self.data.get('__attr_quiz_complete'), 'export_score called before quiz is complete E: 0xB1.'
         
         self.root.wm_attributes('-topmost', 0)
-        self.root.deiconify()
         self.root.geometry(self.original_pos)
         
-        errors = self.data['__quiz'].get('__errors')
-        logs = self.data['__quiz'].get('__logs')
-        score_db = self.data['__quiz']['__score']
+        errors = self.data['__quiz'].get('__errors', {})
+        logs = self.data['__quiz'].get('__log', {})
+        score_c = self.data['__quiz']['__score']['correct']
+        score_i = self.data['__quiz']['__score']['incorrect']
+        score_q = self.data['__quiz']['__score']['questions']
+        score_C = self.data['__quiz']['__score']['configuration']
+        score_d = self.data['__quiz']['__score']['d']
         
-        export_data = {
-            'meta': {
-                'APP-build': qa_functions.qa_info.App.build_id,
-                'SCR-version': '0.0.1 <A>',
-                'SCR-create-time': datetime.datetime.now().strftime('%a, %B %d, %Y - %H:%M:%S'),
-                'SCR-format': ['_E', '_L', '_S'],    
-                'QZ-time-taken': self.quiz_time_taken_lbl.cget('text'),
-                'QZ-USER': [f'{self.last_name.get()}, {self.first_name.get()}', self.ID.get(), self._gen_user_id()],
-                'QZ-ATTEMPT': self._get_attempt_number(),
-                'QZ-start-time': self.data['qz_tm_started'].strftime('%a, %B %d, %Y - %H:%M:%S')
-            },
-            'content': {
-                '_E': errors,
-                '_L': logs,
-                '_S': score_db
-            }
-        }
+        for time, error in errors.items():
+            log(LoggingLevel.ERROR, f'LOG created during quiz: {time}: {error}')    
+            
+        for time, log_str in logs.items():
+            log(LoggingLevel.INFO, f'LOG created during quiz: {time}: {log_str}')    
         
-        output_data = json.dumps(export_data)        
+        output_data = qa_files.SCR_GEN_LATEST(
+            self.first_name.get(), self.last_name.get(), self.ID.get(),
+            self._gen_user_id(), self.data['__quiz']['__user_session_code'],
+            datetime.datetime.now().strftime('%a, %B %d, %Y - %H:%M:%S'), 
+            qa_functions.qa_info.App.version, qa_functions.qa_info.App.build_id,
+            self.data['qz_tm_started'].strftime('%a, %B %d, %Y - %H:%M:%S'), 
+            self.quiz_time_taken_lbl.cget('text'), self._get_attempt_number(),
+            errors, logs, qa_files.SCR_RES(score_c, score_i, score_q, score_C, score_d)
+        )[-1]
+        
+        # log(LoggingLevel.SUCCESS, output_data)
+        
         data_to_write, extension = qa_files.generate_file(qa_functions.FileType.QA_SCORE, output_data)  # type: ignore
         output_file = filedialog.asksaveasfilename(filetypes=((f'.{extension}', f'.{extension}'),), defaultextension=f'.{extension}')
         
@@ -1182,21 +1220,35 @@ class _UI(Thread):
             # ii) Check and remove extension verifier (last 5 characters)
             assert len(_dec1) >= 5, 'SET_DATABASE.ERR (strict) 3: _dec1__LEN~>=5'  # type: ignore
             _c1 = cast(bytes, _dec1)[-7:]
-            assert _c1 == b'%qaQuiz', f'SET_DATABASE.ERR (strict) 4: _c1 failure'
+            assert _c1 == qa_files.C_QZ_TRAILING_ID.encode(), f'SET_DATABASE.ERR (strict) 4: _c1 failure'
             _dec1 = cast(bytes, _dec1)[:-7]
 
             # iii) Load file sections
             # AND iv) Check hashes
             # AND v) decrypt body
-            _dec2_bytes, _dec2_str = cast(Tuple[bytes, str], qa_files.load_file(qa_functions.FileType.QA_QUIZ, _dec1))
+            _, _dec2_str = cast(Tuple[bytes, str], qa_files.load_file(qa_functions.FileType.QA_QUIZ, _dec1))
             assert len(_dec2_str.strip()) > 0, 'SET_DATABASE.ERR (strict) 5: ~_dec2_str__LEN'
 
-            # convert _dec2_str to dict
-            _DB: Dict[str, Any] = json.loads(_dec2_str)  # type: ignore
+            # convert _dec2_str to QZDB
+            # _DB: Dict[str, Any] = json.loads(_dec2_str)  # type: ignore
+            _QZDB = qa_files.QZDB_ReadData(_dec2_str)
 
             # vi) Check flag
-            assert 'QZDB' in _DB['DB']['FLAGS'], 'SET_DATABASE.ERR (strict) 6: ~FLAG_QZDB'
+            assert 'QZDB' in _QZDB.meta_FLAGS, 'SET_DATABASE.ERR (strict) 6: ~FLAG_QZDB'
 
+            # NEW STEP: Convert QZDB to dict
+            _DB: Dict[str, Any] = {
+                'DB':
+                    {
+                        'name': _QZDB.meta_NAME,
+                        'psw': _QZDB.meta_PSWA,
+                        'q_psw': _QZDB.meta_PSWQ,
+                        'FLAGS': _QZDB.meta_FLAGS
+                    },
+                'CONFIGURATION': _QZDB.content_CONFIG,
+                'QUESTIONS': cast(Dict[str, Any], _QZDB.content_QUESTIONS)
+            }
+            
             # check database integrity
             N_errors, errors, _DB = self._check_db(_DB)
 
@@ -1260,7 +1312,8 @@ class _UI(Thread):
                     },
                     'read': _DB,
                 },
-                'verified': True
+                'verified': True,
+                '__raw_QZDB_struct': _QZDB
             }
 
         except Exception as E:
