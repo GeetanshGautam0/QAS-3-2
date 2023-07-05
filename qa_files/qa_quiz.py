@@ -206,10 +206,10 @@ def ReadData(data: str) -> QZDB:
         AttributeError: If unable to read file
 
     Returns:
-        SCR: SCR instance that contains all data from the file. 
+        QZDB: QZDB instance that contains all data from the file. 
         
     Note:
-        SCR data that is not present in the file (usually as a result of outdated files) will be marked as 
+        QZDB data that is not present in the file (usually as a result of outdated files) will be marked as 
         NULL_STR ('qaQuiz.null') or NULL_INT (0) depending on the type of variable in ___. Be sure to appropriately
         handle such instances. 
     """

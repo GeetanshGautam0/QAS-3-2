@@ -36,7 +36,7 @@ def float_map(value: float, input_min: float, input_max: float, output_min: floa
     return output_min + (valueScaled * rightSpan)
 
 
-def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int = 0) -> Tuple[bool, bool]:
+def check_hex_contrast(bg: HexColor, fg: HexColor, adjustment: int | float = 0) -> Tuple[bool, bool]:
     """
     **CHECK_HEX_CONTRAST**
 
