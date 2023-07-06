@@ -7,6 +7,7 @@ from . import qa_std
 from . import qa_enum
 from . import qa_info
 from typing import *
+from qa_files.qa_theme import ReadData, TDB, TDB_to_DICT, Check as TDB_CHECK
 
 
 THEME_LOADER_ENABLE_DEV_DEBUGGING = False
@@ -141,8 +142,8 @@ class Load:
     def auto_load_pref_theme() -> qa_custom.Theme:
         direc = f"{qa_info.App.appdata_dir}\\{qa_info.Files.ad_theme_folder}"
         fp = f"{direc}\\{qa_info.Files.ThemePrefFile}"
-
         default: Dict[str, qa_custom.Theme] = {}
+        
         for kv in Load.load_default_theme().values():
             default = {**default, **kv}
 
@@ -188,6 +189,7 @@ class Load:
             if theme.theme_file_path == dd['file'] and theme.theme_code == dd['theme'] and f'{theme.theme_file_display_name}: {theme.theme_display_name}' == dd['display_name']:
                 if dd != ddp: set_pref(dd['file'], dd['theme'], dd['display_name'])
                 del dd
+                
                 return theme
 
         log(qa_enum.LoggingLevel.ERROR, 'No match; DEFAULTING')
@@ -198,7 +200,7 @@ class Load:
         return (*default.values(), )[0]
 
     @staticmethod
-    def auto_load_all(inc_def: bool = True) -> Dict[str, Dict[str, qa_custom.Theme]]:
+    def auto_load_all(include_defaults: bool = True) -> Dict[str, Dict[str, qa_custom.Theme]]:
         output: Dict[str, Dict[str, qa_custom.Theme]] = {}
         extn = qa_files.qa_files_ltbl.qa_theme_extn
 
@@ -206,10 +208,10 @@ class Load:
         if not os.path.exists(direc):
             os.makedirs(direc)
             return output
-
-        file_acc: int = 0
-        themes: Dict[int, Tuple[Any, ...]] = {0: ('', )}
-
+        
+        file_count: int = 0
+        themes: Dict[int, Tuple[str, str]] = {}  # type: ignore
+        
         with os.scandir(direc) as fls:
             for file in fls:
                 if file.name.endswith(extn):
@@ -217,31 +219,20 @@ class Load:
 
                     try:
                         with open(fp, 'r') as theme_file:
-                            raw = json.loads(theme_file.read())
+                            raw = theme_file.read()
                             theme_file.close()
 
                     except Exception as E:
                         log(qa_enum.LoggingLevel.ERROR, "Failed to load data from theme file (path at end): %s. File: %s" % (str(E), file.name))
                         continue
 
-                    df, dd = qa_std.data_at_dict_path('file_info/avail_themes', raw)
-                    if not df:
-                        log(qa_enum.LoggingLevel.ERROR, "Failed to load data from theme file (path at end): File information unavailable %s" % file.name)
-                        continue
-                    if dd.get('num_themes') is None:
-                        log(qa_enum.LoggingLevel.ERROR, "Failed to load data from theme file (path at end): File information unavailable %s" % file.name)
-                        continue
-
-                    avail_themes = dd
-                    avail_themes.pop('num_themes')
-
-                    file_acc += 1
-                    themes[len(themes)] = (avail_themes, raw, fp)
-
-        themes.pop(0)
-        for at, t, fp in themes.values():
+                    file_count += 1
+                    themes[len(themes)] = (raw, fp)
+                    
+        for raw, fp in themes.values():
             try:
-                nd = Load._load_theme(fp, t, at, False)
+                nd = Load._load_theme(fp, raw)
+                
             except Exception as E:
                 fn = fp.replace('/', '\\').split('\\')[-1]
                 string = f"Failed to load theme from '{fn}': {str(E)}; \n{traceback.format_exc()}"
@@ -252,13 +243,13 @@ class Load:
 
             output = {**output, **nd}
 
-        if inc_def:
+        if include_defaults:
             output = {**output, **Load.load_default_theme()}
 
-        log(qa_enum.LoggingLevel.DEVELOPER, "Found %d files from the AppData directory." % file_acc)
+        log(qa_enum.LoggingLevel.DEVELOPER, "Found %d files from the AppData directory." % file_count)
 
         return output
-
+            
     @staticmethod
     def load_default_theme() -> Dict[str, Dict[str, qa_custom.Theme]]:
         default_direc = qa_info.Files.default_theme_dir
@@ -273,12 +264,14 @@ class Load:
                 raw = theme_file.read().strip()
                 theme_file.close()
 
-            json_data = json.loads(raw)
-            hash_json = json.loads(qa_file_handler.dtc(hash_raw, str, cfa))
-            assert json_data['file_info']['name'] in hash_json, "Invalid/corrupted default theme qa_files (name not found)"
+            data: TDB = ReadData(raw, path_to_file)
+            hash_json = json.loads(qa_file_handler.dtc(hash_raw, str, cfa))  # type: ignore
+            
+            assert data.Theme_FileCode in hash_json, "Invalid/corrupted default theme file (name not found)"
 
             file_hash = hashlib.sha3_512(raw.encode()).hexdigest()
-            expected_hash = hash_json[json_data['file_info']['name']]
+            expected_hash = hash_json[data.Theme_FileCode]
+            
             del hash_json
 
             if file_hash != expected_hash:
@@ -289,12 +282,8 @@ class Load:
 
                 raise AssertionError("Invalid/corrupted default theme file; hash mismatch.")
 
-            assert Test.check_file(json_data), "Invalid/corrupted default theme file; checks failed."
-
-            themes = {**json_data['file_info']['avail_themes']}
-            themes.pop('num_themes')
-
-            return Load._load_theme(default_direc, json_data, themes, _skip_test=True)
+            assert TDB_CHECK.TDB_R1(TDB_to_DICT(data))[-1], "Invalid/corrupted default theme file; checks failed."
+            return Load._load_theme(path_to_file, raw)
 
         f1 = qa_info.Files.default_theme_file.replace(default_direc, '', 1).strip("\\")
         output_acc = {**load(qa_info.Files.default_theme_file)}
@@ -307,121 +296,38 @@ class Load:
         return output_acc
 
     @staticmethod
-    def _load_theme(file_path: str, raw_theme_json: Dict[str, Any], theme_names: Dict[Any, Any], _skip_test: bool = False, _pr: bool = False) -> Dict[str, Dict[str, qa_custom.Theme]]:
-        o: Dict[str, Dict[str, qa_custom.Theme]] = {}
-        if _pr:
-            print('n', raw_theme_json, theme_names)
+    def _load_db(file_path: str, data: str) -> TDB:
+        return ReadData(data, file_path)
+    
+    @staticmethod
+    def _load_theme(
+		file_path: str,                         # path_to_file
+		raw_theme_json: str,                    # data (in JSON string)
+        *args: Any, **kwargs: Any               # Added to avoid errors from old function calls.              
+	) -> Dict[str, Dict[str, qa_custom.Theme]]:
+	
+        theme_db: TDB = ReadData(raw_theme_json, file_path)
+        themes_found = theme_db.Theme_AvailableThemes
+        
+        output: Dict[str, Dict[str, qa_custom.Theme]] = {
+            theme.theme_code: 
+                {
+                    theme.theme_display_name: theme
+                } 
+            for theme in themes_found
+        }
 
-        for theme_name, theme in theme_names.items():
-            assert theme in raw_theme_json, f"Data for '{theme_name}' theme not found."
-
-            if _pr:
-                print('a', raw_theme_json[theme])
-
-            if not _skip_test:
-                assert Test.check_theme(theme_name, raw_theme_json[theme], False), f"Theme '{theme_name}' - Invalid theme data found."
-
-            t = raw_theme_json[theme]
-            ot = qa_custom.Theme(
-                raw_theme_json['file_info']['name'],
-                raw_theme_json['file_info']['display_name'],
-                t['display_name'],
-                theme,
-                file_path,
-                qa_custom.HexColor(t['background']),
-                qa_custom.HexColor(t['foreground']),
-                qa_custom.HexColor(t['accent']),
-                qa_custom.HexColor(t['error']),
-                qa_custom.HexColor(t['warning']),
-                qa_custom.HexColor(t['ok']),
-                qa_custom.HexColor(t['gray']),
-                t['font']['title_font_face'],
-                t['font']['font_face'],
-                t['font']['alt_font_face'],
-                t['font']['size_small'],
-                t['font']['size_main'],
-                t['font']['size_subtitle'],
-                t['font']['size_title'],
-                t['font']['size_xl_title'],
-                t['border']['size'],
-                qa_custom.HexColor(t['border']['colour']),
-            )
-
-            o = {**o, theme: {t['display_name']: ot}}
-
-        if _pr:
-            print('0', o)
-        return o
+        return output
 
 
 class Test:
     @staticmethod
-    def check_file(json_data: Dict[str, Any], re_results: bool = False) -> Union[bool, Tuple[bool, List[str], List[str]]]:
-        failures: List[str] = []
-        warnings: List[str] = []
-        abort = False
+    def check_file(data: str, path_to_file: str, re_results: bool = False) -> Union[bool, Tuple[bool, List[str], List[str]]]:
+        tdb: TDB = ReadData(data, path_to_file, False)
+        f, w, pss = TDB_CHECK.TDB_R1(TDB_to_DICT(tdb))
 
-        for i, k in [('name', str), ('display_name', str), ('avail_themes/num_themes', int)]:
-            f, d = qa_std.data_at_dict_path(f"file_info/{i}", json_data)
-
-            if not f:
-                failures.append(f"Data at key `file_info/{i}` not found; ABORTING")
-                abort = True
-
-            else:
-                if not isinstance(d, k):
-                    failures.append(f"Data at key `file_info/{i}` has invalid data; ABORTING")
-                    abort = True
-
-            del f, d
-
-        if not abort:
-            _, d1 = qa_std.data_at_dict_path('file_info/avail_themes/num_themes', json_data)
-            _, d0 = qa_std.data_at_dict_path('file_info/avail_themes', json_data)
-
-            if len(d0) != d1 + 1:
-                failures.append('Invalid number of themes reported; ABORTING')
-                abort = True
-
-            else:
-                if len(d0) == 1:
-                    failures.append('No themes in qa_files; ABORTING')
-                    abort = True
-
-            del _, d0, d1
-
-        # Thorough checks
-        if not abort:
-            _, d0 = qa_std.data_at_dict_path('file_info/avail_themes', json_data)
-            d0 = {**d0}
-            d0.pop('num_themes')
-
-            for theme_name, theme in d0.items():
-                if theme not in json_data:
-                    failures.append(f'Theme `{theme}` not found.')
-                    abort = True  # Will finish going through for loop before aborting
-
-            if not abort:
-                for theme_name in d0.values():
-                    fa = Test.check_theme(theme_name, json_data[theme_name], True)
-                    failures.extend(cast(Tuple[bool, List[str], List[str]], fa)[1])
-                    warnings.extend(cast(Tuple[bool, List[str], List[str]], fa)[2])
-
-                    del fa
-
-        # Failure printer
-
-        if len(failures) > 0:
-            sys.stderr.write(f"{'-' * 100}\n")
-            for failure in failures:
-                sys.stderr.write(f"[Theme File Checks] FAILURE: {failure}\n")
-
-            if abort:
-                sys.stderr.write("** Additional tests were ABORTED; unknown status for rest of qa_files. **\n")
-
-            sys.stderr.write(f"{'-' * 100}\n\n")
-
-        return len(failures) == 0 if not re_results else (len(failures) == 0, failures, warnings)
+        return len(f) == 0 if not re_results else \
+            (pss, [f'<{code}> {string}' for code, string in f.items()], [f'<{code}> {string}' for code, string in w.items()])
 
     @staticmethod
     def check_theme(theme_name: str, theme_data: Dict[Any, Any], re_failures: bool = False) -> Union[bool, Tuple[bool, List[str], List[str]]]:

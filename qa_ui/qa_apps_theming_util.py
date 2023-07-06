@@ -9,6 +9,7 @@ from typing import *
 from qa_functions.qa_enum import ThemeUpdateCommands, ThemeUpdateVars, LoggingLevel, FileType
 from qa_functions.qa_std import ANSI, AppLogColors
 from qa_functions.qa_custom import Theme, UnexpectedEdgeCase
+from qa_files.qa_theme import TDB_to_DICT, TDB, ReadData as ReadAsTDB, LATEST_GENERATE_FUNCTION as GenThemeFile
 
 
 script_name = "APP_TU"
@@ -830,15 +831,11 @@ class _UI(Thread):
             filetypes=[('Quizzing Application Theme', qa_files.qa_theme_extn)]
         ) if not isinstance(files, tuple) else files
 
-        to_install: Dict[str, Tuple[qa_functions.Theme, ...]] = {
-            '><><><><><><.,.,<><><>,.<.,>,.<>,>.,>,': ()
-        }
+        to_install: Dict[str, Tuple[qa_functions.Theme, ...]] = {}  # type: ignore
 
         if len(req_files) <= 0:
             self.enable_all_inputs()
             return None
-
-        to_install.pop('><><><><><><.,.,<><><>,.<.,>,.<>,>.,>,')
 
         e1 = {**qa_functions.LoadTheme.auto_load_all()}
         e2, e3, e4 = [], [], []
@@ -881,20 +878,18 @@ class _UI(Thread):
                 # For MyPy
                 assert isinstance(js, tuple)
                 assert len(js) == 2
-                _, json_string = js
+                _, string = js
                 del js
 
-                theme_json = json.loads(json_string)
+                theme_json = TDB_to_DICT(ReadAsTDB(string, file), True)
                 assert fn not in (qa_functions.Files.ThemePrefFile, qa_functions.Files.ThemeCustomFile), f"Filename '{fn}' is not allowed (system reserved)"
                 assert 'file_info' in theme_json, 'File info unavailable'
                 assert 'avail_themes' in theme_json['file_info'], 'No themes available'
                 assert 'num_themes' in theme_json['file_info']['avail_themes'], 'No themes available'
                 assert len(theme_json['file_info']['avail_themes']) == theme_json['file_info']['avail_themes']['num_themes'] + 1, 'Corrupted theme data'
                 assert theme_json['file_info']['avail_themes']['num_themes'] > 0, 'No themes available'
-                avail_themes = {**theme_json['file_info']['avail_themes']}
-                avail_themes.pop('num_themes')
 
-                all_theme_data = qa_functions.LoadTheme._load_theme(file, theme_json, avail_themes, _pr=False)
+                all_theme_data = qa_functions.LoadTheme._load_theme(file, string)
 
                 it, ins = [], []
 
@@ -1028,8 +1023,7 @@ Technical Information:
             try:
                 raw = qa_functions.OpenFile.load_file(chosen_theme_file, qa_functions.OpenFunctionArgs(bytes))
                 _, r2 = cast(Tuple[bytes, str], qa_files.load_file(FileType.QA_THEME, raw))
-                theme_json = json.loads(r2)
-                assert qa_functions.TestTheme.check_file(theme_json), 'invalid file'
+                theme_json = TDB_to_DICT(ReadAsTDB(raw, chosen_theme_file.file_path), True)
                 os.remove(chosen_theme_file.file_path)
 
                 theme_json['file_info']['avail_themes']['num_themes'] -= 1
@@ -1107,6 +1101,7 @@ Technical Information:
             if not isinstance(new_file_name, str):
                 self.enable_all_inputs()
                 return
+            
             elif not len(new_file_name) > 0:
                 self.enable_all_inputs()
                 return
@@ -1144,45 +1139,13 @@ Technical Information:
                 ct.theme_code = f"Themes.Custom.{tdp_clean_str.replace(' ', '')}"
                 ct.theme_file_path = new_file_name
 
-                nt = {
-                    'display_name': ct.theme_display_name,
-                    'background': ct.background.color,
-                    'foreground': ct.foreground.color,
-                    'accent': ct.accent.color,
-                    'error': ct.error.color,
-                    'warning': ct.warning.color,
-                    'ok': ct.okay.color,
-                    'gray': ct.gray.color,
-                    'font': {
-                        'title_font_face': ct.title_font_face,
-                        'font_face': ct.font_face,
-                        'alt_font_face': ct.font_alt_face,
-                        'size_small': ct.font_small_size,
-                        'size_main': ct.font_main_size,
-                        'size_subtitle': ct.font_large_size,
-                        'size_title': ct.font_title_size,
-                        'size_xl_title': ct.font_xl_title_size
-                    },
-                    'border': {
-                        'size': ct.border_size,
-                        'colour': ct.border_color.color
-                    }
-                }
-                file_data = {
-                    'file_info': {
-                        'name': ct.theme_file_name,
-                        'display_name': ct.theme_file_display_name,
-                        'avail_themes': {
-                            'num_themes': 1,
-                            'ugen_exp': ct.theme_code
-                        }
-                    },
-                    ct.theme_code: {
-                        **nt
-                    }
-                }
+                file_data = GenThemeFile(
+                    new_file_name, ct.theme_file_name,
+                    ct.theme_file_display_name, qa_functions.qa_info.App.version,
+                    qa_functions.qa_info.App.build_id, {ct.theme_code: ct}
+                )[1]
 
-                file_bytes = qa_files.generate_file(FileType.QA_THEME, json.dumps(file_data, indent=4))
+                file_bytes = qa_files.generate_file(FileType.QA_THEME, file_data)
                 file = qa_functions.File(new_file_name)
                 assert qa_functions.SaveFile.secure(file, file_bytes, qa_functions.SaveFunctionArgs(False, save_data_type=bytes)), "SaveError"
 

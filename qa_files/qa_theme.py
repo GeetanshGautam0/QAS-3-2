@@ -7,9 +7,8 @@ from tkinter import messagebox
 from enum import Enum
 
 
-# the following must trail the data in all TDB
-C_TRAILING_ID                   = '%qaQuiz'
-
+_BT = True
+_DEBUG = False
 
 # constants (DO NOT CHANGE)
 C_META                          = 'meta' 
@@ -247,9 +246,11 @@ class Generate:
 class Read:
     @staticmethod
     def QAS2_theme_file(data: str, path_to_file: str) -> TDB:
-        global _TDB_file_versions
+        global _TDB_file_versions, _BT, _DEBUG
         
         assert isinstance(data, str) & isinstance(path_to_file, str), '0x00'
+        
+        print(data)
         
         lines = {}
         
@@ -327,32 +328,34 @@ class Read:
             False, [0], ValidationState.VALIDATION_UNAVAILABLE                  # Validation information
         )
         
-        fail, warn, pss = Check.TDB_R1(TDB_to_DICT(db))
-        pss1 = theme.check()
-        pss &= pss1
+        if _BT:
         
-        if not pss1:
-            fail[hex(int('pss1', 16)) + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
-        
-        if not pss:
-            messagebox.showerror('QA Theming Service', 'Although the file provided is a valid theme file, its content is not condusive to the Quizzing Application version 3 theme requirements. \n\nWARN:\n%s\n\nERRORS:\n%s' % (
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in warn.items()),
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in fail.items())
-            ))
-        
-        if (len(fail) + len(warn)):
-            sys.stderr.write('QA Theming Service <Check: TDB-R1<DICT>>: \n\nFAILURES:\n%s\n\nWARNINGS:\n%s\n\nEND\n' % (
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in fail.items()),
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in warn.items())
-            ))
-        
-        assert pss, '0x00CF'
+            fail, warn, pss = Check.TDB_R1(TDB_to_DICT(db))
+            pss1 = theme.check()
+            pss &= pss1
+            
+            if not pss1:
+                fail[hex(int('pss1', 16)) + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
+            
+            if not pss:
+                messagebox.showerror('QA Theming Service', 'Although the file provided is a valid theme file, its content is not condusive to the Quizzing Application version 3 theme requirements. \n\nWARN:\n%s\n\nERRORS:\n%s' % (
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in warn.items()),
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in fail.items())
+                ))
+            
+            if (len(fail) + len(warn)) and _DEBUG:
+                sys.stderr.write('QA Theming Service <Check: TDB-R1<DICT>>: \n\nFAILURES:\n%s\n\nWARNINGS:\n%s\n\nEND\n' % (
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in fail.items()),
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in warn.items())
+                ))
+            
+            assert pss, '0x00CF'
         
         return db
         
     @staticmethod 
     def ALPHA_ONE(data: Dict[str, Any], path_to_file: str) -> TDB:        
-        global _TDB_file_versions
+        global _TDB_file_versions, _BT, _DEBUG
         # format = TDB-R1 
         
         assert isinstance(data, dict) & isinstance(path_to_file, str), '0x00'
@@ -408,26 +411,28 @@ class Read:
             ValidationState.VALIDATION_UNAVAILABLE
         )
         
-        failures, warnings, pss0 = Check.TDB_R1(TDB_to_DICT(db))
-        pss1 = sum( int(theme.check()) for theme in themes ) == len(themes)  # If all themes pass, then this statement is TRUE
-        
-        pss0 &= pss1
-        if not pss1:
-            failures[hex(int('pss1', 16)) + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
-        
-        if not pss0:
-            messagebox.showerror('QA Theming Service', 'Although the file provided is a valid theme file, its content is not condusive to the Quizzing Application version 3 theme requirements. \n\nWARN:\n%s\n\nERRORS:\n%s' % (
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in warnings.items()),
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in failures.items())
-            ))
-        
-        if (len(failures) + len(warnings)):
-            sys.stderr.write('QA Theming Service <Check: TDB-R1<DICT>>: \n\nFAILURES:\n%s\n\nWARNINGS:\n%s\n\nEND\n' % (
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in failures.items()),
-                '\n* '.join('<Check %s> %s' % (code, string) for code, string in warnings.items())
-            ))
-        
-        assert pss0, '0x00CF'
+        if _BT:
+            
+            failures, warnings, pss0 = Check.TDB_R1(TDB_to_DICT(db))
+            pss1 = sum( int(theme.check()) for theme in themes ) == len(themes)  # If all themes pass, then this statement is TRUE
+            
+            pss0 &= pss1
+            if not pss1:
+                failures[hex(int('pss1', 16)) + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
+            
+            if not pss0:
+                messagebox.showerror('QA Theming Service', 'Although the file provided is a valid theme file, its content is not condusive to the Quizzing Application version 3 theme requirements. \n\nWARN:\n%s\n\nERRORS:\n%s' % (
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in warnings.items()),
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in failures.items())
+                ))
+            
+            if (len(failures) + len(warnings)) and _DEBUG:
+                sys.stderr.write('QA Theming Service <Check: TDB-R1<DICT>>: \n\nFAILURES:\n%s\n\nWARNINGS:\n%s\n\nEND\n' % (
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in failures.items()),
+                    '\n* '.join('<Check %s> %s' % (code, string) for code, string in warnings.items())
+                ))
+            
+            assert pss0, '0x00CF'
         
         return db
         
@@ -769,7 +774,7 @@ def _read_meta(meta: str | Dict[str, str]) -> Tuple[int, bool]:
     return given_format, (expected_ver == given_ver)  # type: ignore
 
 
-def ReadData(data: str, path_to_file: str) -> TDB:
+def ReadData(data: str, path_to_file: str, run_tests: bool = True) -> TDB:
     """Automatically chooses the appropriate file version and decodes the provided DATA as per that format.
     
     Currently available formats:
@@ -792,10 +797,13 @@ def ReadData(data: str, path_to_file: str) -> TDB:
         handle such instances. 
     """
     
-    global _TDB_file_versions, C_META
+    global _TDB_file_versions, C_META, _BT
+    
+    assert isinstance(data, str) & isinstance(path_to_file, str) & isinstance(run_tests, bool), '0xA000'
     
     data = data.strip()
     assert len(data), 'Invalid data input'
+    output: TDB
     
     try:
         dP = cast(Dict[str, Any], json.loads(data))
@@ -804,7 +812,8 @@ def ReadData(data: str, path_to_file: str) -> TDB:
         assert matches, 'frmt<lookup>.name != given_name'
         
         fn = _TDB_file_versions[fmrt][-1]
-        return fn(dP, path_to_file)  # type: ignore
+        _BT = run_tests
+        output = fn(dP, path_to_file)  # type: ignore
     
     except Exception as E:
         
@@ -814,16 +823,23 @@ def ReadData(data: str, path_to_file: str) -> TDB:
             
         if 'not_json' in flags:  # type: ignore
             sys.stderr.write(f'[LL_WARN] qa_files.qa_theme.read_data: found theme file that does not satisfy the requirement of "JSON". Likely "{name}" file ({code}). Calling {func}\n')
-
-            try:
-                return func(data, path_to_file)  # type: ignore
             
+            try:
+                _BT = run_tests
+                output = func(data, path_to_file)  # type: ignore
+                abort_exit = True
+                
             except Exception as E1:
                 sys.stderr.write(f'qa_files.qa_theme.read_data <d2>: {E1.__class__.__name__}: {str(E1)}\n')
                 raise AttributeError('qa_files.qa_theme.read_data: Error <D2>')
         
-        sys.stderr.write(f'qa_files.qa_theme.read_data: {E.__class__.__name__}: {str(E)}\n')
-        raise AttributeError ("Provided data cannot be decoded as JSON data OR had invalid data.")
-        
+        if not abort_exit:
+            sys.stderr.write(f'qa_files.qa_theme.read_data: {E.__class__.__name__}: {str(E)}\n')
+            raise AttributeError ("Provided data cannot be decoded as JSON data OR had invalid data.")
+    
+    finally:
+        _BT = True
+        return output    
+    
         
 LATEST_GENERATE_FUNCTION = Generate._latest_ver

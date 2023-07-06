@@ -1,7 +1,7 @@
 import urllib3, json, os, hashlib, traceback, sys
 from .qa_info import ConfigurationFile, App, Files
 from .qa_std import HTTP_HEADERS_NO_CACHE, ANSI
-from .qa_theme_loader import Test as TestTheme
+from .qa_theme_loader import Test as TestTheme, Load as LoadTheme
 from .qa_updater_call import RunUpdater
 from .qa_info import file_hash
 from .qa_svh import compile_svh
@@ -86,20 +86,12 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
             hash_raw = file.read()
             file.close()
 
-        success, res = tr(json.loads, raw)
-
-        consoleEntry(f'Diagnostics::default_theme : !sc : HS DUMP')
-
-        if not success:
-            consoleEntry('\t : F 0x01', hdr=False)
-            return False, (str(res[0]), ), (None, ), cast(Any, Fix.Reset.reset_defaults)
-
         success, res2 = tr(json.loads, hash_raw)
         if not success:
             consoleEntry('\t : F 0x02', hdr=False)
             return False, (str(res2[0]),), (None, ), cast(Any, Fix.Reset.reset_defaults)
 
-        success, failures, warnings = cast(Tuple[bool, List[str], List[str]],  TestTheme.check_file(res, True))
+        success, failures, warnings = cast(Tuple[bool, List[str], List[str]], TestTheme.check_file(raw, Files.default_theme_file, True))
 
         if len(failures):
             consoleEntry('\n\t * [FAILURE] '.join(('', *failures)), hdr=False)
@@ -110,7 +102,9 @@ class Diagnostics:  # ALL: -> (bool, messages, codes/warnings, fix_func)
         if not success:
             return False, (*failures, ), (*warnings, ), cast(Any, Fix.Reset.reset_defaults)
 
-        f_name = res['file_info']['name']
+        res = LoadTheme._load_db(Files.default_theme_file, raw)
+        
+        f_name = res.Theme_FileCode
         f_hash = hashlib.sha3_512(raw.encode()).hexdigest()
         success &= res2[f_name] == f_hash
 
