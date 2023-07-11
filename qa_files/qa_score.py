@@ -305,7 +305,7 @@ def ReadData(data: str) -> SCR:
         fn = _scr_file_versions[fmrt][-1]
         return fn(dP)  # type: ignore
     
-    except Exception as E:
+    except json.JSONDecodeError as E:
         sys.stderr.write(f'qa_files.qa_score.read_data: {E.__class__.__name__}: {str(E)}\n')
         raise AttributeError ("Provided data cannot be decoded as JSON data OR had invalid data.")
         

@@ -101,6 +101,7 @@
     "pyproject.toml": "pyproject.toml",
     "qa_auto_tests/__init__.py": "qa_auto_tests/__init__.py",
     "qa_auto_tests/test_all.py": "qa_auto_tests/test_all.py",
+    "qa_auto_tests/test_consts.py": "qa_auto_tests/test_consts.py",
     "TEST_ALL.bat": "TEST_ALL.bat",
     ".github/ISSUE_TEMPLATE/bug_report.md": ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/feature_request.md": ".github/ISSUE_TEMPLATE/feature_request.md",

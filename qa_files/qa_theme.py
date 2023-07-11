@@ -9,6 +9,7 @@ from enum import Enum
 
 _BT = True
 _DEBUG = False
+WARN_BACK_COMP_MODE = False
 
 # constants (DO NOT CHANGE)
 C_META                          = 'meta' 
@@ -246,11 +247,9 @@ class Generate:
 class Read:
     @staticmethod
     def QAS2_theme_file(data: str, path_to_file: str) -> TDB:
-        global _TDB_file_versions, _BT, _DEBUG
+        global _TDB_file_versions, _BT, _DEBUG, WARN_BACK_COMP_MODE
         
         assert isinstance(data, str) & isinstance(path_to_file, str), '0x00'
-        
-        print(data)
         
         lines = {}
         
@@ -308,7 +307,8 @@ class Read:
                 
             lP[K] = Vp
         
-        messagebox.showwarning('QA Files: QA Theme', 'The file you selected was created for version 2 of the application. Although some of the data was recovered, \n\n(a) The theming system may refuse to use this file if it does not adhere to this version\'s theming requirements; and, \n\n(b) a lot of information is missing from this file; it is highly recommended to use the THEMING UTILITY to provide the missing information.')
+        if WARN_BACK_COMP_MODE:
+            messagebox.showwarning('QA Files: QA Theme', 'The file you selected was created for version 2 of the application. Although some of the data was recovered, \n\n(a) The theming system may refuse to use this file if it does not adhere to this version\'s theming requirements; and, \n\n(b) a lot of information is missing from this file; it is highly recommended to use the THEMING UTILITY to provide the missing information.')
         
         theme = Theme(
             NULL_STR, NULL_STR, f'QAS 2 Theme {random.randint(100_000_000, 999_999_999)}', '<COMP+QA2.THEME>:LOADED', path_to_file,
@@ -335,9 +335,9 @@ class Read:
             pss &= pss1
             
             if not pss1:
-                fail[hex(int('pss1', 16)) + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
+                fail[str_to_hex('pss1') + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
             
-            if not pss:
+            if (not pss) and WARN_BACK_COMP_MODE:
                 messagebox.showerror('QA Theming Service', 'Although the file provided is a valid theme file, its content is not condusive to the Quizzing Application version 3 theme requirements. \n\nWARN:\n%s\n\nERRORS:\n%s' % (
                     '\n* '.join('<Check %s> %s' % (code, string) for code, string in warn.items()),
                     '\n* '.join('<Check %s> %s' % (code, string) for code, string in fail.items())
@@ -355,7 +355,7 @@ class Read:
         
     @staticmethod 
     def ALPHA_ONE(data: Dict[str, Any], path_to_file: str) -> TDB:        
-        global _TDB_file_versions, _BT, _DEBUG
+        global _TDB_file_versions, _BT, _DEBUG, WARN_BACK_COMP_MODE
         # format = TDB-R1 
         
         assert isinstance(data, dict) & isinstance(path_to_file, str), '0x00'
@@ -418,9 +418,9 @@ class Read:
             
             pss0 &= pss1
             if not pss1:
-                failures[hex(int('pss1', 16)) + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
+                failures[str_to_hex('pss1') + 'A0FF'] = 'APPLICATION_THEME_REQUIREMENT_FORMAT_STANDARD_NOT_MET'
             
-            if not pss0:
+            if (not pss0) and WARN_BACK_COMP_MODE:
                 messagebox.showerror('QA Theming Service', 'Although the file provided is a valid theme file, its content is not condusive to the Quizzing Application version 3 theme requirements. \n\nWARN:\n%s\n\nERRORS:\n%s' % (
                     '\n* '.join('<Check %s> %s' % (code, string) for code, string in warnings.items()),
                     '\n* '.join('<Check %s> %s' % (code, string) for code, string in failures.items())
@@ -774,6 +774,10 @@ def _read_meta(meta: str | Dict[str, str]) -> Tuple[int, bool]:
     return given_format, (expected_ver == given_ver)  # type: ignore
 
 
+def str_to_hex(string: str) -> str:    
+    return hex(int(f'{sum(ord(char) for char in string)}', 16))
+
+
 def ReadData(data: str, path_to_file: str, run_tests: bool = True) -> TDB:
     """Automatically chooses the appropriate file version and decodes the provided DATA as per that format.
     
@@ -814,8 +818,8 @@ def ReadData(data: str, path_to_file: str, run_tests: bool = True) -> TDB:
         fn = _TDB_file_versions[fmrt][-1]
         _BT = run_tests
         output = fn(dP, path_to_file)  # type: ignore
-    
-    except Exception as E:
+        
+    except json.JSONDecodeError as E:
         
         for (name, flags, code, func) in _TDB_file_versions.values():
             if 'not_json' in flags:  # type: ignore

@@ -1,4 +1,4 @@
-import pytest, os, sys, json, hashlib, subprocess, copy
+import pytest, os, sys, json, subprocess, copy
 from qa_functions.qa_std import data_type_converter, brute_force_decoding, data_at_dict_path, float_map, \
     flatten_list, ANSI
 from qa_functions.qa_file_handler import _Crypt
@@ -8,6 +8,8 @@ from qa_functions.qa_info import file_hash
 from qa_functions.qa_svh import compile_svh_with_fn
 from typing import Tuple, cast
 from ctypes import windll
+from .test_consts import *
+from qa_files.qa_theme import ReadData, TDB, TDB_to_DICT, WARN_BACK_COMP_MODE
 
 
 ROOT_RUN = "<PYTHON ? RUN_COMMAND>"
@@ -504,3 +506,27 @@ def test_script_hash() -> None:
 
     assert len(failures) == 0, "\n".join(failures).strip()
 
+
+def test_qa_theme_format() -> None:
+    global WARN_BACK_COMP_MODE
+    
+    t1 = ReadData(QA2_THEME_SAMPLE, 'nullstr')
+    t2 = ReadData(QA3_THEME_ALPHA_ONE_SAMPLE, 'nullstr')
+    t3 = ReadData(QA3_THEME_ALPHA_TWO_SAMPLE, 'nullstr')
+    
+    WARN_BACK_COMP_MODE = False 
+    
+    assert isinstance(t1, TDB), '0x010001 req:TP.TDB (a)TFRMT.BCOMP.QA2.THM<str>'
+    assert isinstance(t2, TDB), '0x020001 req:TP.TDB (a)TFRMT.QA3.ALPHA1THM<str>'
+    assert isinstance(t3, TDB), '0x030001 req:TP.TDB (a)TFRMT.QA3.ALPHA2THM<str>'
+    
+    assert len(t1.Theme_AvailableThemes), '0x010002 PRE<a> req:MIN_N_THEME (a)1'
+    t1.Theme_AvailableThemes[0].theme_display_name = '.REP.'
+    
+    for prefix, tdb in (('0x01', t1), ('0x02', t2), ('0x03', t3)):
+        assert tdb.Theme_NThemes == 1, f'{prefix}00002 rq:TDB.N (a)1'
+        assert tdb.Theme_AvailableThemes[0].theme_file_path == 'nullstr', f'{prefix}0003 rq:T.FN (a)nullstr'
+        assert TDB_to_DICT(tdb, True) == QA_THEME_CHK[prefix], f'{prefix}00FF rq.MATCH (a)QA_THEME_CHK'
+        
+    assert QA_THEME_CHK['0x02'] == QA_THEME_CHK['0x03'], '0xFF01AA AND 0xFF02AA req:QTC[x1--x2] (a)x1,x2'
+    

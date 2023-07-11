@@ -83,8 +83,9 @@ class Theme:
                 break
 
         if f:
-            o = os.path.exists(self.theme_file_path.replace('APP_DATA_DIR', App.appdata_dir))
-
+            # o = os.path.exists(self.theme_file_path.replace('APP_DATA_DIR', App.appdata_dir))
+            o = True
+            
         for color in (
             self.background, self.foreground, self.accent,
             self.error, self.warning, self.okay,
