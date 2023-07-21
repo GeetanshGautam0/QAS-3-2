@@ -89,7 +89,8 @@
     "qa_files/qa_files_ltbl.py": "qa_files/qa_files_ltbl.py",
     "qa_files/qa_score.py": "qa_files/qa_score.py",
     "qa_files/qa_quiz.py": "qa_files/qa_quiz.py",
-    "qa_files/qa_theme.py": "qa_files/qa_theme.py"
+    "qa_files/qa_theme.py": "qa_files/qa_theme.py",
+    "qa_files/qa_file.py": "qa_files/qa_file.py"
   },
   "DEV_ESSENTIALS_PKG": {
     ".gitignore": ".gitignore",
