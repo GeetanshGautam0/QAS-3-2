@@ -1,7 +1,9 @@
 import json, sys, hashlib, datetime, re, random
 from qa_functions.qa_std import data_at_dict_path, check_hex_contrast, clamp
+from qa_functions.qa_file_handler import _Crypt, ConverterFunctionArgs as CFA
 from typing import Tuple, List, Dict, Any, Union, cast
 from .qa_files_ltbl import qa_file_enck
+from .qa_file_std import load_file_sections, FileType
 from dataclasses import dataclass
 from enum import Enum
 from qa_ui.qa_adv_forms.qa_form_q_edit import Data0, Data1, DataEntry, DataType, mc_label_gen
@@ -9,6 +11,12 @@ from qa_ui.qa_adv_forms.qa_form_q_edit import Data0, Data1, DataEntry, DataType,
 
 NULL_STR = 'qafile:nullstr'
 NULL_INT = 0
+
+
+C_META = 'meta'
+C_CONTENT = 'body'
+C_VERIFICATION = 'verification'
+FF_STATIC_KEY = 'QAP.SKS.FileFormat'
 
 
 class ReadMode(Enum):
@@ -59,6 +67,7 @@ class QuestionAnswerDB:
     File_CreateTime:            str
     File_ReadMode:              int
     
+    Data_Name:                  str    
     Data_Configuration:         Configuration
     Data_Questions:             List[Question]
     
@@ -126,6 +135,55 @@ class ALPHA_ONE:
     L2_QBANK_D0 = 'd'
     
     SPEC_EXPECTED_N_D0_ENTRIES = 3
+
+
+class ALPHA_TWO:
+    M_FileFormat =              'CMFF'
+    M_FileVersion =             'CMFV'
+    M_ReadMode =                'CMRM'
+    M_FileGenTime =             'CMFGT'
+    M_DBName =                  'CMDBN'
+    
+    M_AppBuild =                'CMAB'
+    M_AppVersion =              'CMAVS'
+    M_AppIVersion =             'CMAVI'
+    M_AppDevMode =              'CMADM'
+    M_AppBuildInfo =            'CMABI'
+    
+    
+    ProtectionConfig =          'prtc'
+    
+    P_Quiz =                    'CPQZ'
+    P_Database =                'CPDB'
+    
+    C_Configuration =           'CCCF'
+    C_QuestionBank =            'CCQB'
+    
+    V_P =                       'CVPC'
+    V_CCCF =                    'CVCF'
+    V_CCQB =                    'CVQB'
+    V_META =                    'CCMT'
+    
+    CCCF_ACC =                  'CACC'
+    CCCF_SSE =                  'CSSE'
+    CCCF_SSD =                  'CSSD'
+    CCCF_RQO =                  'CRQO'
+    CCCF_PDE =                  'CPDE'
+    CCCF_ATD =                  'CATD'
+    
+    CCQB_D0 =                   'd'
+    CCQB_D1 =                   '3'
+    CCQB_Q =                    '1'
+    CCQB_A =                    '0'
+    
+    VERI_N_IT = 4
+    
+    VERI_META = 1
+    VERI_CCCF = 2
+    VERI_PRTC = 3
+    VERI_CCQB = 4
+    
+    PROTECTION_HASH_FNC = hashlib.sha3_512
     
 
 class Read:
@@ -353,6 +411,7 @@ class Read:
         return QuestionAnswerDB(
             'qa2', NULL_STR, 2, NULL_STR, False,
             NULL_STR, NULL_INT, NULL_STR, ReadMode.BackComp.value, 
+            f'PORTED_DATABASE {random.randint(1e10, 1e11)}.{random.random()}',
             configuration_inst, list(questions.values()), False, VerificationStatus.UNAVAILABLE.value,
             [0], [False, ''], [False, ''] 
         )
@@ -491,21 +550,18 @@ class Read:
                     except Exception as _: assert False,            f'{code_base}0594'
                     
                     assert ind in a,                                f'{code_base}05A4'
-                    
-                questions_cl[code_base] = Question(d0, q, a, d1)
                 
             elif d1 == 'tf':
-                assert isinstance(a, str),                          f'{code_base}0524'
-                a = a.strip()
-                
-                a = bool(int(a))
-                questions_cl[code_base] = Question(d0, q, a, d1)
+                assert a in ('0', '1'),                             f'{code_base}0524'
                 
             elif d1 == 'nm':
                 assert isinstance(a, str),                          f'{code_base}0524'
                 a = a.strip()
-                
-                questions_cl[code_base] = Question(d0, q, a, d1)
+            
+            else:
+                assert False,                                       f'{code_base}B511'
+            
+            questions_cl[code_base] = Question(d0, q, a, d1)
                         
         conf = Configuration(
             config[ALPHA_ONE.L2_CONFIG_ACC[0]],
@@ -523,14 +579,194 @@ class Read:
             NULL_STR, False, _qa_file_versions[QA_FRMT.ALPHA_ONE.value],
             QA_FRMT.ALPHA_ONE.value, NULL_STR,
             ReadMode.NewGen.value,
+            meta[ALPHA_ONE.L2_META_NAME],
             conf, list(questions_cl.values()),
             False, VerificationStatus.UNAVAILABLE.value,
             [0], qpsw, dpsw
         )
+        
+    @staticmethod
+    def alpha_two(data: Dict[str, Any]) -> QuestionAnswerDB:
+        pass
+
+
+def _get_dict_hash(data: Dict[str, Any], fnc: Any) -> str:
+    jd = json.dumps(data)
+    return fnc(jd.encode()).hexdigest()
+
+
+class Generate:
+    @staticmethod
+    def ALPHA_TWO(
+        App_Version: str,
+        App_Build: str,
+        App_IVersion: int,
+        App_BuildInfo: str,
+        App_InDevMode: bool,
+        Database_Name: str,
+        configuration: Configuration,
+        Questions: List[Question],
+        DataProtection_QUIZ: List[bool | str],  # Enabled?, hash for password
+        DataProtection_ATDB: List[bool | str]
+    ) -> Tuple[Dict[str, Any], QuestionAnswerDB, str]:
+        
+        global _qa_file_versions, C_META, C_CONTENT, C_VERIFICATION, FF_STATIC_KEY
+
+        assert isinstance(App_Version, str)
+        assert isinstance(App_Build, str)
+        assert isinstance(App_IVersion, int)
+        assert isinstance(App_BuildInfo, str)
+        assert isinstance(App_InDevMode, bool)
+        assert isinstance(Database_Name, str)
+        assert isinstance(configuration, Configuration)
+        assert isinstance(Questions, list)
+        assert isinstance(DataProtection_ATDB, list)
+        assert isinstance(DataProtection_QUIZ, list)
+        assert (len(DataProtection_QUIZ) * len(DataProtection_ATDB)) > 0
+        for i in range(len(Questions)): assert isinstance(Questions[i], Question)
+        assert isinstance(DataProtection_ATDB[0], bool) and isinstance(DataProtection_ATDB[1], str)
+        assert isinstance(DataProtection_QUIZ[0], bool) and isinstance(DataProtection_QUIZ[1], str)
+        Database_Name = Database_Name.strip()
+        assert len(Database_Name)
+        
+        dc = {
+            FF_STATIC_KEY:
+                QA_FRMT.ALPHA_TWO.value,
                 
+            C_META: 
+                {
+                    
+                    ALPHA_TWO.M_AppVersion: App_Version,
+                    ALPHA_TWO.M_AppIVersion: App_IVersion,
+                    ALPHA_TWO.M_AppBuild: App_Build,
+                    ALPHA_TWO.M_AppBuildInfo: App_BuildInfo,
+                    ALPHA_TWO.M_AppDevMode: App_InDevMode,
+                    
+                    ALPHA_TWO.M_FileFormat: QA_FRMT.ALPHA_TWO.value,
+                    ALPHA_TWO.M_FileVersion: _qa_file_versions[QA_FRMT.ALPHA_TWO.value][0],
+                    ALPHA_TWO.M_FileGenTime: datetime.datetime.now().strftime('%a, %B %d, %Y - %H:%M:%S'),
+                    ALPHA_TWO.M_ReadMode: ReadMode.NewGen.value,
+                    ALPHA_TWO.M_DBName: Database_Name,
+                    
+                    'CMVID': hashlib.md5(
+                        b'6cb6a5d535719aaf4e9dcb7035ff5590' +
+                        _qa_file_versions[QA_FRMT.ALPHA_TWO.value][0].encode() +
+                        Database_Name.encode()
+                    ).hexdigest(), 
+                    
+                    # cr. geetanshgautam
+                    
+                },
+            
+            ALPHA_TWO.ProtectionConfig:
+                {
+                  
+                    ALPHA_TWO.P_Database: DataProtection_ATDB,
+                    ALPHA_TWO.P_Quiz: DataProtection_QUIZ
+                    
+                },
+            
+            C_CONTENT:
+                {
+                    
+                    ALPHA_TWO.C_Configuration:
+                        {
+                            ALPHA_TWO.CCCF_ACC: configuration.AllowCustomQuizConfiguration,
+                            ALPHA_TWO.CCCF_SSE: configuration.DS_SubsetMode,
+                            ALPHA_TWO.CCCF_SSD: configuration.DS_SubsetDiv,
+                            ALPHA_TWO.CCCF_RQO: configuration.DS_RandomizeQuestionOrder,
+                            ALPHA_TWO.CCCF_PDE: configuration.RM_Deduct,
+                            ALPHA_TWO.CCCF_ATD: configuration.RM_DeductionAmount
+                        },
+                        
+                    ALPHA_TWO.C_QuestionBank:
+                        {
+                            ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]):
+                                {
+                                    ALPHA_TWO.CCQB_D1: q.D1,
+                                    ALPHA_TWO.CCQB_Q: q.question,
+                                    ALPHA_TWO.CCQB_A: q.answer,
+                                    ALPHA_TWO.CCQB_D0: q.D0
+                                }
+                            for i, q in enumerate(Questions)
+                        }
+                    
+                },
+                
+            C_VERIFICATION:
+                {
+                    ALPHA_TWO.V_P: '',
+                    ALPHA_TWO.V_CCCF: '',
+                    ALPHA_TWO.V_CCQB: '',
+                    ALPHA_TWO.V_META: ''
+                }
+        }
+
+        dc[C_VERIFICATION][ALPHA_TWO.V_P] = _get_dict_hash(dc[ALPHA_TWO.ProtectionConfig], ALPHA_TWO.PROTECTION_HASH_FNC)
+        dc[C_VERIFICATION][ALPHA_TWO.V_CCCF] = _get_dict_hash(dc[C_CONTENT][ALPHA_TWO.C_Configuration], ALPHA_TWO.PROTECTION_HASH_FNC)
+        dc[C_VERIFICATION][ALPHA_TWO.V_CCQB] = _get_dict_hash(dc[C_CONTENT][ALPHA_TWO.C_QuestionBank], ALPHA_TWO.PROTECTION_HASH_FNC)
+        dc[C_VERIFICATION][ALPHA_TWO.V_META] = _get_dict_hash(dc[C_META], ALPHA_TWO.PROTECTION_HASH_FNC)
+        
+        verification_data = [ALPHA_TWO.VERI_N_IT, *['' for _ in range(ALPHA_TWO.VERI_N_IT)]]
+        verification_data[ALPHA_TWO.VERI_PRTC] = dc[C_VERIFICATION][ALPHA_TWO.V_P]
+        verification_data[ALPHA_TWO.VERI_CCCF] = dc[C_VERIFICATION][ALPHA_TWO.V_CCCF]
+        verification_data[ALPHA_TWO.VERI_CCQB] = dc[C_VERIFICATION][ALPHA_TWO.V_CCQB]
+        verification_data[ALPHA_TWO.VERI_META] = dc[C_VERIFICATION][ALPHA_TWO.V_META]
+        
+        qadb = QuestionAnswerDB(
+            App_Version, App_Build, App_IVersion, App_BuildInfo, App_InDevMode,
+            _qa_file_versions[QA_FRMT.ALPHA_TWO.value][0], QA_FRMT.ALPHA_TWO.value,
+            dc[C_META][ALPHA_TWO.M_FileGenTime], dc[C_META][ALPHA_TWO.M_ReadMode],
+            Database_Name, configuration, Questions,
+            True, VerificationStatus.PASSED, verification_data,
+            DataProtection_QUIZ, DataProtection_ATDB
+        )
+        
+        return dc, qadb, json.dumps(dc, indent=4)
+        
+    latest = ALPHA_TWO
+    
         
 def ProduceAlphaOneDict(qadb: QuestionAnswerDB) -> Dict[str, Any]:
-    pass
+    return {
+        ALPHA_ONE.L1_INFO_KEY:
+            {
+                ALPHA_ONE.L2_META_NAME: qadb.Data_Name,
+                ALPHA_ONE.L2_META_QPSW: qadb.ProtectionMode_QUIZ,
+                ALPHA_ONE.L2_META_DPSW: qadb.ProtectionMode_DB  
+            },
+        ALPHA_ONE.L1_CONFIG_KEY:
+            {
+                ALPHA_ONE.L2_CONFIG_ACC[0]: qadb.Data_Configuration.AllowCustomQuizConfiguration,
+                ALPHA_ONE.L2_CONFIG_POA[0]: 'p' if qadb.Data_Configuration.DS_SubsetMode else 'a',
+                ALPHA_ONE.L2_CONFIG_SSD[0]: qadb.Data_Configuration.DS_SubsetDiv,
+                ALPHA_ONE.L2_CONFIG_RQO[0]: qadb.Data_Configuration.DS_RandomizeQuestionOrder,
+                ALPHA_ONE.L2_CONFIG_DPI[0]: qadb.Data_Configuration.RM_Deduct,
+                ALPHA_ONE.L2_CONFIG_A2D[0]: qadb.Data_Configuration.RM_DeductionAmount
+            },
+        ALPHA_ONE.L1_QBANK_KEY:
+            {
+                ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]): {
+                    ALPHA_ONE.L2_QBANK_D1: q.D1,
+                    ALPHA_ONE.L2_QBANK_Q: q.question,
+                    ALPHA_ONE.L2_QBANK_A: q.answer,
+                    ALPHA_ONE.L2_QBANK_D0: q.D0
+                }
+                for i, q in enumerate(qadb.Data_Questions)
+            },
+        'Extras.LFormat': Generate.latest(
+            qadb.App_Version,
+            qadb.App_Build,
+            qadb.App_IVersion,
+            qadb.App_BuildInfo,
+            qadb.App_InDevMode,
+            qadb.Data_Name,
+            qadb.Data_Configuration,
+            qadb.Data_Questions,
+            qadb.ProtectionMode_QUIZ,
+            qadb.ProtectionMode_DB
+        )[0]
+    }
 
     
 def GetReadMode(raw_data: bytes) -> Tuple[ReadMode, bytes]:
@@ -549,13 +785,94 @@ def GetReadMode(raw_data: bytes) -> Tuple[ReadMode, bytes]:
         raw_data[0:2] == 'gA' else (ReadMode.NewGen, qa_file_enck)
 
 
-
 _qa_file_versions = {
     QA_FRMT.BComp.value:
-        ('BCOMP_MODE', Read.mode_bck_comp),
+        ('BCOMP_MODE', Read.mode_bck_comp, QA_FRMT.BComp),
     QA_FRMT.ALPHA_ONE.value:
-        ('ALPHA_ONE'),
+        ('ALPHA_ONE', Read.alpha_one, QA_FRMT.ALPHA_ONE),
     QA_FRMT.ALPHA_TWO.value:
-        ('ALPHA_TWO'),
+        ('ALPHA_TWO', Read.alpha_two, QA_FRMT.ALPHA_TWO),
 }
 
+
+def ReadMeta(meta: Dict[str, Any]) -> QA_FRMT:
+    global FF_STATIC_KEY
+    
+    assert isinstance(meta, dict)
+    assert FF_STATIC_KEY in meta
+    assert isinstance(meta[FF_STATIC_KEY], int)
+    assert meta[FF_STATIC_KEY] in _qa_file_versions and \
+        (meta[FF_STATIC_KEY] not in (QA_FRMT.BComp.value, QA_FRMT.ALPHA_ONE.value))
+        
+    return _qa_file_versions[meta[FF_STATIC_KEY]][2]
+
+
+def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:
+    """
+    Takes in raw data from a qaFile file, reads it, and returns its
+    data as a QADB and an ALPHA_ONE-compliant dictionary containing
+    said data.  
+    
+    ALPHA_ONE-compliance means that the dictionary keys and structure
+    from ALPHA_ONE files (for compatability with the quizzing app suite)
+    with extra data. 
+    
+    At the time of the creation of this docstring, this extra data includes:
+        (a) file meta data
+        (b) app meta data
+        (c) verification data
+
+    Args:
+        raw_data (bytes): raw data read from the file. use mode 'rb' 
+
+    Returns:
+        Tuple[QuestionAnswerDB, Dict[str, Any]]: QADB, A1-compliant dict
+    """
+    
+    global _qa_file_versions, C_META
+    rmode, enck = GetReadMode(raw_data)
+    
+    if (rmode == ReadMode.BackComp):
+        sys.stdout.write('[WARN] DB invokes ReadMode.BackComp. Attempting to decrypt using qa2.k\n')
+        dec_data = _Crypt.decrypt(raw_data, enck, CFA())
+        assert isinstance(dec_data, (str, bytes))
+        dec_data = dec_data.strip()
+        
+        if isinstance(dec_data, bytes):
+            str_data = dec_data.decode()
+        
+        else:
+            str_data = dec_data
+        
+        qadb = Read.mode_bck_comp(str_data)
+        
+    else:
+        # Standard:
+        #   (1) Decrypt the data
+        #   (2) Pass it on to load_file_sections
+        #   (3) Decrypt body section again (same key)
+        #   (4) Load as JSON
+        #   (5) Pass it on (check meta information, or the lack thereof for ALPHA_ONE)
+        
+        _mn = _Crypt.decrypt(raw_data, enck, CFA())
+        _hash, _dd1 = load_file_sections(FileType.QA_FILE, _mn)
+        _dd2 = _Crypt.decrypt(_dd1, enck, CFA())
+        
+        assert isinstance(_dd2, (str, bytes))
+        if isinstance(_dd2, bytes):
+            _sd = _dd2.decode()
+            
+        else:
+            _sd = _dd2
+            
+        jd: Dict[str, Any] = json.loads(_sd)
+        
+        if C_META in jd:
+            format = ReadMeta(jd[C_META])
+            qadb = _qa_file_versions[format.value][1](jd)
+        
+        else:
+            # Assume ALPHA_ONE 
+            qadb = Read.alpha_one(jd)
+            
+        
