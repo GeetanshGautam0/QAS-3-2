@@ -595,6 +595,8 @@ class Read:
         assert C_VERIFICATION in data,                  '0xA200000012'
         assert FF_STATIC_KEY in data,                   '0xA200000013'
         assert ALPHA_TWO.ProtectionConfig in data,      '0xA200000014'
+        assert 'gg.attr' in data,                       '0xA200000015'
+        assert data['gg.attr'] == '%.qafile',            '0xA200000016'
         
         assert data[FF_STATIC_KEY] == \
             QA_FRMT.ALPHA_TWO.value,                    '0xA200000020'
@@ -647,7 +649,7 @@ class Read:
         CMVID_E = hashlib.md5(
             CMCH +
             _qa_file_versions[QA_FRMT.ALPHA_TWO.value][0].encode() +
-            CMDBN
+            CMDBN.encode()
         ).hexdigest()
         
         assert CMFV == \
@@ -824,6 +826,9 @@ class Generate:
         assert len(Database_Name)
         
         dc = {
+            'gg.attr': 
+                '%.qafile',
+            
             FF_STATIC_KEY:
                 QA_FRMT.ALPHA_TWO.value,
                 
