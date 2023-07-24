@@ -587,8 +587,202 @@ class Read:
         
     @staticmethod
     def alpha_two(data: Dict[str, Any]) -> QuestionAnswerDB:
-        pass
+        global C_META, C_CONTENT, C_VERIFICATION, _qa_file_versions, FF_STATIC_KEY
+        
+        assert isinstance(data, dict),                  '0xA200000000'
+        assert C_META in data,                          '0xA200000010'
+        assert C_CONTENT in data,                       '0xA200000011'
+        assert C_VERIFICATION in data,                  '0xA200000012'
+        assert FF_STATIC_KEY in data,                   '0xA200000013'
+        assert ALPHA_TWO.ProtectionConfig in data,      '0xA200000014'
+        
+        assert data[FF_STATIC_KEY] == \
+            QA_FRMT.ALPHA_TWO.value,                    '0xA200000020'
+        assert ALPHA_TWO.P_Database in \
+            data[ALPHA_TWO.ProtectionConfig],           '0xA200000021'
+        assert ALPHA_TWO.P_Quiz in \
+            data[ALPHA_TWO.ProtectionConfig],           '0xA200000022'
+        
+        PRTC = data[ALPHA_TWO.ProtectionConfig]
+        PRTC_DB = PRTC[ALPHA_TWO.P_Database]
+        PRTC_QZ = PRTC[ALPHA_TWO.P_Quiz]
+        
+        assert isinstance(PRTC_DB, list),               '0xA200000030'
+        assert isinstance(PRTC_QZ, list),               '0xA200000031'
+        assert len(PRTC_DB) == 2,                       '0xA200000040'
+        assert len(PRTC_QZ) == 2,                       '0xA200000041'
+        assert isinstance(PRTC_DB[0], bool),            '0xA200000050'
+        assert isinstance(PRTC_QZ[0], bool),            '0xA200000051'
+        assert isinstance(PRTC_DB[1], str),             '0xA200000060'
+        assert isinstance(PRTC_QZ[1], str),             '0xA200000061'
+        
+        META = data[C_META]
+        CMAVS, CMAVS_T = (META[ALPHA_TWO.M_AppVersion], str)
+        CMAVI, CMAVI_T = (META[ALPHA_TWO.M_AppIVersion], int)
+        CMABI, CMABI_T = (META[ALPHA_TWO.M_AppBuildInfo], str)
+        CMADM, CMADM_T = (META[ALPHA_TWO.M_AppDevMode], bool)
+        CMFGT, CMFGT_T = (META[ALPHA_TWO.M_FileGenTime], str)
+        CMDBN, CMDBN_T = (META[ALPHA_TWO.M_DBName], str)
+        CMVID, CMVID_T = (META['CMVID'], str)
+        CMAB, CMAB_T  = (META[ALPHA_TWO.M_AppBuild], str)
+        CMFF, CMFF_T  = (META[ALPHA_TWO.M_FileFormat], int)
+        CMFV, CMFV_T  = (META[ALPHA_TWO.M_FileVersion], str)
+        CMRM, CMRM_T  = (META[ALPHA_TWO.M_ReadMode], int)
+        CMCH  = b'6cb6a5d535719aaf4e9dcb7035ff5590'
 
+        assert isinstance(CMAVS, CMAVS_T),              '0xA200000100'
+        assert isinstance(CMAVI, CMAVI_T),              '0xA200000101'
+        assert isinstance(CMABI, CMABI_T),              '0xA200000102'
+        assert isinstance(CMADM, CMADM_T),              '0xA200000103'
+        assert isinstance(CMFGT, CMFGT_T),              '0xA200000104'
+        assert isinstance(CMDBN, CMDBN_T),              '0xA200000105'
+        assert isinstance(CMVID, CMVID_T),              '0xA200000106'
+        assert isinstance(CMAB, CMAB_T),                '0xA200000107'
+        assert isinstance(CMFF, CMFF_T),                '0xA200000108'
+        assert isinstance(CMFV, CMFV_T),                '0xA200000109'
+        assert isinstance(CMRM, CMRM_T),                '0xA20000010A'
+        
+        assert CMFF == data[FF_STATIC_KEY],             '0xA200000110'
+        
+        CMVID_E = hashlib.md5(
+            CMCH +
+            _qa_file_versions[QA_FRMT.ALPHA_TWO.value][0].encode() +
+            CMDBN
+        ).hexdigest()
+        
+        assert CMFV == \
+            _qa_file_versions[QA_FRMT.ALPHA_TWO.value]\
+                [0],                                    '0xA200000112'
+        assert CMAVI == 3,                              '0xA200000113'
+        
+        VERIFICATION = data[C_VERIFICATION]
+        fnc = ALPHA_TWO.PROTECTION_HASH_FNC
+        
+        CVPC, CVPC_E = VERIFICATION[ALPHA_TWO.V_P], _get_dict_hash(data[ALPHA_TWO.ProtectionConfig], fnc)
+        CVCF, CVCF_E = VERIFICATION[ALPHA_TWO.V_CCCF], _get_dict_hash(data[C_CONTENT][ALPHA_TWO.C_Configuration], fnc)
+        CVQB, CVQB_E = VERIFICATION[ALPHA_TWO.V_CCQB], _get_dict_hash(data[C_CONTENT][ALPHA_TWO.C_QuestionBank], fnc)
+        CCMT, CCMT_E = VERIFICATION[ALPHA_TWO.V_META], _get_dict_hash(data[C_META], fnc)
+        
+        # assert CVPC == CVPC_E,                          '0xA200000120'
+        # assert CVCF == CVCF_E,                          '0xA200000121'
+        # assert CVQB == CVQB_E,                          '0xA200000122'
+        # assert CCMT == CCMT_E,                          '0xA200000123'
+        
+        verified = True
+        
+        if CVPC != CVPC_E: verified = False
+        if CVCF != CVCF_E: verified = False
+        if CVQB != CVQB_E: verified = False
+        if CCMT != CCMT_E: verified = False
+        
+        CCCF = data[C_CONTENT][ALPHA_TWO.C_Configuration]
+        CCQB = data[C_CONTENT][ALPHA_TWO.C_QuestionBank]
+        
+        assert len(CCCF) == 6,                          '0xA200000200'
+        
+        for i, (KEY, VALUE_TYPE) in enumerate((
+            (ALPHA_TWO.CCCF_ACC, bool),                 # Allow Custom Configuration
+            (ALPHA_TWO.CCCF_SSE, bool),                 # Subsampling enabled
+            (ALPHA_TWO.CCCF_SSD, int),                  # Subsampling divisor
+            (ALPHA_TWO.CCCF_RQO, bool),                 # Randomize question order
+            (ALPHA_TWO.CCCF_PDE, bool),                 # Penalty: Deductions enabled
+            (ALPHA_TWO.CCCF_ATD, int),                  #           Amount to deduct 
+        )):
+            cd = f'0xA2{clamp(0, 4 - len(hex(i + 1)), 9e9) * "0" + hex(i + 1)[2:]}'
+            
+            assert KEY in CCCF,                         f'{cd}0200'
+            assert isinstance(CCCF[KEY], VALUE_TYPE),   f'{cd}0201'
+            
+            
+        CCCF_ACC = CCCF[ALPHA_TWO.CCCF_ACC]
+        CCCF_SSE = CCCF[ALPHA_TWO.CCCF_SSE]
+        CCCF_SSD = CCCF[ALPHA_TWO.CCCF_SSD]
+        CCCF_RQO = CCCF[ALPHA_TWO.CCCF_RQO]
+        CCCF_PDE = CCCF[ALPHA_TWO.CCCF_PDE]
+        CCCF_ATD = CCCF[ALPHA_TWO.CCCF_ATD]
+        
+        conf = Configuration(CCCF_ACC, CCCF_SSE, CCCF_SSD, CCCF_RQO, CCCF_PDE, CCCF_ATD)
+        questions = []
+        
+        for i, (QC, Q) in enumerate(CCQB.items()):
+            EC = '0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]
+            assert isinstance(QC, str),                 f'0xA200000300 @ {EC}'
+            assert EC == QC,                            f'0xA200000301 @ {EC}'
+            assert isinstance(Q, dict),                 f'0xA200000302 @ {EC}'
+            assert ALPHA_TWO.CCQB_Q in Q,               f'0xA200000303 @ {EC}'
+            assert ALPHA_TWO.CCQB_A in Q,               f'0xA200000304 @ {EC}'
+            assert ALPHA_TWO.CCQB_D0 in Q,              f'0xA200000305 @ {EC}'
+            assert ALPHA_TWO.CCQB_D1 in Q,              f'0xA200000306 @ {EC}'
+            
+            D0 = Q[ALPHA_TWO.CCQB_D0]
+            D1 = Q[ALPHA_TWO.CCQB_D1]
+            A = Q[ALPHA_TWO.CCQB_A]
+            Q = Q[ALPHA_TWO.CCQB_Q]
+            
+            assert isinstance(D0, str),                 f'0xA200001300 @ {EC}'
+            assert D1 in ('mc0', 'mc1', 'nm', 'tf'),    f'0xA200001301 @ {EC}'
+            assert isinstance(Q, str),                  f'0xA200001303 @ {EC}'   
+            assert len(Q),                              f'0xA200001304 @ {EC}'
+            
+            if D1 in ('mc0', 'mc1'):
+                assert D1[-1] == D0[-1],                f'0xA200011302 @ {EC}'
+                assert isinstance(A, dict),             f'0xA200011304 @ {EC}'
+                assert 'C' in A and 'N' in A,           f'0xA200011314 @ {EC}'
+                assert isinstance(A['C'], str),         f'0xA200011324 @ {EC}'
+                assert isinstance(A['N'], int),         f'0xA200011334 @ {EC}'
+                assert A['N'] == len(A) - 2,            f'0xA200011344 @ {EC}'
+                
+                A['C'] = A['C'].strip()
+                assert len(A['C']),                     f'0xA200011354 @ {EC}'
+                assert min([v in A for v in A['C'].split('/')]), \
+                                                        f'0xA200011364 @ {EC}'
+                opts = {**A}
+                opts.pop('C')
+                opts.pop('N')
+                
+                assert min([isinstance(s, str) for s in opts]), \
+                                                        f'0xA200011374 @ {EC}'
+
+                opts = {k: s.strip() for k, s in opts.items()}
+                
+                assert min([len(s) > 0 for s in opts]), f'0xA200011384 @ {EC}'
+                assert len(opts) >= 2,                  f'0xA200011394 @ {EC}'
+                
+                A = {k: opts.get(k, A[k]) for k in A.keys()}
+                
+            elif D1 == 'tf':
+                assert isinstance(A, str),              f'0xA200021302 @ {EC}'
+                assert A in ('0', '1'),                 f'0xA200021303 @ {EC}'
+                assert D0[Data0.AutoMark.index] == '1', f'0xA200021304 @ {EC}'
+                assert D0[Data0.Fuzzy.index] == '0',    f'0xA200021314 @ {EC}'
+                assert D0[-1] == '0',                   f'0xA200021324 @ {EC}'
+                
+            elif D1 == 'nm':
+                assert isinstance(A, str),              f'0xA200031302 @ {EC}'
+                A = A.strip()
+                assert len(A),                          f'0xA200031303 @ {EC}'
+                assert D0[-1] == '0',                   f'0xA200021304 @ {EC}'
+                
+            else:
+                raise Exception(                        f'0xA200040000 @ {EC}')         
+            
+            questions.append(Question(D0, Q, A, D1))
+            sys.stdout.write(f'Found question {EC}\n')
+        
+        verification_data = [ALPHA_TWO.VERI_N_IT, *['' for _ in range(ALPHA_TWO.VERI_N_IT)]]
+        verification_data[ALPHA_TWO.VERI_PRTC] = CVPC
+        verification_data[ALPHA_TWO.VERI_CCCF] = CVCF
+        verification_data[ALPHA_TWO.VERI_CCQB] = CVQB
+        verification_data[ALPHA_TWO.VERI_META] = CCMT
+        
+        return QuestionAnswerDB(
+            CMAVS, CMAB, CMAVI, CMABI, CMADM, CMFV, CMFF,
+            CMFGT, CMRM, CMDBN, conf, questions, True,
+            VerificationStatus.PASSED.value if (CMVID == CMVID_E) and verified \
+                else VerificationStatus.FAILED.value, 
+            verification_data, PRTC_QZ, PRTC_DB
+        )
+            
 
 def _get_dict_hash(data: Dict[str, Any], fnc: Any) -> str:
     jd = json.dumps(data)
