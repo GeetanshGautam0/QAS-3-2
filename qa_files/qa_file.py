@@ -285,7 +285,7 @@ class Read:
             configuration[key] = {
                 'true': True,
                 'false': False
-            }.get(configuration[key], configuration[key])
+            }.get(configuration[key], configuration[key])  # type: ignore
             
             try:
                 configuration[key] = tp(configuration[key])
@@ -293,12 +293,12 @@ class Read:
                 assert not cd,                                     f'0xBC{f}000022C'
         
         configuration_inst = Configuration(
-            configuration['acqc'],
-            configuration['qpoa'][0].lower() == 'p',
-            configuration['qsdf'],
-            True,
-            configuration['dma'],
-            configuration['pdpir']
+            configuration['acqc'],  # type: ignore
+            configuration['qpoa'][0].lower() == 'p',  # type: ignore
+            configuration['qsdf'],  # type: ignore
+            True,  # type: ignore
+            configuration['dma'],  # type: ignore
+            configuration['pdpir']  # type: ignore
         )    
         
         questions: Dict[str, Question] = {}
@@ -306,7 +306,7 @@ class Read:
         for i, ENTRY in enumerate(QUESTION_SECTION.split(BACK_COMP.CONTENT_QAS_CODE_ENTRY_SEP)):    
             
             n_zeros = clamp(0, (6 - len(hex(i))), 9e9)
-            code_base = hex(i) + ('0' * n_zeros)
+            code_base = hex(i) + ('0' * n_zeros)  # type: ignore
             code_base = f'0xBC{code_base[2::]}'
             
             ENTRY = ENTRY.strip()
@@ -362,7 +362,7 @@ class Read:
                 assert a in options_map,                            f'0x00000501'
                 assert len(options_map) > 1,                        f'0x00000502'         
                 
-                s = ['0' for _ in range(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]
+                s = ['0' for _ in range(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]  # type: ignore
                 assert len(Data0.entries) == 3, 'INTERNAL_ERROR: update database management'
                 
                 s[Data0.AutoMark.index] = '1'
@@ -372,7 +372,7 @@ class Read:
                     "C": "/".join(correct_options).strip('/'),
                     "N": len(options_map),
                     **{
-                        str(opt['index']): opt['data'] for opt in options_map.values() 
+                        str(opt['index']): opt['data'] for opt in options_map.values()  # type: ignore
                     }
                 }, 'mc0')               
                 
@@ -383,7 +383,7 @@ class Read:
                     sys.stderr.write(f'<Auto-WeakHandling> {code_base}A31D\n')
                     continue
                 
-                s = ['0' for _ in range(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]
+                s = ['0' for _ in range(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]  # type: ignore
                 assert len(Data0.entries) == 3, 'INTERNAL_ERROR: update database management'
                 
                 s[Data0.AutoMark.index] = '1'
@@ -396,7 +396,7 @@ class Read:
                     sys.stderr.write(f'<Auto-WeakHandling> {code_base}A31E\n')
                     continue
                 
-                s = ['0' for _ in range(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]
+                s = ['0' for _ in range(sum(map(lambda x: cast(DataEntry, x).size, Data0.entries)))]  # type: ignore
                 assert len(Data0.entries) == 3, 'INTERNAL_ERROR: update database management'
                 
                 s[Data0.AutoMark.index] = '1'
@@ -411,7 +411,7 @@ class Read:
         return QuestionAnswerDB(
             'qa2', NULL_STR, 2, NULL_STR, False,
             NULL_STR, NULL_INT, NULL_STR, ReadMode.BackComp.value, 
-            f'PORTED_DATABASE {random.randint(1e10, 1e11)}.{random.random()}',
+            f'PORTED_DATABASE {random.randint(1e10, 1e11)}.{random.random()}',  # type: ignore
             configuration_inst, list(questions.values()), False, VerificationStatus.UNAVAILABLE.value,
             [0], [False, ''], [False, ''] 
         )
@@ -484,7 +484,7 @@ class Read:
         
         for i, question in enumerate(questions.values()):
             code_base = hex(i)
-            code_base = code_base + "0" * clamp(0, (6 - len(code_base)), 9e9)
+            code_base = code_base + "0" * clamp(0, (6 - len(code_base)), 9e9)  # type: ignore
             code_base = f'0xA1{code_base[2::]}'
             
             assert isinstance(question, dict),                      f'{code_base}F500' 
@@ -511,7 +511,7 @@ class Read:
             
             exp_len = sum(
                 map(
-                    lambda x: cast(DataEntry, x).size,
+                    lambda x: cast(DataEntry, x).size,  # type: ignore
                     Data0.entries
                 )
             ) + 1
@@ -576,7 +576,7 @@ class Read:
         
         return QuestionAnswerDB(
             'qa3', NULL_STR, 3,
-            NULL_STR, False, _qa_file_versions[QA_FRMT.ALPHA_ONE.value],
+            NULL_STR, False, _qa_file_versions[QA_FRMT.ALPHA_ONE.value],  # type: ignore
             QA_FRMT.ALPHA_ONE.value, NULL_STR,
             ReadMode.NewGen.value,
             meta[ALPHA_ONE.L2_META_NAME],
@@ -690,7 +690,7 @@ class Read:
             (ALPHA_TWO.CCCF_PDE, bool),                 # Penalty: Deductions enabled
             (ALPHA_TWO.CCCF_ATD, int),                  #           Amount to deduct 
         )):
-            cd = f'0xA2{clamp(0, 4 - len(hex(i + 1)), 9e9) * "0" + hex(i + 1)[2:]}'
+            cd = f'0xA2{clamp(0, 4 - len(hex(i + 1)), 9e9) * "0" + hex(i + 1)[2:]}'  # type: ignore
             
             assert KEY in CCCF,                         f'{cd}0200'
             assert isinstance(CCCF[KEY], VALUE_TYPE),   f'{cd}0201'
@@ -707,7 +707,7 @@ class Read:
         questions = []
         
         for i, (QC, Q) in enumerate(CCQB.items()):
-            EC = '0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]
+            EC = '0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]  # type: ignore
             assert isinstance(QC, str),                 f'0xA200000300 @ {EC}'
             assert EC == QC,                            f'0xA200000301 @ {EC}'
             assert isinstance(Q, dict),                 f'0xA200000302 @ {EC}'
@@ -782,13 +782,13 @@ class Read:
             CMFGT, CMRM, CMDBN, conf, questions, True,
             VerificationStatus.PASSED.value if (CMVID == CMVID_E) and verified \
                 else VerificationStatus.FAILED.value, 
-            verification_data, PRTC_QZ, PRTC_DB
+            verification_data, PRTC_QZ, PRTC_DB  # type: ignore
         )
             
 
 def _get_dict_hash(data: Dict[str, Any], fnc: Any) -> str:
     jd = json.dumps(data)
-    return fnc(jd.encode()).hexdigest()
+    return fnc(jd.encode()).hexdigest()  # type: ignore
 
 
 class Generate:
@@ -880,7 +880,7 @@ class Generate:
                         
                     ALPHA_TWO.C_QuestionBank:
                         {
-                            ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]):
+                            ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]):  # type: ignore
                                 {
                                     ALPHA_TWO.CCQB_D1: q.D1,
                                     ALPHA_TWO.CCQB_Q: q.question,
@@ -901,23 +901,23 @@ class Generate:
                 }
         }
 
-        dc[C_VERIFICATION][ALPHA_TWO.V_P] = _get_dict_hash(dc[ALPHA_TWO.ProtectionConfig], ALPHA_TWO.PROTECTION_HASH_FNC)
-        dc[C_VERIFICATION][ALPHA_TWO.V_CCCF] = _get_dict_hash(dc[C_CONTENT][ALPHA_TWO.C_Configuration], ALPHA_TWO.PROTECTION_HASH_FNC)
-        dc[C_VERIFICATION][ALPHA_TWO.V_CCQB] = _get_dict_hash(dc[C_CONTENT][ALPHA_TWO.C_QuestionBank], ALPHA_TWO.PROTECTION_HASH_FNC)
-        dc[C_VERIFICATION][ALPHA_TWO.V_META] = _get_dict_hash(dc[C_META], ALPHA_TWO.PROTECTION_HASH_FNC)
+        dc[C_VERIFICATION][ALPHA_TWO.V_P] = _get_dict_hash(dc[ALPHA_TWO.ProtectionConfig], ALPHA_TWO.PROTECTION_HASH_FNC)  # type: ignore
+        dc[C_VERIFICATION][ALPHA_TWO.V_CCCF] = _get_dict_hash(dc[C_CONTENT][ALPHA_TWO.C_Configuration], ALPHA_TWO.PROTECTION_HASH_FNC)  # type: ignore
+        dc[C_VERIFICATION][ALPHA_TWO.V_CCQB] = _get_dict_hash(dc[C_CONTENT][ALPHA_TWO.C_QuestionBank], ALPHA_TWO.PROTECTION_HASH_FNC)  # type: ignore
+        dc[C_VERIFICATION][ALPHA_TWO.V_META] = _get_dict_hash(dc[C_META], ALPHA_TWO.PROTECTION_HASH_FNC)  # type: ignore
         
         verification_data = [ALPHA_TWO.VERI_N_IT, *['' for _ in range(ALPHA_TWO.VERI_N_IT)]]
-        verification_data[ALPHA_TWO.VERI_PRTC] = dc[C_VERIFICATION][ALPHA_TWO.V_P]
-        verification_data[ALPHA_TWO.VERI_CCCF] = dc[C_VERIFICATION][ALPHA_TWO.V_CCCF]
-        verification_data[ALPHA_TWO.VERI_CCQB] = dc[C_VERIFICATION][ALPHA_TWO.V_CCQB]
-        verification_data[ALPHA_TWO.VERI_META] = dc[C_VERIFICATION][ALPHA_TWO.V_META]
+        verification_data[ALPHA_TWO.VERI_PRTC] = dc[C_VERIFICATION][ALPHA_TWO.V_P]  # type: ignore
+        verification_data[ALPHA_TWO.VERI_CCCF] = dc[C_VERIFICATION][ALPHA_TWO.V_CCCF]  # type: ignore
+        verification_data[ALPHA_TWO.VERI_CCQB] = dc[C_VERIFICATION][ALPHA_TWO.V_CCQB]  # type: ignore
+        verification_data[ALPHA_TWO.VERI_META] = dc[C_VERIFICATION][ALPHA_TWO.V_META]  # type: ignore
         
         qadb = QuestionAnswerDB(
             App_Version, App_Build, App_IVersion, App_BuildInfo, App_InDevMode,
             _qa_file_versions[QA_FRMT.ALPHA_TWO.value][0], QA_FRMT.ALPHA_TWO.value,
-            dc[C_META][ALPHA_TWO.M_FileGenTime], dc[C_META][ALPHA_TWO.M_ReadMode],
+            dc[C_META][ALPHA_TWO.M_FileGenTime], dc[C_META][ALPHA_TWO.M_ReadMode],  # type: ignore
             Database_Name, configuration, Questions,
-            True, VerificationStatus.PASSED, verification_data,
+            True, VerificationStatus.PASSED, verification_data,  # type: ignore
             DataProtection_QUIZ, DataProtection_ATDB
         )
         
@@ -945,7 +945,7 @@ def ProduceAlphaOneDict(qadb: QuestionAnswerDB) -> Dict[str, Any]:
             },
         ALPHA_ONE.L1_QBANK_KEY:
             {
-                ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]): {
+                ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]): {  # type: ignore
                     ALPHA_ONE.L2_QBANK_D1: q.D1,
                     ALPHA_ONE.L2_QBANK_Q: q.question,
                     ALPHA_ONE.L2_QBANK_A: q.answer,
@@ -1006,7 +1006,7 @@ def ReadMeta(meta: Dict[str, Any]) -> QA_FRMT:
     return _qa_file_versions[meta[FF_STATIC_KEY]][2]
 
 
-def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:
+def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:  # type: ignore
     """
     Takes in raw data from a qaFile file, reads it, and returns its
     data as a QADB and an ALPHA_ONE-compliant dictionary containing
@@ -1054,7 +1054,7 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:
         #   (5) Pass it on (check meta information, or the lack thereof for ALPHA_ONE)
         
         _mn = _Crypt.decrypt(raw_data, enck, CFA())
-        _hash, _dd1 = load_file_sections(FileType.QA_FILE, _mn)
+        _hash, _dd1 = load_file_sections(FileType.QA_FILE, _mn)  # type: ignore
         _dd2 = _Crypt.decrypt(_dd1, enck, CFA())
         
         assert isinstance(_dd2, (str, bytes))
@@ -1068,10 +1068,11 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:
         
         if C_META in jd:
             format = ReadMeta(jd[C_META])
-            qadb = _qa_file_versions[format.value][1](jd)
+            qadb = _qa_file_versions[format.value][1](jd)  # type: ignore
         
         else:
             # Assume ALPHA_ONE 
             qadb = Read.alpha_one(jd)
             
+    return qadb, ProduceAlphaOneDict(qadb)
         
