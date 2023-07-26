@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 from io import BytesIO
 from typing import *
 from dataclasses import dataclass
+from qa_files.qa_file import Data0, Data1, DataEntry, DataType
 
 
 script_name = "APP_AT::QEdit"
@@ -27,10 +28,6 @@ class Levels(Enum):
     (NORMAL, OKAY, WARNING, ERROR) = range(4)
 
 
-class DataType(Enum):
-    (boolean, integer, string) = range(3)
-
-
 class Codes:
     (FALSE, TRUE) = (str(a) for a in range(2))
 
@@ -43,31 +40,6 @@ class Codes:
     @staticmethod
     def substitute(value: Any) -> Any:
         return Codes.valMap[value] if value in Codes.valMap else value
-
-
-@dataclass
-class DataEntry:
-    name: str
-    index: int
-    size: int
-    type: DataType
-
-
-class Data0:
-    # Entries
-    AutoMark  = DataEntry('auto_mark', 0, 1, DataType.boolean)
-    Fuzzy     = DataEntry('fuzzy', 1, 1, DataType.boolean)
-    FuzzyThrs = DataEntry('fuzzy:threshold', 2, 2, DataType.integer)
-
-    entries = [AutoMark, Fuzzy, FuzzyThrs]
-
-
-class Data1:
-    QuestionType = DataEntry('qType', 0, 2, DataType.string)
-    exD1 = DataEntry('e::1', 1, 1, DataType.boolean)
-
-    entries = [QuestionType, exD1]
-    exEntries = [exD1]
 
 
 @dataclass

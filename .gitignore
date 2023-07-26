@@ -10,3 +10,4 @@ build/*
 exclude_*
 .vs
 QAS_VENV
+.vscode/*

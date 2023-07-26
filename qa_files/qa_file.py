@@ -6,7 +6,6 @@ from .qa_files_ltbl import qa_file_enck
 from .qa_file_std import load_file_sections, FileType
 from dataclasses import dataclass
 from enum import Enum
-from qa_ui.qa_adv_forms.qa_form_q_edit import Data0, Data1, DataEntry, DataType, mc_label_gen
 
 
 NULL_STR = 'qafile:nullstr'
@@ -17,6 +16,35 @@ C_META = 'meta'
 C_CONTENT = 'body'
 C_VERIFICATION = 'verification'
 FF_STATIC_KEY = 'QAP.SKS.FileFormat'
+
+
+class DataType(Enum):
+    (boolean, integer, string) = range(3)
+
+
+@dataclass
+class DataEntry:
+    name: str
+    index: int
+    size: int
+    type: DataType
+
+
+class Data0:
+    # Entries
+    AutoMark  = DataEntry('auto_mark', 0, 1, DataType.boolean)
+    Fuzzy     = DataEntry('fuzzy', 1, 1, DataType.boolean)
+    FuzzyThrs = DataEntry('fuzzy:threshold', 2, 2, DataType.integer)
+
+    entries = [AutoMark, Fuzzy, FuzzyThrs]
+
+
+class Data1:
+    QuestionType = DataEntry('qType', 0, 2, DataType.string)
+    exD1 = DataEntry('e::1', 1, 1, DataType.boolean)
+
+    entries = [QuestionType, exD1]
+    exEntries = [exD1]
 
 
 class ReadMode(Enum):
@@ -351,7 +379,6 @@ class Read:
                     options_map[handle] = {
                         'id': code_base,
                         'index': j,
-                        'label': mc_label_gen(j),
                         'correct': (a == handle),
                         'data': option.replace(f'[{handle}]', '', 1).strip()
                     }
@@ -1075,4 +1102,6 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:  # 
             qadb = Read.alpha_one(jd)
             
     return qadb, ProduceAlphaOneDict(qadb)
-        
+
+
+LATEST_GENERATE_FUNCTION = Generate.latest
