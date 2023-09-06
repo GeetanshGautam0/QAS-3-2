@@ -18,6 +18,8 @@ from . import qa_adv_forms as qa_forms
 from fpdf import FPDF  # type: ignore
 from datetime import datetime
 
+qa_info = qa_functions.qa_info
+
 script_name = "APP_AT"
 APP_TITLE = "Quizzing Application | Admin Tools"
 LOGGER_AVAIL = False
@@ -111,11 +113,21 @@ class CustomText(tk.Text):
 
 
 class Levels(Enum):
+    """
+    Logging Levels (ENUM) for ADMIN TOOLS UI.
+        USED BY Message CLASS
+    """
+
     (NORMAL, OKAY, WARNING, ERROR) = range(4)
 
 
 @dataclass
 class Message:
+    """
+    Data packets to be used for logging in the admin tools UI
+    use this dataclass for transferring data.
+    """
+
     LVL: Levels
     MSG: str
 
@@ -374,6 +386,14 @@ class _UI(Thread):
     # -------------------
 
     def configure_create_frame(self) -> None:
+        """
+        Configure Create Frame
+
+        Places UI elements into the "CREATE" frame.
+        Creates the appropriate UI update requests.
+
+        :return: None
+        """
         self.create_title.config(justify=tk.LEFT, anchor=tk.W)
         self.create_title.pack(fill=tk.X, expand=False, padx=self.padX, pady=self.padY)
 
@@ -469,7 +489,7 @@ class _UI(Thread):
         )
 
         self.edit_question_frame.update()
-        self.edit_question_frame.bind("<Configure>", self.onFrameConfig)
+        self.edit_question_frame.bind("<Configure>", self.on_frame_config)
         self.edit_question_canvas.bind("<MouseWheel>", self._on_mousewheel)
 
         TUC = ThemeUpdateCommands
@@ -641,7 +661,7 @@ class _UI(Thread):
         )
 
         self.edit_configuration_frame.update()
-        self.edit_configuration_frame.bind("<Configure>", self.onFrameConfig)
+        self.edit_configuration_frame.bind("<Configure>", self.on_frame_config)
         self.edit_configuration_canvas.bind("<MouseWheel>", self._on_mousewheel)
 
         COM = ThemeUpdateCommands
@@ -975,6 +995,19 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         ]
 
     def _rm_q(self, qid: str) -> None:
+        """
+        Remove Question
+            alias history:
+            * _rm_q
+
+        USED BY     QuestionFrame
+
+        Removes a specific question from the database.
+
+        :param qid: Question Unique ID
+        :return:    None
+        """
+
         if self.dsb:
             return
 
@@ -1002,6 +1035,19 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         self.update_questions()
 
     def _ed_q(self, qid: str) -> None:
+        """
+        Edit Question
+            alias history:
+            * _ed_q
+
+        USED BY     QuestionFrame
+
+        Edits a specific question in the database.
+
+        :param qid: Unique Question ID
+        :return:    None
+        """
+
         if self.dsb:
             return
 
@@ -1085,6 +1131,19 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         self.enable_all_inputs()
 
     def _ad_q(self) -> None:
+        """
+        Add Question
+
+            alias_history:
+            * _ad_q
+
+        USED BY     QuestionFrame
+
+        Wrapper to add a new question to the database.
+
+        :return: None
+        """
+
         if self.dsb:
             return
 
@@ -1142,6 +1201,20 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         self.enable_all_inputs()
 
     def _aq(self, uid: str, data: dict) -> None:  # type: ignore
+        """
+        Add Question to AdminTools
+
+            alias history:
+            * _aq
+
+        Adds a question to the admin tools question page.
+        Displays the appropriate information.
+
+        :param uid:     Unique Question ID
+        :param data:    Question Data
+        :return:        None
+        """
+
         try:
             QN = uid
             QData = data
@@ -1290,6 +1363,18 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
             log(LoggingLevel.DEBUG, f'_aq failed: {uid=} {traceback.format_exc()}')
 
     def update_questions(self) -> None:
+        """
+        Update Questions in AdminTools
+
+        alias history:
+            * update_questions
+
+        Updates the list of questions in the Admin Tools
+        UI.
+
+        :return:    None
+        """
+
         self.disable_all_inputs()
 
         for QId, D in self.question_map.items():
@@ -1360,7 +1445,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         else:
             self.edit_question_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-    def onFrameConfig(self, _: Any) -> None:
+    def on_frame_config(self, _: Any) -> None:
         if self.edit_on_config_page:
             self.edit_configuration_canvas.configure(scrollregion=self.edit_configuration_canvas.bbox("all"))
 
@@ -1368,7 +1453,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
             self.edit_question_canvas.configure(scrollregion=self.edit_question_canvas.bbox("all"))
 
     # ------------
-    # GEO Handlers
+    # Geometry Handlers
     # ------------
 
     def geo_large(self) -> None:
@@ -1459,6 +1544,17 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
     # ---------------------
 
     def export_pdf(self) -> None:
+        """
+
+        Export as PDF
+
+        alias history:
+            * export_pdf
+
+        Exports the database as a PDF file.
+
+        :return:    None
+        """
         if self.dsb:
             return
 
@@ -1632,6 +1728,19 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
             self.enable_all_inputs()
 
     def export_qz(self) -> None:
+        """
+        Export Quizzing Database
+
+        alias history:
+            * export_qz
+
+        Exports database as a Quizzing Form database.
+
+        Note: Uses qa_files.QZ_GEN_LATEST
+
+        :return:    None
+        """
+
         self.save_db()
         nDB = copy.deepcopy(self.data[self.EDIT_PAGE]['db_saved'])
         
@@ -1645,8 +1754,6 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
             nDB['CONFIGURATION'],
             nDB['QUESTIONS']
         )[-1]
-        
-        print(sDB)
         
         self.show_info(Message(Levels.NORMAL, 'Please select where to save the file'))
 
@@ -2234,6 +2341,14 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
                 )])
 
     def open_entry(self, *_0: Optional[Any], **_1: Optional[Any]) -> None:
+        """
+        Open Database Entry Point
+
+        :param _0:      ARGS
+        :param _1:      KWARGS
+        :return:        None
+        """
+
         global LOGGER_AVAIL, LOGGER_FUNC, LOGGING_FILE_NAME, LOGGING_SCRIPT_NAME
 
         if self.dsb or self.busy:
@@ -2248,8 +2363,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
                 if file_name.split('.')[-1] == qa_files.qa_file_extn:
                     file = qa_functions.File(file_name)
                     raw = qa_functions.OpenFile.load_file(file, qa_functions.OpenFunctionArgs())
-                    read, _ = cast(Tuple[bytes, str], qa_files.load_file(FileType.QA_FILE, raw))
-                    self.open(file_name, json.loads(read), False)
+                    self.open(file_name, qa_files.QADB_ReadData(raw)[0], False)
 
         except Exception as E:
             qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket('Failed to open database file.'))
@@ -2370,8 +2484,15 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
                 elif isinstance(og, dict):
                     for (k1, _), (k2, _1) in zip(og.items(), new.items()):
                         if k1 != k2:
-                            f.append('[CRITICAL] Failed to compile changes: {KoKt}')
-                            continue
+                            if '0x' in k1 and k2 in k1:
+                                # "<INT>" -> "0x...<INT>" (for questions)
+                                log(LoggingLevel.WARNING, f'FCC (KoKt) (+BYP) - "{k1}" vs "{k2}"')
+                                new[k1] = og[k1]
+                                new.pop(k2)
+                            else:
+                                log(LoggingLevel.ERROR, f'FCC (KoKt) - "{k1}" vs "{k2}"')
+                                f.append('[CRITICAL] Failed to compile changes: {KoKt}')
+                                continue
 
                         a, b = rec(og[k1], new[k1], k1)
                         c.extend(a)
@@ -2397,6 +2518,7 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
 
     @staticmethod
     def compile_changes_str(changes: List[Tuple[Union[Tuple[str, int], str], Any, Any]]) -> str:
+
         n_map: Dict[Any, Any] = {
             'psw': {
                 0: ['Database Password Protection', True, True],
@@ -2418,7 +2540,11 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
             'dpi': ['Deduct Points When Incorrect', True, True],
             'a2d': ['Num. points to deduct', True, True],
 
-            '<QA::int_code:comp_ch::LL>': ['Low-Level (Technical) Items (may include questions)', False, False],
+            '<QA::int_code:comp_ch::LL>': [
+                'Low-Level (Technical) Items (may include questions). This may occur when the file\'s version is upgraded automatically.',
+                False,
+                False
+            ],
         }
 
         c = []
@@ -2460,42 +2586,95 @@ NOTE: This file cannot be read by any app other than the QuizzingApp QuizzingFor
         c = list(set(c))
         return "\n   \u2022 " + "\n   \u2022 ".join(c)
 
-    def save_db(self, _do_not_prompt: bool = False) -> None:
-        changed, [changes, failures] = self.compile_changes()
+    def save_db(self, _do_not_prompt: bool = False, **kwargs: Any) -> None:
+        """
 
-        if not changed:
-            self.show_info(Message(Levels.ERROR, 'No changes found'))
-            return
+        :keyword _force_save:   DO NOT CHECK FOR CHANGES WHEN SAVING. TYPE: BOOL
+
+        :param _do_not_prompt:  DO NOT PROMPT USER (DEF FALSE)
+        :param kwargs:          KEYWORD ARGUMENTS
+        :return:                NONE
+        """
+
+        kwargs['_force_save'] = kwargs.get('_force_save', False)
+        assert isinstance(kwargs['_force_save'], bool)
 
         s_mem = qa_functions.SMem()
         s_mem.set('n')
 
-        if len(failures) > 0:
-            Str = "Failed to compile changes made due to the following error(s):\n\t\u2022 " + \
-                  "\n\t\u2022 ".join(f for f in failures)
-            log(LoggingLevel.ERROR, f"<SAVE_DB>: {str}")
-            qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(Str))
-            return
+        if not kwargs['_force_save']:
+            changed, [changes, failures] = self.compile_changes()
 
-        if not _do_not_prompt:
-            qa_prompts.InputPrompts.ButtonPrompt(
-                s_mem, 'Review Changes', ('Yes, save changes', 'y'), ('No', 'n'), default='n',
-                message=f"Do you want to save the following changes:\n{self.compile_changes_str(changes)}"
-            )
-
-            if s_mem.get() is None:
+            if not changed:
+                self.show_info(Message(Levels.ERROR, 'No changes found'))
                 return
 
+            if len(failures) > 0:
+                Str = "Failed to compile changes made due to the following error(s):\n\t\u2022 " + \
+                      "\n\t\u2022 ".join(f for f in failures)
+                log(LoggingLevel.ERROR, f"<SAVE_DB>: {str}")
+                qa_prompts.MessagePrompts.show_error(qa_prompts.InfoPacket(Str))
+                return
+
+            if not _do_not_prompt:
+                qa_prompts.InputPrompts.ButtonPrompt(
+                    s_mem, 'Review Changes', ('Yes, save changes', 'y'), ('No', 'n'), default='n',
+                    message=f"Do you want to save the following changes:\n{self.compile_changes_str(changes)}"
+                )
+
+                if s_mem.get() is None:
+                    return
+
+        else:
+            _do_not_prompt = True
+
         r = s_mem.get()
-        if r is None:
+
+        if r is None and not _do_not_prompt:
             return
 
+        assert isinstance(r, str)
+
         if r.strip() == 'y' or _do_not_prompt:
-            new_str = json.dumps(self.data[self.EDIT_PAGE]['db'])
+
+            def _to_questions(questions: Dict[str, Any]) -> List[qa_files.qa_file.Question]:
+                return \
+                    [
+                        qa_files.qa_file.Question(
+                            D0=question[qa_files.qa_file.ALPHA_ONE.L2_QBANK_D0],
+                            question=question[qa_files.qa_file.ALPHA_ONE.L2_QBANK_Q],
+                            answer=question[qa_files.qa_file.ALPHA_ONE.L2_QBANK_A],
+                            D1=question[qa_files.qa_file.ALPHA_ONE.L2_QBANK_D1]
+                        )
+                        for question in questions.values()
+                    ]
+
             file = qa_functions.File(self.data[self.EDIT_PAGE]['db_path'])
+            new_str = qa_files.QA_GEN_LATEST(
+                str(qa_info.App.version),
+                qa_info.App.build_id,
+                int(qa_info.App.version),
+                qa_info.App.build_name,
+                qa_info.App.DEV_MODE,
+                self.data[self.EDIT_PAGE]['db']['DB']['name'],
+                qa_files.qa_file.Configuration(
+AllowCustomQuizConfiguration=self.data[self.EDIT_PAGE]['db']['CONFIGURATION'][qa_files.qa_file.ALPHA_ONE.L2_CONFIG_ACC[0]],
+DS_SubsetMode=(self.data[self.EDIT_PAGE]['db']['CONFIGURATION'][qa_files.qa_file.ALPHA_ONE.L2_CONFIG_POA[0]] == 'p'),
+DS_SubsetDiv=self.data[self.EDIT_PAGE]['db']['CONFIGURATION'][qa_files.qa_file.ALPHA_ONE.L2_CONFIG_SSD[0]],
+DS_RandomizeQuestionOrder=self.data[self.EDIT_PAGE]['db']['CONFIGURATION'][qa_files.qa_file.ALPHA_ONE.L2_CONFIG_RQO[0]],
+RM_Deduct=self.data[self.EDIT_PAGE]['db']['CONFIGURATION'][qa_files.qa_file.ALPHA_ONE.L2_CONFIG_DPI[0]],
+RM_DeductionAmount=self.data[self.EDIT_PAGE]['db']['CONFIGURATION'][qa_files.qa_file.ALPHA_ONE.L2_CONFIG_A2D[0]],
+                ),
+                _to_questions(self.data[self.EDIT_PAGE]['db']['QUESTIONS']),
+                self.data[self.EDIT_PAGE]['db']['DB']['q_psw'],
+                self.data[self.EDIT_PAGE]['db']['DB']['psw'],
+            )[-1]
+
             new, _ = cast(Tuple[bytes, str], qa_files.generate_file(FileType.QA_FILE, new_str))
+
             qa_functions.SaveFile.secure(file, new, qa_functions.SaveFunctionArgs(False, False, save_data_type=bytes))
             self.data[self.EDIT_PAGE]['db_saved'] = copy.deepcopy(self.data[self.EDIT_PAGE]['db'])
+
             log(LoggingLevel.SUCCESS, 'Successfully saved new data to database.')
             self.show_info(Message(Levels.OKAY, 'Successfully saved new data'))
 
@@ -2736,10 +2915,10 @@ Technical Information: {traceback.format_exc()}"""))
             for k, v in qd.items():
                 try:
                     assert isinstance(k, str), f'Question key must be of type STRING; got {type(k)} (qTe::tpT1)'
-                    try:
-                        int(k)
-                    except Exception as e1:
-                        raise AssertionError('Question key MUST be able to be translated to an integer (qTe::tpT2)')
+                    # try:
+                    #     int(k)
+                    # except Exception as e1:
+                    #     raise AssertionError('Question key MUST be able to be translated to an integer (qTe::tpT2)')
 
                     assert isinstance(v, dict), 'Invalid answer data (aTe::tpT1)'
                     assert len(v.values()) == 4, 'Invalid answer data (aTe::vv2)'
@@ -2782,7 +2961,7 @@ Technical Information: {traceback.format_exc()}"""))
             nLs = list(db[qr].values())
             db[qr] = {}
             for ind, v in enumerate(nLs):
-                db[qr][str(ind)] = v
+                db[qr][('0x' + qa_functions.clamp(0, 12 - len(hex(ind)), 9e9) * '0' + hex(ind)[2::])] = v  # type: ignore
 
         else:
             raise qa_functions.UnexpectedEdgeCase('_clean_db::?QuestionData (qd) :: !dict, !NoneType')
@@ -2794,9 +2973,23 @@ Technical Information: {traceback.format_exc()}"""))
 
         return db
 
-    def open(self, path: str, data: Dict[Any, Any], _bypass_psw: bool = False, _no_prompt: bool = False) -> None:
+    def open_d(self, path: str, data: Dict[Any, Any], _bypass_psw: bool = False, _no_prompt: bool = False, **kwargs: Any) -> None:
+        """
+
+        :key _force_new_version:    FORCE USER TO SAVE DB AS PER THE LATEST SPECIFICATION. TYPE: BOOL
+
+        :param path:                PATH TO DB
+        :param data:                DATA IN DB (DICT)
+        :param _bypass_psw:         BYPASS PASSWORD PROTECTION (DEF FALSE)
+        :param _no_prompt:          DO NOT PROMPT USER (DEF FALSE)
+        :param kwargs:              KEYWORD ARGUMENTS
+        :return:                    NONE
+        """
         assert os.path.isfile(path)
         assert type(data) is dict
+
+        kwargs['_force_new_version'] = kwargs.get('_force_new_version', False)
+        assert isinstance(kwargs['_force_new_version'], bool)
 
         self.enable_all_inputs()
 
@@ -2839,6 +3032,26 @@ Technical Information: {traceback.format_exc()}"""))
 
                 else:
                     self.save_db(True)
+
+            elif kwargs['_force_new_version']:
+                s_mem = qa_functions.SMem()
+                s_mem.set('')
+                qa_prompts.InputPrompts.ButtonPrompt(
+                    s_mem,
+                    'New Database Version Available.',
+                    ('Update now', 'un'), ('Exit', 'ex'),
+                    default='ex',
+                    message='The app has detected that you\'re using an outdated version of the QA_FILE format.' +
+                            '\n\nTo continue, you must first update the file to the latest specification.'
+                )
+
+                if s_mem.get() != 'un':
+                    self.proc_exit(self.SELECT_PAGE)
+                    self.show_info(Message(Levels.ERROR, 'Aborted process.'))
+                    return
+
+                else:
+                    self.save_db(True, _force_save=True)
 
             del changed, changes, failures, O_data
             self.data[self.EDIT_PAGE]['db_saved'] = n_data
@@ -2899,6 +3112,59 @@ Error Code: {hashlib.md5(f"{E}".encode()).hexdigest()}
 Technical Information: {traceback.format_exc()}"""
                 )
             )
+
+    def open_n(self, path: str, data: qa_files.QADB, _bypass_psw: bool = False, _no_prompt: bool = False) -> None:
+        """
+        Open database
+
+        Overload variant
+        Uses question answer database for its data input.
+        Is backwards compatible as QADB should be generated by qa_files.qa_file
+
+        NOTE:                   Calls _UI.open variant with DB-1 COMPLIANT dict
+                                Passes all other arguments to that function without any
+                                changes.
+
+        NOTE:                   Adds KEYWORD-ARG '_force_new_format' to data_d call as
+                                per the result of the expr 'not data.LatestFileMode'
+
+        :param path:            path to db
+        :param data:            data
+        :param _bypass_psw:     bypass password protection
+        :param _no_prompt:      do not prompt user for any reason.
+
+        :return:                None
+        """
+
+        assert os.path.isfile(path)
+        assert type(data) is qa_files.QADB
+
+        self.open_d(
+            path,
+            qa_files.QA_ToAlphaOne(data),
+            _bypass_psw,
+            _no_prompt,
+            _force_new_version=(not data.LatestFileMode)
+        )
+
+        return
+
+    def open(
+            self,
+            path: str,
+            data: qa_files.QADB | Dict[Any, Any],
+            _bypass_psw: bool = False,
+            _no_prompt: bool = False
+    ) -> None:
+        match str(type(data)):
+            case "<class 'dict'>":
+                log(LoggingLevel.WARNING, 'USING DEPRECATED OPEN_D FUNCTION USING DIRECT CALL.')
+                return self.open_d(path, cast(Dict[Any, Any], data), _bypass_psw, _no_prompt)
+            case "<class 'qa_files.qa_file.QuestionAnswerDB'>":
+                log(LoggingLevel.INFO, 'Using OPEN_N function.')
+                return self.open_n(path, cast(qa_files.QADB, data), _bypass_psw, _no_prompt)
+            case other:
+                raise qa_functions.UnexpectedEdgeCase
 
     # --------------------
     # DEFAULT UI FUNCTIONS

@@ -1,6 +1,10 @@
 import json, sys, hashlib, datetime, re, random
+
+import cryptography.fernet
+
 from qa_functions.qa_std import data_at_dict_path, check_hex_contrast, clamp
 from qa_functions.qa_file_handler import _Crypt, ConverterFunctionArgs as CFA
+from qa_functions.qa_custom import EncryptionError
 from typing import Tuple, List, Dict, Any, Union, cast
 from .qa_files_ltbl import qa_file_enck
 from .qa_file_std import load_file_sections, FileType
@@ -105,6 +109,8 @@ class QuestionAnswerDB:
     
     ProtectionMode_QUIZ:        List[bool | str]
     ProtectionMode_DB:          List[bool | str]
+
+    LatestFileMode:             bool = False
     
 
 class BACK_COMP:
@@ -218,36 +224,43 @@ class Read:
     @staticmethod
     def mode_bck_comp(raw_data: str) -> QuestionAnswerDB:
         global _qa_file_versions
-        
+
+        sys.stdout.write('qa_file.mode_bck_comp\n')
+
         E, Q, C = 'SC_END', 'SC_QAI', 'SC_CON'
         
-        assert isinstance(raw_data, str),                           '0xBC00000000'  # Input: TypeError
-        assert len(raw_data),                                       '0xBC00000000'  # Input: ValueError
-        assert raw_data.count('\n'),                                '0xBC00000000'  # Input: ValueError
+        assert isinstance(raw_data, str),                               '0xBC00000000'  # Input: TypeError
+        assert len(raw_data),                                           '0xBC00000000'  # Input: ValueError
+        assert raw_data.count('\n'),                                    '0xBC00000000'  # Input: ValueError
         
         raw_data = raw_data.strip()
         
         meta_line = raw_data.split('\n')[0]
         raw_data = raw_data.replace(meta_line, '')
+
+        assert BACK_COMP.META_APP_VERSION['KEY'] not in raw_data,       '0xBC00000010'
+
+        if not (
+                    BACK_COMP.META_APP_VERSION['KEY'] in meta_line
+                and BACK_COMP.META_APP_VERSION['SEP'] in meta_line
+                and BACK_COMP.META_APP_VERSION['VAL'] in meta_line
+        ):
+            sys.stderr.write('[WARN] BC.FMETA1.UNCONF\n')
+
+        else:
+            assert meta_line.index(BACK_COMP.META_APP_VERSION['KEY']) \
+            == 0,                                                       '0xBC00000020'
         
-        assert BACK_COMP.META_APP_VERSION['KEY'] not in raw_data,   '0xBC00000010'
-        assert BACK_COMP.META_APP_VERSION['KEY'] in meta_line,      '0xBC00000011'
-        assert BACK_COMP.META_APP_VERSION['SEP'] in meta_line,      '0xBC00000012'
-        assert BACK_COMP.META_APP_VERSION['VAL'] in meta_line,      '0xBC00000013'
+            meta_line = meta_line.replace(BACK_COMP.META_APP_VERSION['KEY'], 'mode', 1)
         
-        assert meta_line.index(BACK_COMP.META_APP_VERSION['KEY']) \
-            == 0,                                                   '0xBC00000020'
-        
-        meta_line = meta_line.replace(BACK_COMP.META_APP_VERSION['KEY'], 'mode', 1)
-        
-        meta_split = list(map(
-            lambda x: x.strip(), 
-            meta_line.split(BACK_COMP.META_APP_VERSION['SEP'])
-        ))
-                
-        assert len(meta_split) == 2,                                '0xBC00000031'
-        assert meta_split[0] == 'mode',                             '0xBC00000032'
-        assert meta_split[1] == BACK_COMP.META_APP_VERSION['VAL'],  '0xBC00000033'
+            meta_split = list(map(
+                lambda x: x.strip(),
+                meta_line.split(BACK_COMP.META_APP_VERSION['SEP'])
+            ))
+
+            assert len(meta_split) == 2,                                '0xBC00000031'
+            assert meta_split[0] == 'mode',                             '0xBC00000032'
+            assert meta_split[1] == BACK_COMP.META_APP_VERSION['VAL'],  '0xBC00000033'
         
         section_codes = []
         section_codes.extend([E for _ in range(raw_data.count(BACK_COMP.CODE_SECTION_END))])
@@ -393,7 +406,7 @@ class Read:
                 assert len(Data0.entries) == 3, 'INTERNAL_ERROR: update database management'
                 
                 s[Data0.AutoMark.index] = '1'
-                s[Data0.Fuzzy.index] = '1'
+                s[Data0.Fuzzy.index] = '0'
                 
                 questions[code_base] = Question(''.join(s) + '0', q, {
                     "C": "/".join(correct_options).strip('/'),
@@ -414,7 +427,7 @@ class Read:
                 assert len(Data0.entries) == 3, 'INTERNAL_ERROR: update database management'
                 
                 s[Data0.AutoMark.index] = '1'
-                s[Data0.Fuzzy.index] = '1'
+                s[Data0.Fuzzy.index] = '0'
                 
                 questions[code_base] = Question(''.join(s) + '0', q, '1' if ('t' in a) else '0', 'tf')
                 
@@ -427,7 +440,8 @@ class Read:
                 assert len(Data0.entries) == 3, 'INTERNAL_ERROR: update database management'
                 
                 s[Data0.AutoMark.index] = '1'
-                s[Data0.Fuzzy.index] = '1'
+                s[Data0.Fuzzy.index] = '0'                      # Questions from QAS2 were created under the assumption
+                                                                #   that an exact match is required.
                 
                 questions[code_base] = Question(''.join(s) + '0', q.strip(), a.strip(), 'nm')
             
@@ -615,7 +629,7 @@ class Read:
     @staticmethod
     def alpha_two(data: Dict[str, Any]) -> QuestionAnswerDB:
         global C_META, C_CONTENT, C_VERIFICATION, _qa_file_versions, FF_STATIC_KEY
-        
+
         assert isinstance(data, dict),                  '0xA200000000'
         assert C_META in data,                          '0xA200000010'
         assert C_CONTENT in data,                       '0xA200000011'
@@ -861,7 +875,8 @@ class Generate:
                 
             C_META: 
                 {
-                    
+                    FF_STATIC_KEY: QA_FRMT.ALPHA_TWO.value,
+
                     ALPHA_TWO.M_AppVersion: App_Version,
                     ALPHA_TWO.M_AppIVersion: App_IVersion,
                     ALPHA_TWO.M_AppBuild: App_Build,
@@ -972,7 +987,8 @@ def ProduceAlphaOneDict(qadb: QuestionAnswerDB) -> Dict[str, Any]:
             },
         ALPHA_ONE.L1_QBANK_KEY:
             {
-                ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]): {  # type: ignore
+                ('0x' + clamp(0, 12 - len(hex(i)), 9e9) * '0' + hex(i)[2::]):  # type: ignore
+                {
                     ALPHA_ONE.L2_QBANK_D1: q.D1,
                     ALPHA_ONE.L2_QBANK_Q: q.question,
                     ALPHA_ONE.L2_QBANK_A: q.answer,
@@ -1007,8 +1023,7 @@ def GetReadMode(raw_data: bytes) -> Tuple[ReadMode, bytes]:
         Tuple(ReadMode, bytes): ReadMode (ENUM), encryption key
     """
     
-    return (ReadMode.BackComp, BACK_COMP._KEY) if \
-        raw_data[0:2] == 'gA' else (ReadMode.NewGen, qa_file_enck)
+    return (ReadMode.BackComp, BACK_COMP._KEY) if raw_data[0:2] == b'gA' else (ReadMode.NewGen, qa_file_enck)
 
 
 _qa_file_versions = {
@@ -1040,12 +1055,12 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:  # 
     said data.  
     
     ALPHA_ONE-compliance means that the dictionary keys and structure
-    from ALPHA_ONE files (for compatability with the quizzing app suite)
+    from ALPHA_ONE files (for compatibility with the quizzing app suite)
     with extra data. 
     
     At the time of the creation of this docstring, this extra data includes:
-        (a) file meta data
-        (b) app meta data
+        (a) file metadata
+        (b) app metadata
         (c) verification data
 
     Args:
@@ -1058,7 +1073,7 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:  # 
     global _qa_file_versions, C_META
     rmode, enck = GetReadMode(raw_data)
     
-    if (rmode == ReadMode.BackComp):
+    if rmode == ReadMode.BackComp:
         sys.stdout.write('[WARN] DB invokes ReadMode.BackComp. Attempting to decrypt using qa2.k\n')
         dec_data = _Crypt.decrypt(raw_data, enck, CFA())
         assert isinstance(dec_data, (str, bytes))
@@ -1079,8 +1094,14 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:  # 
         #   (3) Decrypt body section again (same key)
         #   (4) Load as JSON
         #   (5) Pass it on (check meta information, or the lack thereof for ALPHA_ONE)
-        
-        _mn = _Crypt.decrypt(raw_data, enck, CFA())
+
+        # The first decrypt is optional, depending on the version of the file.
+
+        try:
+            _mn = _Crypt.decrypt(raw_data, enck, CFA())
+        except Exception as _:
+            _mn = raw_data
+
         _hash, _dd1 = load_file_sections(FileType.QA_FILE, _mn)  # type: ignore
         _dd2 = _Crypt.decrypt(_dd1, enck, CFA())
         
@@ -1100,7 +1121,10 @@ def ReadRawData(raw_data: bytes) -> Tuple[QuestionAnswerDB, Dict[str, Any]]:  # 
         else:
             # Assume ALPHA_ONE 
             qadb = Read.alpha_one(jd)
-            
+
+    if qadb.File_Format == QA_FRMT.ALPHA_TWO.value:
+        qadb.LatestFileMode = True
+
     return qadb, ProduceAlphaOneDict(qadb)
 
 
